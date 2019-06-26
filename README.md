@@ -10,3 +10,7 @@ user/kernel, VM guest/host, network).
 ## Collaboration
 
 See the [contributing instructions](./CONTRIBUTING.md).
+
+## Disclaimer
+
+This is not an officially supported Google product.
