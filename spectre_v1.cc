@@ -103,7 +103,14 @@ static char leak_byte(std::string_view text, int offset) {
   //   https://spectreattack.com/spectre.pdf
   //
   struct BigByte {
-    // TODO(jeanpierreda): Why is initialization of padding_ necessary?
+    // Explicitly initialize the array. It doesn't matter what we write; it's
+    // only important that we write *something* to each page. Otherwise,
+    // there's an opportunity for the range to be allocated as zero-fill-on-
+    // demand (ZFOD), where all virtual pages are a read-only mapping to the
+    // *same* physical page of zeros. The cache in modern Intel CPUs is
+    // physically-tagged, so all of those virtual addresses would map to the
+    // same cache line and we wouldn't be able to observe a timing difference
+    // between accessed and unaccessed pages (modulo e.g. TLB lookups).
     std::array<unsigned char, 4096> padding_ = {};
   };
   std::array<BigByte, 257> oracle_array;
