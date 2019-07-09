@@ -18,7 +18,11 @@
 // TODO(jeanpierreda): Make this work on GCC.
 // TODO(jeanpierreda): Use a specific public Clang version, document specific CPUs.
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#else
 #include <x86intrin.h>
+#endif
 
 #include <algorithm>
 #include <array>
