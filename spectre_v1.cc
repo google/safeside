@@ -123,7 +123,7 @@ static char leak_byte(std::string_view text, int offset) {
   // to guess the result of comparison. It could be stored on the stack, >=4096
   // bytes away from any other values we use we use (which will be loaded into
   // cache). In this demo, it is more convenient to store it on the heap:
-  // it is the _only) heap-allocated value in this program, and easily removed
+  // it is the _only_) heap-allocated value in this program, and easily removed
   // from cache.
   auto size_in_heap = std::make_unique<int>(text.size());
 
@@ -209,8 +209,8 @@ static char leak_byte(std::string_view text, int offset) {
           i != data[safe_offset]) ++hitcount;
     }
 
-    // If there is not exacly one hit, we consider that sample invalid and skip
-    // it.
+    // If there is not exactly one hit, we consider that sample invalid and
+    // skip it.
     if (hitcount == 1) {
       for (int i = 0; i < 256; ++i) {
         if (latencies[i] < avg_latency - hitmiss_diff / 2 &&
