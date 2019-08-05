@@ -7,11 +7,17 @@ breadth of techniques (Meltdown, Spectre variants, L1TF, MDS, and those yet to
 be discovered) and across a variety of isolation boundaries (same process,
 user/kernel, VM guest/host, network).
 
+## Build instructions
+
+g++ spectre\_v1.cc cache\_sidechannel.cc instr.cc
+g++ spectre\_v4.cc cache\_sidechannel.cc instr.cc
+
 ## Tested environments
 
 We currently test our changes on:
 Linux - Intel Xeon Gold 6154 - {g++-6.4.0 - g++-8.0.1, clang-4.0 - clang-7}
-Linux - {Intel Core i7-6700, AMD Ryzen 5 PRO 2400G} - {g++-5.4.0 - g++-9.1.0}
+Linux - {Intel Core i7-6700, AMD Ryzen 5 PRO 2400G} - {g++-5.4.0 - g++-9.1.0,
+clang-6.0 - clang-8}
 Linux - Intel Core2 Quad - g++-8.1.1
 Linux - Intel XeonE5-2670 - g++-4.8.4
 Linux - Intel Core i7-3520M - {g++-8.3.0, clang-6.0 - clang-7, icc-19.0.4.243}
