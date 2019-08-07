@@ -97,7 +97,7 @@ void CLFlush(const void *memory) {
 #elif defined(__powerpc__)
   asm volatile("dcbf 0, %0" ::"r"(memory) : "memory");
 #else
-#  error "Unsupported CPU."
+#  error Unsupported CPU.
 #endif
   MFence();
 }
