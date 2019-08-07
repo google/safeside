@@ -61,24 +61,29 @@ struct PaddedOracleArray {
   BigByte pad_right;
 };
 
+// Provides an oracle of allocated memory indexed by 256 character ASCII
+// codes in order to capture speculative cache loads.
+//
+// The client is expected to flush the oracle from the cache and access one of
+// the indexing characters really (safe_offset_char) and one of them
+// speculatively.
+//
+// Afterwards the client invokes the recomputation of the scores which
+// computes which character was accessied speculatively and increases its
+// score.
+//
+// This process (flushing oracle, speculative access of the oracle by the
+// client and recomputation of scores) repeats until one of the characters
+// accumulates a high enough score.
+//
 class CacheSideChannel {
-  // Provides an oracle of allocated memory indexed by 256 character ASCII
-  // codes in order to capture speculative cache loads.
-  //
-  // The client is expected to flush the oracle from the cache and access one of
-  // the indexing characters really (safe_offset_char) and one of them
-  // speculatively.
-  //
-  // Afterwards the client invokes the recomputation of the scores which
-  // computes which character was accessied speculatively and increases its
-  // score.
-  //
-  // This process (flushing oracle, speculative access of the oracle by the
-  // client and recomputation of scores) repeats until one of the characters
-  // accumulates a high enough score.
-  //
-
  public:
+  CacheSideChannel() = default;
+
+  // Not copyable or movable.
+  CacheSideChannel(const CacheSideChannel&) = delete;
+  CacheSideChannel& operator=(const CacheSideChannel&) = delete;
+
   // Provides the oracle for speculative memory accesses.
   const std::array<BigByte, 256> &GetOracle() const;
   // Flushes all indexes in the oracle from the cache.
