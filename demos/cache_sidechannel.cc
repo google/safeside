@@ -74,11 +74,11 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   }
 
   std::list<uint64_t> sorted_latencies_list(latencies.begin(), latencies.end());
-  // We have to used the list sort implementation, because invocations of
+  // We have to used the std::list::sort implementation, because invocations of
   // std::sort, std::stable_sort, std::nth_element and std::partial_sort when
   // compiled with optimizations intervene with the neural network based AMD
   // memory disambiguation dynamic predictor and the Spectre v4 example fails
-  // on AMD Ryzen 2400.
+  // on AMD Ryzen 5 PRO 2400G.
   sorted_latencies_list.sort();
   std::vector<uint64_t> sorted_latencies(sorted_latencies_list.begin(),
                                          sorted_latencies_list.end());
