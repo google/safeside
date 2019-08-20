@@ -1,43 +1,30 @@
-# How to Contribute
+# How to contribute
 
-This project welcomes contributions. Our aim is to cover sidechannels with
-synthetic tests that are robust across CPU architectures, compilers and
-operating systems.
+We'd love to accept your patches and contributions to this project. There are just a few small guidelines you need to follow.
 
-We'd love to accept your patches and contributions to this project. There are
-just a few small guidelines you need to follow.
+## Propose ideas and get feedback
 
-## Contributor License Agreement
+To help us respect your time as a contributor and maximize the chances of your work landing in the repository, please reach out early by creating a [GitHub Issue](TODO) to talk about the additions or improvements you want to make.
 
-Contributions to this project must be accompanied by a Contributor License
-Agreement. You (or your employer) retain the copyright to your contribution;
-this simply gives us permission to use and redistribute your contributions as
-part of the project. Head over to <https://cla.developers.google.com/> to see
-your current agreements on file or to sign a new one.
-
-You generally only need to submit a CLA once, so if you've already submitted one
-(even if it was for a different project), you probably don't need to do it
-again.
+You can also take a look at our [roadmap](README.md#roadmap) to see what improvements we're most eager to see, and our [explicit non-goals](README.md#non-goals) for examples of contributions we will not accept.
 
 ## Code reviews
 
-All submissions, including submissions by project members, require review. We
-use GitHub pull requests for this purpose. Consult
-[GitHub Help](https://help.github.com/articles/about-pull-requests/) for more
-information on using pull requests.
+All submissions, including submissions by project members, require review. We use GitHub pull requests for this purpose. Consult [GitHub Help](https://help.github.com/articles/about-pull-requests/) for more information on using pull requests.
 
-## Community Guidelines
+### Contributor License Agreement
 
-This project follows [Google's Open Source Community
-Guidelines](https://opensource.google.com/conduct/).
+Contributions to this project must be accompanied by a Contributor License Agreement. You (or your employer) retain the copyright to your contribution; this simply gives us permission to use and redistribute your contributions as part of the project. Head over to <https://cla.developers.google.com/> to see your current agreements on file or to sign a new one.
 
-## Source Code Headers
+You generally only need to submit a CLA once, so if you've already submitted one (even if it was for a different project), you probably don't need to do it again.
 
-Every file containing source code must include copyright and license
-information. (This is to help well-intentioned people avoid accidental copying
-that doesn't comply with the license.)
+## Code style
 
-Apache header:
+We use [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html). Please run `clang-format` on your code before sending a pull request.
+
+### Source code headers
+
+Every file containing source code must include a copyright and license header:
 
     Copyright 2019 Google LLC
 
@@ -52,3 +39,7 @@ Apache header:
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
+
+## Community Guidelines
+
+This project follows [Google's Open Source Community Guidelines](https://opensource.google.com/conduct/).
