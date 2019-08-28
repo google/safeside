@@ -84,7 +84,7 @@ static uint64_t RdTsc() {
 // Forces a memory read of the byte at address p. This will result in the byte
 // being loaded into cache.
 void ForceRead(const void *p) {
-  static_cast<void>(*reinterpret_cast<const volatile char *>(p));
+  (void)*reinterpret_cast<const volatile char *>(p);
 }
 
 // Architecturally dependent cache flush.
