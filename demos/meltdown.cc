@@ -23,7 +23,7 @@
 #include <tuple>
 #include <vector>
 
-// TODO(asteinha) Windows, MacOS and vulnerable ARM support.
+// TODO(asteinha): Windows, MacOS and vulnerable ARM support.
 
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
