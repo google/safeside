@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// TODO(asteinha) Deflake on ARM.
+// TODO(asteinha): Deflake on ARM.
 
 #include <algorithm>
 #include <array>
