@@ -85,7 +85,7 @@ static char leak_byte(const char *data, size_t offset) {
 
       // We always flush the pointer, so that its access is slower.
       CLFlush(&(*array_of_pointers)[i]);
-      CLFlush(&*array_of_pointers);
+      CLFlush(array_of_pointers.get());
 
       // When i is at the local_pointer_index, we slowly copy safe_offset into
       // the local_offset. Otherwise we just copy the safe_offset to junk. After
