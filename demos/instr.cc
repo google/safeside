@@ -20,7 +20,7 @@
 
 #include <cstdint>
 
-#if defined(__i386__) or defined(__x86_64__) or defined(_M_X64) or \
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
 #  ifdef _MSC_VER
 #    include <intrin.h>
@@ -39,7 +39,7 @@
 
 // Architecturally dependent full memory fence.
 static void MFence() {
-#if defined(__i386__) or defined(__x86_64__) or defined(_M_X64) or \
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
   _mm_mfence();
 #elif defined(__aarch64__)
@@ -53,7 +53,7 @@ static void MFence() {
 
 // Architecturally dependent load memory fence.
 static void LFence() {
-#if defined(__i386__) or defined(__x86_64__) or defined(_M_X64) or \
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
   _mm_lfence();
 #elif defined(__aarch64__)
@@ -68,7 +68,7 @@ static void LFence() {
 // Architecturally dependent CPU clock counter.
 static uint64_t RdTsc() {
   uint64_t result;
-#if defined(__i386__) or defined(__x86_64__) or defined(_M_X64) or \
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
   result = __rdtsc();
 #elif defined(__aarch64__)
@@ -89,7 +89,7 @@ void ForceRead(const void *p) {
 
 // Architecturally dependent cache flush.
 void CLFlush(const void *memory) {
-#if defined(__i386__) or defined(__x86_64__) or defined(_M_X64) or \
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
   _mm_clflush(memory);
 #elif defined(__aarch64__)
