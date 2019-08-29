@@ -18,7 +18,7 @@ This repository provides a home for:
 - **Documentation**\
   References to research that describes what causes side-channels and how they behave.
 
-  Docs are [here](docs/).
+  Docs are [here](docs/README.md).
 
 - **Mitigation development**\
   Ideas and prototypes for how to find and stop side-channel leaks.
