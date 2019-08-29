@@ -4,7 +4,7 @@ We'd love to accept your patches and contributions to this project. There are ju
 
 ## Propose ideas and get feedback
 
-To help us respect your time as a contributor and maximize the chances of your work landing in the repository, please reach out early by creating a [GitHub Issue](TODO) to talk about the additions or improvements you want to make.
+To help us respect your time as a contributor and maximize the chances of your work landing in the repository, please reach out early by [creating a GitHub Issue](https://github.com/google/safeside/issues/new) to talk about the additions or improvements you want to make.
 
 You can also take a look at our [roadmap](README.md#roadmap) to see what improvements we're most eager to see, and our [explicit non-goals](README.md#non-goals) for examples of contributions we will not accept.
 
