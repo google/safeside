@@ -8,6 +8,8 @@ To help us respect your time as a contributor and maximize the chances of your w
 
 You can also take a look at our [roadmap](README.md#roadmap) to see what improvements we're most eager to see, and our [explicit non-goals](README.md#non-goals) for examples of contributions we will not accept.
 
+Some questions or feedback might not make sense as GitHub issues. For those, we've created a public [`safeside-discuss` group](https://groups.google.com/forum/#!forum/safeside-discuss).
+
 ## Code reviews
 
 All submissions, including submissions by project members, require review. We use GitHub pull requests for this purpose. Consult [GitHub Help](https://help.github.com/articles/about-pull-requests/) for more information on using pull requests.
