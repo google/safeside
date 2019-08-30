@@ -4,13 +4,20 @@
 
 ```bash
 # Spectre V1 -- bounds check bypass
-g++ -O2 spectre_v1.cc cache_sidechannel.cc instr.cc
+g++ -O2 spectre_v1.cc cache_sidechannel.cc instr.cc -o spectre_v1
+./spectre_v1
 
 # Spectre V3 / Meltdown
-g++ -O2 meltdown.cc cache_sidechannel.cc instr.cc
+g++ -O2 meltdown.cc cache_sidechannel.cc instr.cc -o meltdown
+cd ../third_party/kmod
+make
+sudo insmod kernel_data.ko
+cd ../../demos
+sudo ./meltdown
 
 # Spectre V4 -- speculative store bypass
-g++ -O2 spectre_v4.cc cache_sidechannel.cc instr.cc
+g++ -O2 spectre_v4.cc cache_sidechannel.cc instr.cc -o spectre_v4
+./spectre_v4
 ```
 
 ## Tested environments
