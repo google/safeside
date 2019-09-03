@@ -3,20 +3,25 @@
 ## Build instructions
 
 ```bash
-# Spectre V1 -- bounds check bypass
-g++ -O2 spectre_v1.cc cache_sidechannel.cc instr.cc -o spectre_v1
+cd safeside
+
+mkdir build
+
+cd build
+
+// Debug builds may not work.
+cmake -DCMAKE_BUILD_TYPE=Release ../
+
+make
+
+# Everything should be built now.
+
 ./spectre_v1
 
-# Spectre V3 / Meltdown
-g++ -O2 meltdown.cc cache_sidechannel.cc instr.cc -o meltdown
-cd ../third_party/kmod
-make
-sudo insmod kernel_data.ko
-cd ../../demos
+# You need to load the kernel module before running this
 sudo ./meltdown
 
-# Spectre V4 -- speculative store bypass
-g++ -O2 spectre_v4.cc cache_sidechannel.cc instr.cc -o spectre_v4
+
 ./spectre_v4
 ```
 
