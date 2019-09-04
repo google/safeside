@@ -109,6 +109,12 @@ For example:
 
 We eagerly welcome contributions. Please take a look at our [contributing guidelines](CONTRIBUTING.md) for more on how to engage with the project.
 
+## Questions?
+
+If you've found a bug or think something's missing, please [file an issue](https://github.com/google/safeside/issues).
+
+For general discussion about side-channels or for questions about the project's goals and roadmap, use our [`safeside-discuss` group](https://groups.google.com/forum/#!forum/safeside-discuss).
+
 ## Disclaimer
 
 This is not an officially supported Google product.
