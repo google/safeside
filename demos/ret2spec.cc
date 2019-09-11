@@ -61,7 +61,6 @@ void speculation(const char *data, size_t offset,
   ForceRead(&isolated_oracle[static_cast<size_t>(data[offset])]);
   std::cout << "If this is printed, it signifies a fatal error. "
             << "This print statement is architecturally dead." << std::endl;
-  exit(EXIT_FAILURE);
 }
 
 static char leak_byte(const char *data, size_t offset) {
