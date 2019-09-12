@@ -20,7 +20,7 @@ g++ -O2 spectre_v4.cc cache_sidechannel.cc instr.cc -o spectre_v4
 ./spectre_v4
 
 # Ret2spec
-g++ -O2 ret2spec.cc cache_sidechannel.cc instr.cc -o ret2spec
+g++ -O2 -fomit-frame-pointer ret2spec.cc cache_sidechannel.cc instr.cc -o ret2spec
 ./ret2spec
 ```
 

