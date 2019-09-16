@@ -16,6 +16,7 @@
 
 #include <array>
 #include <memory>
+#include <set>
 
 // Represents a cache-line in the oracle for each possible ASCII code.
 // We can use this for a timing attack: if the CPU has loaded a given cache
@@ -91,8 +92,9 @@ class CacheSideChannel {
   // Finds which character was accessed speculatively and increases its score.
   // If one of the characters got a high enough score, returns true and that
   // character. Otherwise it returns false and any character that has the
-  // highest score.
-  std::pair<bool, char> RecomputeScores(char safe_offset_char);
+  // highest score. The parameter represents a set of characters that were
+  // accessed architecturally (non speculatively) in the oracle.
+  std::pair<bool, char> RecomputeScores(std::set<char> architectural_hits);
 
  private:
   // Oracle array cannot be allocated for stack because MSVC stack size is 1MB,
