@@ -98,8 +98,8 @@ static char leak_byte(const char *data, size_t offset) {
       ForceRead(&isolated_oracle[static_cast<size_t>(data[local_offset])]);
     }
 
-    std::pair<bool, char> result = sidechannel.RecomputeScores(
-        std::set<char>({data[safe_offset]}));
+    std::pair<bool, char> result =
+        sidechannel.RecomputeScores(data[safe_offset]);
     if (result.first) {
       return result.second;
     }

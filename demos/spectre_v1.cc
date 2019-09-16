@@ -87,8 +87,8 @@ static char leak_byte(const char *data, size_t offset) {
       }
     }
 
-    std::pair<bool, char> result = sidechannel.RecomputeScores(
-        std::set<char>({data[safe_offset]}));
+    std::pair<bool, char> result =
+        sidechannel.RecomputeScores(data[safe_offset]);
     if (result.first) {
       return result.second;
     }
