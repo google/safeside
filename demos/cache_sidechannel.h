@@ -92,7 +92,7 @@ class CacheSideChannel {
   // If one of the characters got a high enough score, returns true and that
   // character. Otherwise it returns false and any character that has the
   // highest score.
-  std::pair<bool, char> RecomputeScores(size_t safe_offset);
+  std::pair<bool, char> RecomputeScores(char safe_offset_char);
   // Adds an artifical cache-hit and recompute scores. Useful for demonstration
   // that do not have natural architectural cache-hits.
   std::pair<bool, char> AddHitAndRecomputeScores();

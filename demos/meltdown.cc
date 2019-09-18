@@ -81,7 +81,7 @@ static char leak_byte(const char *data, size_t offset) {
     asm volatile("afterspeculation:");
 
     std::pair<bool, char> result =
-        sidechannel.RecomputeScores(static_cast<size_t>(data[safe_offset]));
+        sidechannel.RecomputeScores(data[safe_offset]);
     if (result.first) {
       return result.second;
     }
