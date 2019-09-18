@@ -139,7 +139,7 @@ static char LeakByte(size_t offset) {
     }
 
     std::pair<bool, char> result =
-        sidechannel.RecomputeScores(public_data[offset]);
+        sidechannel.RecomputeScores(static_cast<size_t>(public_data[offset]));
     if (result.first) {
       return result.second;
     }

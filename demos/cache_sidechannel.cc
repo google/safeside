@@ -51,7 +51,7 @@ void CacheSideChannel::FlushOracle() const {
   }
 }
 
-std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
+std::pair<bool, char> CacheSideChannel::RecomputeScores(size_t safe_offset) {
   std::array<uint64_t, 256> latencies = {};
   size_t best_val = 0, runner_up_val = 0;
 
@@ -87,11 +87,10 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   // The difference between a cache-hit and cache-miss times is significantly
   // different across platforms. Therefore we must first compute its estimate
   // using the safe_offset which should be a cache-hit.
-  uint64_t hitmiss_diff = median_latency - latencies[safe_offset_char];
+  uint64_t hitmiss_diff = median_latency - latencies[safe_offset];
   int hitcount = 0;
   for (size_t i = 0; i < 256; ++i) {
-    if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-        i != static_cast<size_t>(safe_offset_char)) {
+    if (latencies[i] < median_latency - hitmiss_diff / 2 && i != safe_offset) {
       ++hitcount;
     }
   }
@@ -101,7 +100,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   if (hitcount == 1) {
     for (size_t i = 0; i < 256; ++i) {
       if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-          i != static_cast<size_t>(safe_offset_char)) {
+          i != safe_offset) {
         ++scores_[i];
       }
     }
