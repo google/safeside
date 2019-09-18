@@ -93,6 +93,9 @@ class CacheSideChannel {
   // character. Otherwise it returns false and any character that has the
   // highest score.
   std::pair<bool, char> RecomputeScores(char safe_offset_char);
+  // Adds an artifical cache-hit and recompute scores. Useful for demonstration
+  // that do not have natural architectural cache-hits.
+  std::pair<bool, char> AddHitAndRecomputeScores();
 
  private:
   // Oracle array cannot be allocated for stack because MSVC stack size is 1MB,

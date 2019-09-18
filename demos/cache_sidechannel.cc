@@ -51,7 +51,8 @@ void CacheSideChannel::FlushOracle() const {
   }
 }
 
-std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
+std::pair<bool, char> CacheSideChannel::RecomputeScores(
+    char safe_offset_char) {
   std::array<uint64_t, 256> latencies = {};
   size_t best_val = 0, runner_up_val = 0;
 
@@ -59,11 +60,11 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   // latency. Indexing into isolated_oracle causes the relevant region of
   // memory to be loaded into cache, which makes it faster to load again than
   // it is to load entries that had not been accessed.
-  // Only two offsets will have been accessed: safe_offset (which we ignore),
-  // and i.
-  // Note: if the character at safe_offset is the same as the character we
+  // Only two offsets will have been accessed: safe_offset_char (which we
+  // ignore), and i.
+  // Note: if the character at safe_offset_char is the same as the character we
   // want to know at i, the data from this run will be useless, but later runs
-  // will use a different safe_offset.
+  // will use a different safe_offset_char.
   for (size_t i = 0; i < 256; ++i) {
     // Some CPUs (e.g. AMD Ryzen 5 PRO 2400G) prefetch cache lines, rendering
     // them all equally fast. Therefore it is necessary to confuse them by
@@ -86,12 +87,13 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
 
   // The difference between a cache-hit and cache-miss times is significantly
   // different across platforms. Therefore we must first compute its estimate
-  // using the safe_offset which should be a cache-hit.
-  uint64_t hitmiss_diff = median_latency - latencies[safe_offset_char];
+  // using the safe_offset_char which should be a cache-hit.
+  uint64_t hitmiss_diff = median_latency - latencies[
+      static_cast<size_t>(safe_offset_char)];
   int hitcount = 0;
   for (size_t i = 0; i < 256; ++i) {
     if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-        i != static_cast<size_t>(safe_offset_char)) {
+        i != safe_offset_char) {
       ++hitcount;
     }
   }
@@ -101,7 +103,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   if (hitcount == 1) {
     for (size_t i = 0; i < 256; ++i) {
       if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-          i != static_cast<size_t>(safe_offset_char)) {
+          i != safe_offset_char) {
         ++scores_[i];
       }
     }
@@ -110,4 +112,12 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(char safe_offset_char) {
   std::tie(best_val, runner_up_val) = top_two_indices(scores_);
   return std::make_pair((scores_[best_val] > 2 * scores_[runner_up_val] + 40),
                         best_val);
+}
+
+std::pair<bool, char> CacheSideChannel::AddHitAndRecomputeScores() {
+  static size_t additional_offset_counter = 0;
+  size_t mixed_i = ((additional_offset_counter * 167) + 13) & 0xFF;
+  ForceRead(&GetOracle()[mixed_i]);
+  additional_offset_counter = (additional_offset_counter + 1) % 256;
+  return RecomputeScores(static_cast<char>(mixed_i));
 }
