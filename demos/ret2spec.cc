@@ -36,22 +36,22 @@ const char *private_data = "It's a s3kr3t!!!";
 size_t current_offset;
 const std::array<BigByte, 256> *oracle_ptr;
 
-// Call the "UnrollStackAndReturnTo" function which unwinds the stack jumping
-// back to the "afterspeculation" label in the "leak_byte" function never
-// executing the code that follows.
+// Call a "UnwindStackAndSlowlyReturn.." function which unwinds the stack
+// jumping back to the "afterspeculation" label in the "leak_byte" function
+// never executing the code that follows.
 __attribute__((noinline))
 static void speculation() {
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
   UnwindStackAndSlowlyReturnTo(afterspeculation); // Never returns back here.
 #elif defined(__aarch64__)
-  UnwindStackAndSlowlyReturn();
+  UnwindStackAndSlowlyReturn(); // Never returns back here.
 #else
 #  error Unsupported architecture.
 #endif
 
   // Everything that follows this is architecturally dead code. Never reached.
-  // Only the first two statements are executed speculatively.
+  // However, the first two statements are executed speculatively.
   const std::array<BigByte, 256> &isolated_oracle = *oracle_ptr;
   ForceRead(&isolated_oracle[static_cast<size_t>(
       private_data[current_offset])]);
@@ -81,7 +81,7 @@ static char leak_byte() {
 #endif
 
     // Yields two "call" instructions, one "ret" instruction, speculatively
-    // accesses the oracle and ends up on the afterspeculate label.
+    // accesses the oracle and ends up on the afterspeculation label below.
     speculation();
 
     // Inlines the afterspeculation label.

@@ -16,9 +16,10 @@
 
 #include <cstdint>
 
-// Label defined in inline assembly. Used to pass addresses for the instruction
-// pointer or program counter registers - either as return addresses (ret2spec)
-// or for skipping failures in signal handlers (meltdown).
+// Label defined in inline assembly. Used to define addresses for the
+// instruction pointer or program counter registers - either as return
+// addresses (ret2spec) or for skipping failures in signal handlers
+// (meltdown).
 extern char afterspeculation[];
 
 // Forced memory load.
@@ -31,7 +32,7 @@ void CLFlush(const void *memory);
 uint64_t ReadLatency(const void *memory);
 
 #ifdef __GNUC__
-// Insert terminating label.
+// Inlines the afterspeculation label.
 __attribute__((always_inline))
 inline void afterspeculate() {
   asm volatile(
@@ -45,11 +46,10 @@ inline void afterspeculate() {
 // returns.
 void UnwindStackAndSlowlyReturnTo(const void *address);
 #elif defined(__aarch64__)
+// Unwinds the stack until stored return address marked by a magic value,
+// flushes the stack pointer, loads the returns address to x30 and returns.
 void UnwindStackAndSlowlyReturn();
-#endif
-#endif
 
-#ifdef __aarch64__
 // Push callee-saved registers and return address on stack and mark it with
 // magic value.
 __attribute__((always_inline))
@@ -62,7 +62,9 @@ inline void BackupCalleeSavedRegsAndReturnAddress() {
       "stp x25, x26, [sp, #-16]!\n"
       "stp x27, x28, [sp, #-16]!\n"
       "str x29, [sp, #-16]!\n"
-      // Store the afterspeculation address.
+      // Push the afterspeculation address. We cannot pass it by function
+      // parameter as on x86/x64 because of relative/absolute address
+      // mismatches on ARM.
       "adr x9, afterspeculation\n"
       "str x9, [sp, #-16]!\n"
       // Mark the end of the backup with magic value 0xfedcba9801234567.
@@ -83,4 +85,5 @@ inline void RestoreCalleeSavedRegs() {
       "ldp x21, x22, [sp], #16\n"
       "ldp x19, x20, [sp], #16\n");
 }
+#endif
 #endif

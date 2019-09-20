@@ -72,8 +72,8 @@ static char leak_byte(const char *data, size_t offset) {
     // architecturally and kernel sends SIGSEGV instead.
     ForceRead(&isolated_oracle[static_cast<size_t>(data[offset])]);
 
-    // SIGSEGV signal handler moves the instruction pointer to the following
-    // label.
+    // Inlines the afterspeculation label. SIGSEGV signal handler moves the
+    // instruction pointer to that label.
     afterspeculate();
 
     std::pair<bool, char> result =
