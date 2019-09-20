@@ -16,8 +16,9 @@
 
 #include <cstdint>
 
-// Label defined in inline assembly. Used to pass return address as a function
-// argument.
+// Label defined in inline assembly. Used to pass addresses for the instruction
+// pointer or program counter registers - either as return addresses (ret2spec)
+// or for skipping failures in signal handlers (meltdown).
 extern char afterspeculation[];
 
 // Forced memory load.
