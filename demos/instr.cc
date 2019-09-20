@@ -162,5 +162,5 @@ void UnwindStackAndSlowlyReturn() {
 #else
 #  error Unsupported CPU.
 #endif
-#endif
 }
+#endif

@@ -39,7 +39,13 @@ const std::array<BigByte, 256> *oracle_ptr;
 // Call a "UnwindStackAndSlowlyReturn.." function which unwinds the stack
 // jumping back to the "afterspeculation" label in the "leak_byte" function
 // never executing the code that follows.
+#ifdef _MSC_VER
+__declspec(noinline)
+#elif defined(__GNUC__)
 __attribute__((noinline))
+#else
+#  error Unsupported compiler.
+#endif
 static void speculation() {
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
