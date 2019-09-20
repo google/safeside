@@ -3,11 +3,15 @@
 ## Build instructions
 
 ```bash
-# Spectre V1 -- bounds check bypass
+# Spectre V1 / Spectre-PHT -- bounds check bypass
 g++ -O2 spectre_v1.cc cache_sidechannel.cc instr.cc -o spectre_v1
 ./spectre_v1
 
-# Spectre V3 / Meltdown
+# Spectre V2 / Spectre-BTB -- branch target injection
+g++ -O2 spectre_v2.cc cache_sidechannel.cc instr.cc -o spectre_v2
+./spectre_v2
+
+# Spectre V3 / Meltdown-US
 g++ -O2 meltdown.cc cache_sidechannel.cc instr.cc -o meltdown
 cd ../third_party/kmod
 make
@@ -15,7 +19,7 @@ sudo insmod kernel_data.ko
 cd ../../demos
 sudo ./meltdown
 
-# Spectre V4 -- speculative store bypass
+# Spectre V4 / Spectre-STL -- speculative store bypass
 g++ -O2 spectre_v4.cc cache_sidechannel.cc instr.cc -o spectre_v4
 ./spectre_v4
 ```
