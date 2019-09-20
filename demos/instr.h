@@ -31,16 +31,29 @@ void CLFlush(const void *memory);
 uint64_t ReadLatency(const void *memory);
 
 #ifdef __GNUC__
+// Insert terminating label.
+__attribute__((always_inline))
+inline void afterspeculate() {
+  asm volatile(
+      "_afterspeculation:\n" // For MacOS.
+      "afterspeculation:\n"); // For Linux.
+}
+
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(_M_IX86)
 // Unwinds the stack until the given pointer, flushes the stack pointer and
 // returns.
 void UnwindStackAndSlowlyReturnTo(const void *address);
+#elif defined(__aarch64__)
+void UnwindStackAndSlowlyReturn();
+#endif
 #endif
 
 #ifdef __aarch64__
-// Used only by ARM whose calling convention does not allow us to avoid
-// register pollution.
+// Push callee-saved registers and return address on stack and mark it with
+// magic value.
 __attribute__((always_inline))
-void inline BackupCalleeSavedRegsAndReturnAddress() {
+inline void BackupCalleeSavedRegsAndReturnAddress() {
   asm volatile(
       // Store the callee-saved regs.
       "stp x19, x20, [sp, #-16]!\n"
@@ -61,7 +74,7 @@ void inline BackupCalleeSavedRegsAndReturnAddress() {
 }
 
 __attribute__((always_inline))
-void inline RestoreCalleeSavedRegs() {
+inline void RestoreCalleeSavedRegs() {
   asm volatile(
       "ldr x29, [sp], #16\n"
       "ldp x27, x28, [sp], #16\n"

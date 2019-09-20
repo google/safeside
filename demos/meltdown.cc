@@ -74,7 +74,7 @@ static char leak_byte(const char *data, size_t offset) {
 
     // SIGSEGV signal handler moves the instruction pointer to the following
     // label.
-    asm volatile("afterspeculation:");
+    afterspeculate();
 
     std::pair<bool, char> result =
         sidechannel.RecomputeScores(data[safe_offset]);
