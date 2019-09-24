@@ -89,7 +89,8 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
   // different across platforms. Therefore we must first compute its estimate
   // using the safe_offset_char which should be a cache-hit.
   uint64_t hitmiss_diff = median_latency - latencies[
-      static_cast<size_t>(safe_offset_char)];
+      static_cast<size_t>(static_cast<unsigned char>(safe_offset_char))];
+
   int hitcount = 0;
   for (size_t i = 0; i < 256; ++i) {
     if (latencies[i] < median_latency - hitmiss_diff / 2 &&
@@ -117,7 +118,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
 std::pair<bool, char> CacheSideChannel::AddHitAndRecomputeScores() {
   static size_t additional_offset_counter = 0;
   // Resulting char is between ASCII code 0 and 127.
-  size_t mixed_i = ((additional_offset_counter * 167) + 13) & 0x7F;
+  size_t mixed_i = ((additional_offset_counter * 167) + 13) & 0xFF;
   ForceRead(&GetOracle()[mixed_i]);
   additional_offset_counter = (additional_offset_counter + 1) % 256;
   return RecomputeScores(static_cast<char>(mixed_i));

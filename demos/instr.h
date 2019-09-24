@@ -32,24 +32,11 @@ void CLFlush(const void *memory);
 uint64_t ReadLatency(const void *memory);
 
 #ifdef __GNUC__
-// Inlines the afterspeculation label.
-__attribute__((always_inline))
-inline void afterspeculate() {
-  asm volatile(
-      "_afterspeculation:\n" // For MacOS.
-      "afterspeculation:\n"); // For Linux.
-}
-
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
 // Unwinds the stack until the given pointer, flushes the stack pointer and
 // returns.
 void UnwindStackAndSlowlyReturnTo(const void *address);
-#elif defined(__aarch64__)
-// Unwinds the stack until stored return address marked by a magic value,
-// flushes the stack pointer, loads the returns address to x30 and returns.
-void UnwindStackAndSlowlyReturn();
 
+#if defined(__aarch64__)
 // Push callee-saved registers and return address on stack and mark it with
 // magic value.
 __attribute__((always_inline))
@@ -62,11 +49,6 @@ inline void BackupCalleeSavedRegsAndReturnAddress() {
       "stp x25, x26, [sp, #-16]!\n"
       "stp x27, x28, [sp, #-16]!\n"
       "str x29, [sp, #-16]!\n"
-      // Push the afterspeculation address. We cannot pass it by function
-      // parameter as on x86/x64 because of relative/absolute address
-      // mismatches on ARM.
-      "adr x9, afterspeculation\n"
-      "str x9, [sp, #-16]!\n"
       // Mark the end of the backup with magic value 0xfedcba9801234567.
       "movz x10, 0x4567\n"
       "movk x10, 0x0123, lsl 16\n"
@@ -84,6 +66,13 @@ inline void RestoreCalleeSavedRegs() {
       "ldp x23, x24, [sp], #16\n"
       "ldp x21, x22, [sp], #16\n"
       "ldp x19, x20, [sp], #16\n");
+}
+
+// This way we avoid the global vs. local relocation of the afterspeculation
+// label addressing.
+__attribute__((always_inline))
+inline void JumpToAfterSpeculation() {
+  asm volatile("b afterspeculation");
 }
 #endif
 #endif

