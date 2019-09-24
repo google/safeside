@@ -148,8 +148,8 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "cmp x9, x10\n"
       "bne popstack\n"
       // Push the return address on the stack.
-      // Pop the return address slowly from the stack and return.
       "str %0, [sp, #-16]!\n"
+      // Pop the return address slowly from the stack and return.
       "mov x11, sp\n"
       "dc civac, x11\n"
       "dsb sy\n"
