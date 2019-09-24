@@ -22,7 +22,7 @@ You generally only need to submit a CLA once, so if you've already submitted one
 
 ## Code style
 
-We use [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html). Please run `clang-format` on your code before sending a pull request.
+We use C++11 with [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html). Please run `clang-format` on your code before sending a pull request.
 
 ### Source code headers
 
