@@ -118,8 +118,8 @@ uint64_t ReadLatency(const void *memory) {
 #ifdef __GNUC__
 __attribute__((noinline))
 void UnwindStackAndSlowlyReturnTo(const void *address) {
-  asm volatile(
 #if defined(__x86_64__) || defined(_M_X64)
+  asm volatile(
       "addq $8, %%rsp\n"
       "popstack:\n"
       "addq $8, %%rsp\n"
@@ -128,7 +128,9 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "clflush (%%rsp)\n"
       "mfence\n"
       "lfence\n"
+      "ret\n"::"r"(address));
 #elif defined(__i386__) || defined(_M_IX86)
+  asm volatile(
       "addl $4, %%esp\n"
       "popstack:\n"
       "addl $4, %%esp\n"
@@ -137,7 +139,9 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "clflush (%%esp)\n"
       "mfence\n"
       "lfence\n"
+      "ret\n"::"r"(address));
 #elif defined(__aarch64__)
+  asm volatile(
       // Unwind until the magic value and pop the magic value.
       "movz x9, 0x4567\n"
       "movk x9, 0x0123, lsl 16\n"
@@ -154,9 +158,9 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "dc civac, x11\n"
       "dsb sy\n"
       "ldr x30, [sp], #16\n"
+      "ret\n"::"r"(address));
 #else
 #  error Unsupported CPU.
 #endif
-      "ret\n"::"r"(address));
 }
 #endif
