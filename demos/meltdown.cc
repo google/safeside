@@ -43,10 +43,6 @@
 // stored only in the kernel memory.
 const char *public_data = "Hello, world!";
 
-// This label is used for shifting the instruction pointer after the instruction
-// that caused SIGSEGV. It is defined in the inlined assembler.
-extern char afterspeculation [];
-
 // Leaks the byte that is physically located at &text[0] + offset, without
 // really loading it. In the abstract machine, and in the code executed by the
 // CPU, this function does not load any memory except for what is in the bounds
@@ -76,8 +72,7 @@ static char leak_byte(const char *data, size_t offset) {
     // architecturally and kernel sends SIGSEGV instead.
     ForceRead(&isolated_oracle[static_cast<size_t>(data[offset])]);
 
-    // SIGSEGV signal handler moves the instruction pointer to the following
-    // label.
+    // SIGSEGV signal handler moves the instruction pointer to this label.
     asm volatile("afterspeculation:");
 
     std::pair<bool, char> result =

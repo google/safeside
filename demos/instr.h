@@ -24,3 +24,57 @@ void CLFlush(const void *memory);
 
 // Measures the latency of memory read from a given address
 uint64_t ReadLatency(const void *memory);
+
+#ifdef __GNUC__
+// Unwinds the stack until the given pointer, flushes the stack pointer and
+// returns.
+void UnwindStackAndSlowlyReturnTo(const void *address);
+
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(_M_IX86)
+// Label defined in inline assembly. Used to define addresses for the
+// instruction pointer or program counter registers - either as return
+// addresses (ret2spec) or for skipping failures in signal handlers
+// (meltdown).
+extern char afterspeculation[];
+
+#elif defined(__aarch64__)
+// Push callee-saved registers and return address on stack and mark it with
+// magic value.
+__attribute__((always_inline))
+inline void BackupCalleeSavedRegsAndReturnAddress() {
+  asm volatile(
+      // Store the callee-saved regs.
+      "stp x19, x20, [sp, #-16]!\n"
+      "stp x21, x22, [sp, #-16]!\n"
+      "stp x23, x24, [sp, #-16]!\n"
+      "stp x25, x26, [sp, #-16]!\n"
+      "stp x27, x28, [sp, #-16]!\n"
+      "str x29, [sp, #-16]!\n"
+      // Mark the end of the backup with magic value 0xfedcba9801234567.
+      "movz x10, 0x4567\n"
+      "movk x10, 0x0123, lsl 16\n"
+      "movk x10, 0xba98, lsl 32\n"
+      "movk x10, 0xfedc, lsl 48\n"
+      "str x10, [sp, #-16]!\n");
+}
+
+__attribute__((always_inline))
+inline void RestoreCalleeSavedRegs() {
+  asm volatile(
+      "ldr x29, [sp], #16\n"
+      "ldp x27, x28, [sp], #16\n"
+      "ldp x25, x26, [sp], #16\n"
+      "ldp x23, x24, [sp], #16\n"
+      "ldp x21, x22, [sp], #16\n"
+      "ldp x19, x20, [sp], #16\n");
+}
+
+// This way we avoid the global vs. local relocation of the afterspeculation
+// label addressing.
+__attribute__((always_inline))
+inline void JumpToAfterSpeculation() {
+  asm volatile("b afterspeculation");
+}
+#endif
+#endif

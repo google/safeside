@@ -89,7 +89,8 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
   // different across platforms. Therefore we must first compute its estimate
   // using the safe_offset_char which should be a cache-hit.
   uint64_t hitmiss_diff = median_latency - latencies[
-      static_cast<size_t>(safe_offset_char)];
+      static_cast<size_t>(static_cast<unsigned char>(safe_offset_char))];
+
   int hitcount = 0;
   for (size_t i = 0; i < 256; ++i) {
     if (latencies[i] < median_latency - hitmiss_diff / 2 &&
