@@ -12,13 +12,18 @@ target_link_libraries(spectre_v1 safeside)
 add_executable(spectre_v4 demos/spectre_v4.cc)
 target_link_libraries(spectre_v4 safeside)
 
+if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+  # Ret2Spec -- speculative execution using return stack buffers
+  set(CMAKE_CXX_FLAGS "-fomit-frame-pointer")
+  add_executable(ret2spec demos/ret2spec.cc)
+  target_link_libraries(ret2spec safeside)
+endif()
+
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-	
-	add_subdirectory(third_party/kmod)
+  add_subdirectory(third_party/kmod)
 
-	# Spectre V3 / Meltdown
-	add_executable(meltdown demos/meltdown.cc)
-	target_link_libraries(meltdown safeside)
-
+  # Spectre V3 / Meltdown
+  add_executable(meltdown demos/meltdown.cc)
+  target_link_libraries(meltdown safeside)
 endif()
