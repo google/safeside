@@ -21,11 +21,8 @@ make
 # You need to load the kernel module before running this
 sudo ./meltdown
 
-
 ./spectre_v4
 
-# Ret2spec
-g++ -O2 -fomit-frame-pointer ret2spec.cc cache_sidechannel.cc instr.cc -o ret2spec
 ./ret2spec
 ```
 
