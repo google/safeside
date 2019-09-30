@@ -14,8 +14,8 @@ target_link_libraries(spectre_v4 safeside)
 
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   # Ret2Spec -- speculative execution using return stack buffers
-  set(CMAKE_CXX_FLAGS "-fomit-frame-pointer")
   add_executable(ret2spec demos/ret2spec.cc)
+  target_compile_options(ret2spec PRIVATE -fomit-frame-pointer)
   target_link_libraries(ret2spec safeside)
 endif()
 
