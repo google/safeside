@@ -102,6 +102,8 @@ static void sigsegv(
 #elif defined(__powerpc__)
   ucontext->uc_mcontext.regs->nip =
       reinterpret_cast<size_t>(afterspeculation);
+#else
+#  error Unsupported CPU.
 #endif
 }
 
