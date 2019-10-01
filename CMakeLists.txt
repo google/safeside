@@ -8,6 +8,10 @@ add_library(safeside demos/cache_sidechannel.cc demos/instr.cc)
 add_executable(spectre_v1 demos/spectre_v1.cc)
 target_link_libraries(spectre_v1 safeside)
 
+# Spectre V1 indirect jumps -- mistrating BTB instead of PHT.
+add_executable(spectre_v1_indirect_jumps demos/spectre_v1_indirect_jumps.cc)
+target_link_libraries(spectre_v1_indirect_jumps safeside)
+
 # Spectre V4 -- speculative store bypass
 add_executable(spectre_v4 demos/spectre_v4.cc)
 target_link_libraries(spectre_v4 safeside)
