@@ -4,14 +4,9 @@
 
 ```bash
 cd safeside
-
 mkdir build
-
 cd build
-
-// Debug builds may not work.
-cmake -DCMAKE_BUILD_TYPE=Release ../
-
+cmake ..
 make
 
 # Everything should be built now.

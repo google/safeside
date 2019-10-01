@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.5.1)
+set(CMAKE_BUILD_TYPE Release)
 
 project(safeside VERSION 0.1.0 LANGUAGES CXX)
 
