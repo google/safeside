@@ -95,7 +95,8 @@ static char leak_byte(const char *data, size_t offset) {
       // Speculative fetch at the local_offset. Architecturally it fetches
       // always at the safe_offset, though speculatively it prefetches the
       // unsafe offset when i is at the local_pointer_index.
-      ForceRead(&isolated_oracle[static_cast<size_t>(data[local_offset])]);
+      ForceRead(isolated_oracle.data() + static_cast<size_t>(
+          data[local_offset]));
     }
 
     std::pair<bool, char> result =

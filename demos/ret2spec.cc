@@ -69,8 +69,8 @@ static void speculation() {
   // Everything that follows this is architecturally dead code. Never reached.
   // However, the first two statements are executed speculatively.
   const std::array<BigByte, 256> &isolated_oracle = *oracle_ptr;
-  ForceRead(&isolated_oracle[static_cast<size_t>(
-      private_data[current_offset])]);
+  ForceRead(isolated_oracle.data() + static_cast<size_t>(
+      private_data[current_offset]));
 
   std::cout << "If this is printed, it signifies a fatal error. "
             << "This print statement is architecturally dead." << std::endl;

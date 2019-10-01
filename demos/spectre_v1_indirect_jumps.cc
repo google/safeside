@@ -134,8 +134,8 @@ static char LeakByte(size_t offset) {
       // Speculative fetch at the offset. Architecturally it fetches
       // always from the public_data, though speculatively it fetches the
       // private_data when i is at the local_pointer_index.
-      ForceRead(&isolated_oracle[static_cast<size_t>(
-          accessor->GetDataByte(offset, read_private_data))]);
+      ForceRead(isolated_oracle.data() + static_cast<size_t>(
+          accessor->GetDataByte(offset, read_private_data)));
     }
 
     std::pair<bool, char> result =

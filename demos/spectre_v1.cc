@@ -83,7 +83,8 @@ static char leak_byte(const char *data, size_t offset) {
         // This branch was trained to always be taken during speculative
         // execution, so it's taken even on the 2048th iteration, when the
         // condition is false!
-        ForceRead(&isolated_oracle[static_cast<size_t>(data[local_offset])]);
+        ForceRead(isolated_oracle.data() + static_cast<size_t>(
+            data[local_offset]));
       }
     }
 
