@@ -31,7 +31,7 @@ uint64_t ReadLatency(const void *memory);
 void UnwindStackAndSlowlyReturnTo(const void *address);
 
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+    defined(_M_IX86) || defined(__powerpc__)
 // Label defined in inline assembly. Used to define addresses for the
 // instruction pointer or program counter registers - either as return
 // addresses (ret2spec) or for skipping failures in signal handlers
