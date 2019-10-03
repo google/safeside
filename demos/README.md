@@ -4,21 +4,19 @@
 
 ```bash
 cd safeside
-mkdir build
-cd build
-cmake ..
-make
+cmake -B build .
+make -C build
 
 # Everything should be built now.
 
-./spectre_v1
+./build/demos/spectre_v1
 
 # You need to load the kernel module before running this
-sudo ./meltdown
+sudo ./build/demos/meltdown
 
-./spectre_v4
+./build/demos/spectre_v4
 
-./ret2spec
+./build/demos/ret2spec
 ```
 
 ## Tested environments
