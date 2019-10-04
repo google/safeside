@@ -34,8 +34,6 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 endif()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  add_subdirectory(../third_party/kmod kmod)
-
   # Spectre V3 / Meltdown
   add_executable(meltdown meltdown.cc)
   target_link_libraries(meltdown safeside)

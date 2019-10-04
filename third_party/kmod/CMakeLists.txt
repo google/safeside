@@ -1,13 +1,30 @@
 # Builds the Meltdown kernel module.
 
-set(MODULE_NAME kernel_data)
+# Check if we should skip building the module.
+if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  message(STATUS "Skipping Meltdown kernel module on non-Linux OS")
+  return()
+elseif(${CMAKE_CROSSCOMPILING})
+  message(STATUS "Skipping Meltdown kernel module in cross-compile build")
+  return()
+endif()
 
 # Determine what kernel source tree we'll use to build the module.
-# CMAKE_SYSTEM_VERSION defaults to CMAKE_HOST_SYSTEM_VERSION, which is
-# documented to use `uname -r` on systems (like Linux) that support `uname`.
+# CMAKE_HOST_SYSTEM_VERSION uses `uname -r` on Linux.
 # https://cmake.org/cmake/help/latest/variable/CMAKE_HOST_SYSTEM_VERSION.html
-set(KERNEL_SRC "/lib/modules/${CMAKE_SYSTEM_VERSION}/build" )
-message(STATUS "Kernel build directory: ${KERNEL_SRC}")
+set(KERNEL_SRC "/lib/modules/${CMAKE_HOST_SYSTEM_VERSION}/build")
+
+if(EXISTS "${KERNEL_SRC}")
+  message(STATUS "Kernel build directory: ${KERNEL_SRC}")
+else()
+  message(FATAL_ERROR
+      " Can't find headers to build Meltdown kernel module.\n"
+      " Try:\n"
+      "     sudo apt install linux-headers-${CMAKE_HOST_SYSTEM_VERSION}"
+  )
+endif()
+
+set(MODULE_NAME kernel_data)
 
 # Move the inputs into a directory in the output first. Kbuild seems to use
 # KBUILD_EXTMOD to set both the source of the out-of-tree kernel module to
