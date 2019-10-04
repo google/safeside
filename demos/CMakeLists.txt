@@ -11,6 +11,13 @@ add_compile_options(-O1)
 # debug build settings, but it's incompatible with optimizations.
 string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
 
+# When targeting x86, we need to opt in to SSE2 instructions like
+# clflush, mfence, lfence.
+if((${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$") AND
+   (${CMAKE_C_COMPILER_ID} MATCHES "^(Clang)|(GNU)$"))
+  add_compile_options(-msse2)
+endif()
+
 # Support library
 add_library(safeside cache_sidechannel.cc instr.cc)
 
@@ -26,14 +33,16 @@ target_link_libraries(spectre_v1_indirect_jumps safeside)
 add_executable(spectre_v4 spectre_v4.cc)
 target_link_libraries(spectre_v4 safeside)
 
-if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
+   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(aarch64)$"))
   # Ret2Spec -- speculative execution using return stack buffers
   add_executable(ret2spec ret2spec.cc)
   target_compile_options(ret2spec PRIVATE -fomit-frame-pointer)
   target_link_libraries(ret2spec safeside)
 endif()
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
+   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(ppc64)$"))
   # Spectre V3 / Meltdown
   add_executable(meltdown meltdown.cc)
   target_link_libraries(meltdown safeside)

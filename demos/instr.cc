@@ -115,7 +115,7 @@ uint64_t ReadLatency(const void *memory) {
   return result;
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__powerpc__)
 __attribute__((noinline))
 void UnwindStackAndSlowlyReturnTo(const void *address) {
 #if defined(__x86_64__) || defined(_M_X64)

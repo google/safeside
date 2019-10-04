@@ -1,0 +1,56 @@
+#!/bin/bash
+
+set -o errexit -o nounset -o pipefail
+set -o xtrace
+
+# Calls CMake to generate build files and then run the build.
+# Usage:
+#   generate_and_build <output directory> [<other generate args> ...]
+generate_and_build() {
+  local folder_name=$1
+  shift
+
+  mkdir "${folder_name}"
+  (cd "${folder_name}"; cmake "$@" ..)
+  cmake --build "${folder_name}"
+}
+
+# Choose what to do based on OS and compiler.
+case "${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}" in
+  linux_clang)
+    sudo apt install "linux-headers-$(uname -r)"
+
+    generate_and_build build
+    ;;
+
+  osx_clang)
+    generate_and_build build
+    ;;
+
+  windows_*)
+    generate_and_build build-x64 -A x64
+    generate_and_build build-win32 -A Win32
+    ;;
+
+  linux_gcc)
+    # Need this `apt update` for the install to succeed. Without it, the
+    # Travis worker only has lists for the ${distro}-security repository.
+    sudo apt update
+    sudo apt install \
+        "linux-headers-$(uname -r)" \
+        g++-i686-linux-gnu \
+        g++-aarch64-linux-gnu \
+        g++-powerpc64-linux-gnu
+
+    generate_and_build build-x86_64
+
+    generate_and_build build-i686 \
+        -DCMAKE_TOOLCHAIN_FILE=ci/toolchains/i686-linux-gnu.cmake
+
+    generate_and_build build-aarch64 \
+        -DCMAKE_TOOLCHAIN_FILE=ci/toolchains/aarch64-linux-gnu.cmake
+
+    generate_and_build build-powerpc64 \
+        -DCMAKE_TOOLCHAIN_FILE=ci/toolchains/powerpc64-linux-gnu.cmake
+    ;;
+esac
