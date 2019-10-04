@@ -7,6 +7,10 @@ set(CMAKE_CXX_EXTENSIONS off)
 # TODO(https://git.io/JecmX): Fix the crash in Ret2Spec
 add_compile_options(-O1)
 
+# Disable run-time code checking on MSVC. It's enabled by default in CMake's
+# debug build settings, but it's incompatible with optimizations.
+string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+
 # Support library
 add_library(safeside cache_sidechannel.cc instr.cc)
 
