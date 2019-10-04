@@ -1,29 +1,21 @@
+branches:
+  only:
+    - master
 language: cpp
-dist: xenial
+dist: bionic
 matrix:
   include:
-    - name: "clang (Linux)"
+    - name: "clang / Linux / x86_64"
       os: linux
       compiler: clang
-    - name: "gcc (Linux)"
+    - name: "gcc / Linux / x86_64, i386, aarch64, powerpc64"
       os: linux
       compiler: gcc
-    - name: "clang (macOS)"
+    - name: "clang / macOS / x86_64"
       os: osx
       compiler: clang
-    - name: "MSVC (Windows)"
+    - name: "MSVC / Windows / x64, Win32"
       os: windows
       # CMake picks up MSVC regardless of what compiler we specify here.
-install:
-  # Add Linux headers needed to build kernel module.
-  - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
-      sudo apt-get install -y "linux-headers-$(uname -r)";
-    fi
 script:
-  # It would be a bit nicer to use `cmake -B build .`, but `-B` isn't
-  # supported on older CMake.
-  - mkdir build
-  - cd build
-  - cmake ..
-  # Invoke build in platform+generator agnostic way
-  - cmake --build .
+  - ./ci/build
