@@ -1,46 +1,44 @@
 language: cpp
 dist: xenial
 matrix:
+  global:
+    env:
+      - BUILD32ARGS='-DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32'
+      - BUILD64ARGS='-DCMAKE_CXX_FLAGS=-m64 -DCMAKE_C_FLAGS=-m64'
   include:
-    # - name: "clang (Linux)"
-    #   os: linux
-    #   compiler: clang
-    # - name: "gcc (Linux)"
-    #   os: linux
-    #   compiler: gcc
-    # - name: "clang (macOS)"
-    #   os: osx
-    #   compiler: clang
+    - name: "clang (Linux)"
+      os: linux
+      compiler: clang
+    - name: "gcc (Linux)"
+      os: linux
+      compiler: gcc
+    - name: "clang (macOS)"
+      os: osx
+      compiler: clang
     - name: "MSVC (Windows)"
       os: windows
       # CMake picks up MSVC regardless of what compiler we specify here.
+      env:
+        - BUILD32ARGS='-A Win32'
+        - BUILD64ARGS='-A x64'
 install:
   # Add Linux headers needed to build kernel module.
   - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
       sudo apt-get install -y "linux-headers-$(uname -r)";
     fi
-before_script:
-  # - case "${TRAVIS_OS_NAME}" in
-  #     linux|osx)
-  #       BUILD32='-D
-  #     windows)
-  #       BUILD32='-A x86'
-  #       BUILD64='-A x64'
-  #       ;;
 script:
   # It would be a bit nicer to use `cmake -B build .`, but `-B` isn't
   # supported on older CMake.
   - cd "${TRAVIS_BUILD_DIR}"
   - mkdir build64
   - cd build64
-  - cmake .. -A x64
+  - cmake .. ${BUILD64ARGS}
   # Invoke build in platform+generator agnostic way
   - cmake --build .
-  # Windows 32-bit build
-  - if [[ "${TRAVIS_OS_NAME}" == "windows" ]]; then
-      cd "${TRAVIS_BUILD_DIR}";
-      mkdir build32;
-      cd build32;
-      cmake .. -A Win32;
-      cmake --build .;
-    fi;
+
+  # 32-bit build
+  - cd "${TRAVIS_BUILD_DIR}"
+  - mkdir build32
+  - cd build32
+  - cmake .. ${BUILD32ARGS}
+  - cmake --build .
