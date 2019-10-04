@@ -1,5 +1,7 @@
 # SafeSide
 
+![Travis build status](https://travis-ci.org/google/safeside.svg?branch=master)
+
 SafeSide is a project to understand and mitigate *software-observable side-channels*: information leaks between software domains caused by implementation details _outside_ the software abstraction.
 
 Unlike other [side-channel attacks](https://en.wikipedia.org/wiki/Side-channel_attack) -- e.g. measuring power use or electromagnetic emissions -- software-observable side-channels don't require physical access or proximity.
