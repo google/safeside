@@ -1,10 +1,10 @@
 language: cpp
 dist: xenial
-matrix:
+env:
   global:
-    env:
-      - BUILD32ARGS='-DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32'
-      - BUILD64ARGS='-DCMAKE_CXX_FLAGS=-m64 -DCMAKE_C_FLAGS=-m64'
+    - BUILD32ARGS='-DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32'
+    - BUILD64ARGS='-DCMAKE_CXX_FLAGS=-m64 -DCMAKE_C_FLAGS=-m64'
+matrix:
   include:
     - name: "clang (Linux)"
       os: linux
