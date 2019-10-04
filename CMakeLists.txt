@@ -3,6 +3,10 @@ set(CMAKE_BUILD_TYPE Release)
 
 project(safeside VERSION 0.1.0 LANGUAGES CXX)
 
+# Use C++11 without extensions
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS off)
+
 add_library(safeside demos/cache_sidechannel.cc demos/instr.cc)
 
 # Spectre V1 -- bounds check bypass
