@@ -8,7 +8,7 @@ matrix:
     - name: "clang / Linux / x86_64"
       os: linux
       compiler: clang
-    - name: "gcc / Linux / x86_64, i386, aarch64, powerpc64"
+    - name: "gcc / Linux / x86_64, i386, aarch64, powerpc64le"
       os: linux
       compiler: gcc
     - name: "clang / macOS / x86_64"
