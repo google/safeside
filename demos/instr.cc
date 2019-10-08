@@ -159,6 +159,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "mov x11, sp\n"
       "dc civac, x11\n"
       "dsb sy\n"
+      "isb sy\n"
       "ldr x30, [sp], #16\n"
       "ret\n"::"r"(address));
 #else
