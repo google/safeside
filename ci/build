@@ -40,7 +40,7 @@ case "${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}" in
         "linux-headers-$(uname -r)" \
         g++-i686-linux-gnu \
         g++-aarch64-linux-gnu \
-        g++-powerpc64-linux-gnu
+        g++-powerpc64le-linux-gnu
 
     generate_and_build build-x86_64
 
@@ -50,7 +50,7 @@ case "${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}" in
     generate_and_build build-aarch64 \
         -DCMAKE_TOOLCHAIN_FILE=ci/toolchains/aarch64-linux-gnu.cmake
 
-    generate_and_build build-powerpc64 \
-        -DCMAKE_TOOLCHAIN_FILE=ci/toolchains/powerpc64-linux-gnu.cmake
+    generate_and_build build-powerpc64le \
+        -DCMAKE_TOOLCHAIN_FILE=ci/toolchains/powerpc64le-linux-gnu.cmake
     ;;
 esac
