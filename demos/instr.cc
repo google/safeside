@@ -43,7 +43,9 @@ static void MFence() {
     defined(_M_IX86)
   _mm_mfence();
 #elif defined(__aarch64__)
-  asm volatile("dsb sy");
+  asm volatile(
+      "dsb sy\n"
+      "isb sy\n");
 #elif defined(__powerpc__)
   asm volatile("sync");
 #else
