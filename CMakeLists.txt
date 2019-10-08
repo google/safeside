@@ -4,8 +4,6 @@
 # Ubuntu LTS release (Xenial). Fedora, CentOS (with cmake3), Homebrew,
 # and Chocolatey all provided at least 3.5.1 as well.
 cmake_minimum_required(VERSION 3.5.1)
-set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CONFIGURATION_TYPES Release)
 
 project(safeside VERSION 0.1.0 LANGUAGES C CXX)
 
