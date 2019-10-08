@@ -5,7 +5,7 @@ set(CMAKE_CXX_EXTENSIONS off)
 # Enable at least some optimization in all builds. The Ret2Spec demo, in
 # particular, will segfault if built without optimizations.
 # TODO(https://git.io/JecmX): Fix the crash in Ret2Spec
-add_compile_options(-O1)
+add_compile_options(-O2)
 
 # Disable run-time code checking on MSVC. It's enabled by default in CMake's
 # debug build settings, but it's incompatible with optimizations.
@@ -42,7 +42,7 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
 endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
-   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(ppc64)$"))
+   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(ppc64le)$"))
   # Spectre V3 / Meltdown
   add_executable(meltdown meltdown.cc)
   target_link_libraries(meltdown safeside)
