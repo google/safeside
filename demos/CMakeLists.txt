@@ -42,7 +42,7 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
 endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
-   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(ppc64)$"))
+   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(ppc64le)$"))
   # Spectre V3 / Meltdown
   add_executable(meltdown meltdown.cc)
   target_link_libraries(meltdown safeside)
