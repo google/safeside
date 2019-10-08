@@ -59,7 +59,9 @@ static void LFence() {
     defined(_M_IX86)
   _mm_lfence();
 #elif defined(__aarch64__)
-  asm volatile("dsb ld");
+  asm volatile(
+      "dsb ld\n"
+      "isb ld\n");
 #elif defined(__powerpc__)
   asm volatile("sync");
 #else
