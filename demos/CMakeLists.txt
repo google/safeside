@@ -47,3 +47,10 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   add_executable(meltdown meltdown.cc)
   target_link_libraries(meltdown safeside)
 endif()
+
+if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
+    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^aarch64$"))
+  # Meltdown UD -- speculation over an undefined instruction
+  add_executable(meltdown_ud meltdown_ud.cc)
+  target_link_libraries(meltdown_ud safeside)
+endif()
