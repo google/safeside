@@ -43,7 +43,9 @@ static void MFence() {
     defined(_M_IX86)
   _mm_mfence();
 #elif defined(__aarch64__)
-  asm volatile("dsb sy");
+  asm volatile(
+      "dsb sy\n"
+      "isb\n");
 #elif defined(__powerpc__)
   asm volatile("sync");
 #else
@@ -57,7 +59,9 @@ static void LFence() {
     defined(_M_IX86)
   _mm_lfence();
 #elif defined(__aarch64__)
-  asm volatile("dsb ld");
+  asm volatile(
+      "dsb ld\n"
+      "isb\n");
 #elif defined(__powerpc__)
   asm volatile("sync");
 #else
@@ -157,6 +161,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "mov x11, sp\n"
       "dc civac, x11\n"
       "dsb sy\n"
+      "isb\n"
       "ldr x30, [sp], #16\n"
       "ret\n"::"r"(address));
 #else
