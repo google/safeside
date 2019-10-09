@@ -52,8 +52,8 @@ static char leak_byte(const char *data, size_t offset) {
     size_t safe_offset = run % strlen(public_data);
     sidechannel.FlushOracle();
 
-    // Successfully execution accesses safe_offset and loads ForceRead code
-    // into cache.
+    // Successful execution accesses safe_offset and loads ForceRead code into
+    // cache.
     ForceRead(isolated_oracle.data() + static_cast<size_t>(data[safe_offset]));
 
     // Guaranteed invalid opcode on aarch64. Raises SIGILL.
@@ -66,7 +66,7 @@ static char leak_byte(const char *data, size_t offset) {
 
     // The exit call must not be unconditional, otherwise clang would optimize
     // out everything that follows it and the linking would fail.
-    if (strlen(private_data) != 0) {
+    if (strlen(public_data) != 0) {
       exit(EXIT_FAILURE);
     }
 
