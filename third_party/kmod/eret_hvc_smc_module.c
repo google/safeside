@@ -60,12 +60,13 @@ static ssize_t address_store(struct kobject *kobj, struct kobj_attribute *attr,
       "ldr w1, [%0]\n"
       "cmn w1, #0x1\n"
       "bne 1f\n"
-      // Dead code begins - the four following instructions are speculated
-      // over.
+      // Dead code begins - the four following instructions are executed only
+      // speculatively.
       "eret\n"
       "hvc #0\n"
       "smc #0\n"
-      // Load the "pointer" into memory speculatively after ERET, HVC and SMC.
+      // Load the userspace "pointer" speculatively after speculating over ERET,
+      // HVC and SMC.
       "ldrb w1, [%1]\n"
       // Dead code ends.
       "1:\n"
