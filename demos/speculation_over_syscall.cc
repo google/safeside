@@ -87,7 +87,7 @@ static char leak_byte(const char *data, size_t offset) {
 
     // The exit call must not be unconditional, otherwise clang would optimize
     // out everything that follows it and the linking would fail.
-    if (strlen(private_data) != 0) {
+    if (strlen(public_data) != 0) {
       exit(EXIT_FAILURE);
     }
 
