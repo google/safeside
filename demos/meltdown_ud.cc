@@ -22,14 +22,10 @@
 #  error Unsupported architecture. ARM64 required.
 #endif
 
-#include <algorithm>
 #include <array>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <string>
-#include <tuple>
-#include <vector>
 
 #include <signal.h>
 
