@@ -18,8 +18,6 @@
 // assembler.
 #include "instr.h"
 
-#include <cstdint>
-
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
 #  ifdef _MSC_VER

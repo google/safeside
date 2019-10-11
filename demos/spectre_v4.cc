@@ -16,13 +16,9 @@
 
 // TODO(asteinha): Deflake on ARM.
 
-#include <algorithm>
 #include <array>
 #include <cstring>
 #include <iostream>
-#include <string>
-#include <tuple>
-#include <vector>
 
 #include "cache_sidechannel.h"
 #include "instr.h"
