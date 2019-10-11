@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-#include <algorithm>
 #include <array>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <string>
-#include <tuple>
-#include <vector>
 
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
@@ -30,8 +26,6 @@
 #ifndef __aarch64__
 #  error Unsupported architecture. ARM64 required.
 #endif
-
-#include <signal.h>
 
 #include "cache_sidechannel.h"
 #include "instr.h"
