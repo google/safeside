@@ -53,4 +53,8 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   # Speculation over syscall
   add_executable(speculation_over_syscall speculation_over_syscall.cc)
   target_link_libraries(speculation_over_syscall safeside)
+
+  # Meltdown UD -- speculation over an undefined instruction
+  add_executable(meltdown_ud meltdown_ud.cc)
+  target_link_libraries(meltdown_ud safeside)
 endif()

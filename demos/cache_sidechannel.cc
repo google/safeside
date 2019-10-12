@@ -16,9 +16,7 @@
 
 #include "cache_sidechannel.h"
 
-#include <algorithm>
 #include <list>
-#include <tuple>
 #include <vector>
 
 #include "instr.h"
