@@ -32,30 +32,31 @@ MODULE_VERSION("0.1");
 
 static ssize_t address_store(struct kobject *kobj, struct kobj_attribute *attr,
                              const char *buf, size_t length) {
-  size_t address;
-  int *memory, res = kstrtoul(buf, 0, &address);
-  char *pointer;
+  ptrdiff_t userspace_address;
+  int *kernel_memory;
+  int res = kstrtoul(buf, 0, &userspace_address);
 
   if (res != 0) {
     // Incorrectly formatted address was provided.
-    pr_err("kstrtol failed with %d\n", res);
+    pr_err(
+        "kstrtol failed with input %s and return value %d,"
+        "correct format is 0xHHHHHHHHHHHHHHHH\n", buf, res);
     return length;
   }
 
-  pointer = (char *) address;
-
+  // Enable kernel access to userspace memory.
   __uaccess_enable(ARM64_ALT_PAN_NOT_UAO);
-  memory = kmalloc(sizeof(int), GFP_KERNEL);
-  memory[0] = (int) length;
+  kernel_memory = kmalloc(sizeof(int), GFP_KERNEL);
+  kernel_memory[0] = (int) length;
 
   // Core functionality.
   asm volatile(
-      // 1000 repetitions to confuse the PHT enough.
+      // 1000 repetitions to confuse the Pattern History Table sufficiently.
       ".rept 1000\n"
-      // Flush "memory[0]" from cache and sync.
+      // Flush kernel_memory from cache and synchronize.
       "dc civac, %0\n"
       "dsb sy\n"
-      // Slowly load "memory[0]" from main memory and speculate forward in the
+      // Slowly load kernel_memory from main memory and speculate forward in the
       // meantime.
       "ldr w1, [%0]\n"
       "cmn w1, #0x1\n"
@@ -65,14 +66,15 @@ static ssize_t address_store(struct kobject *kobj, struct kobj_attribute *attr,
       "eret\n"
       "hvc #0\n"
       "smc #0\n"
-      // Load the userspace "pointer" speculatively after speculating over ERET,
+      // Load the userspace_address speculatively after speculating over ERET,
       // HVC and SMC.
       "ldrb w1, [%1]\n"
       // Dead code ends.
       "1:\n"
-      ".endr\n"::"r"(memory), "r"(pointer));
+      ".endr\n"::"r"(kernel_memory), "r"(userspace_address));
 
-  kfree(memory);
+  kfree(kernel_memory);
+  // Disable kernel access to userspace memory.
   __uaccess_disable(ARM64_ALT_PAN_NOT_UAO);
   return length;
 }
