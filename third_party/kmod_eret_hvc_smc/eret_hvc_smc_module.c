@@ -47,11 +47,12 @@ static ssize_t address_store(struct kobject *kobj, struct kobj_attribute *attr,
   // Enable kernel access to userspace memory.
   __uaccess_enable(ARM64_ALT_PAN_NOT_UAO);
   kernel_memory = kmalloc(sizeof(int), GFP_KERNEL);
-  kernel_memory[0] = (int) length;
+  kernel_memory[0] = 0;
 
   // Core functionality.
   asm volatile(
-      // 1000 repetitions to confuse the Pattern History Table sufficiently.
+      // 1000 repetitions to confuse the Pattern History Table sufficiently and
+      // achieve a Spectre v1 misspeculation.
       ".rept 1000\n"
       // Flush kernel_memory from cache and synchronize.
       "dc civac, %0\n"
@@ -59,7 +60,10 @@ static ssize_t address_store(struct kobject *kobj, struct kobj_attribute *attr,
       // Slowly load kernel_memory from main memory and speculate forward in the
       // meantime.
       "ldr w1, [%0]\n"
-      "cmn w1, #0x1\n"
+      // Impossible condition - always false because the kernel_memory[0] is 0
+      // and not 1.
+      "cmp w1, #0x1\n"
+      // De-facto unconditional forward jump to the 1: label.
       "bne 1f\n"
       // Dead code begins - the four following instructions are executed only
       // speculatively.

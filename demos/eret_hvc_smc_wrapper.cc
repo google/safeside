@@ -14,6 +14,33 @@
  * limitations under the License.
  */
 
+/**
+ * Speculation over ERET/HVC and SMC instruction.
+ *
+ * In this example we demonstrate a behavior of ARM CPUs that speculate across
+ * instructions whose equivalents are blocking on other architectures. Those are
+ * the ERET instruction that returns from kernel to userspace, from hypervisor
+ * to kernel etc., the HVC instruction that enters hypervisor from kernel and
+ * the SMC instruction that enters the secure monitor from kernel or from
+ * hypervisor.
+ *
+ * Since these instructions behave as an undefined instruction in a userspace
+ * program we have to execute them in kernel code using a Linux kernel module.
+ * For the sake of portability and maintainability we execute them there only
+ * speculatively and verify that the speculative execution does not block on any
+ * of those instructions by invoking all three of them before we yield a memory
+ * access into oracle that loads a userspace-provided address into the cache.
+ *
+ * We use our userspace infrastructure for the setup of the oracle and for the
+ * FLUSH+RELOAD technique. The kernel receives hexadecimal addresses that are
+ * written into a SYSFS file /sys/kernel/safeside_eret_hvc_smc/address
+ * During each sysfs store the kernel code performs a Spectre v1 gadgets in
+ * order to achieve speculative execution. The speculatively executed and
+ * architecturally unreachable code begins with ERET, HVC and SMC instructions
+ * followed by a memory access instruction. Afterwards the control flow returns
+ * back to userspace where we verify that the provided index in memory oracle
+ * was speculatively accessed. */
+
 #include <array>
 #include <cstring>
 #include <fstream>
