@@ -34,8 +34,8 @@
  * We use our userspace infrastructure for the setup of the oracle and for the
  * FLUSH+RELOAD technique. The kernel receives hexadecimal addresses that are
  * written into a SYSFS file /sys/kernel/safeside_eret_hvc_smc/address
- * During each sysfs store the kernel code performs a Spectre v1 gadgets in
- * order to achieve speculative execution. The speculatively executed and
+ * During each sysfs store the kernel code performs a Spectre v1 gadget in
+ * order to achieve speculative execution. The speculatively executed
  * architecturally unreachable code begins with ERET, HVC and SMC instructions
  * followed by a memory access instruction. Afterwards the control flow returns
  * back to userspace where we verify that the provided index in memory oracle
