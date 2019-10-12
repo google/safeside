@@ -8,4 +8,5 @@ cmake_minimum_required(VERSION 3.5.1)
 project(safeside VERSION 0.1.0 LANGUAGES C CXX)
 
 add_subdirectory(demos)
-add_subdirectory(third_party/kmod)
+add_subdirectory(third_party/kmod_meltdown)
+add_subdirectory(third_party/kmod_eret_hvc_smc)

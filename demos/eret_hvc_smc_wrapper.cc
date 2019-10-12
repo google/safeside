@@ -42,7 +42,7 @@ static char leak_byte(size_t offset) {
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
-    std::ofstream out("/sys/kernel/eret_hvc_smc/address");
+    std::ofstream out("/sys/kernel/safeside_eret_hvc_smc/address");
     if (out.fail()) {
       std::cerr << "Eret_hvc_smc module not loaded or not running as root."
                 << std::endl;

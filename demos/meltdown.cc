@@ -52,7 +52,7 @@ static char leak_byte(const char *data, size_t offset) {
 
   for (int run = 0;; ++run) {
     // Load the kernel memory into the cache to speed up its leakage.
-    std::ifstream is("/sys/kernel/meltdown/length");
+    std::ifstream is("/sys/kernel/safeside_meltdown/length");
     is.get();
     is.close();
 
@@ -112,7 +112,7 @@ static void set_signal() {
 
 int main() {
   size_t private_data, private_length;
-  std::ifstream in("/sys/kernel/meltdown/address");
+  std::ifstream in("/sys/kernel/safeside_meltdown/address");
   if (in.fail()) {
     std::cerr << "Meltdown module not loaded or not running as root."
               << std::endl;
@@ -121,7 +121,7 @@ int main() {
   in >> std::hex >> private_data;
   in.close();
 
-  in.open("/sys/kernel/meltdown/length");
+  in.open("/sys/kernel/safeside_meltdown/length");
   in >> std::dec >> private_length;
   in.close();
 

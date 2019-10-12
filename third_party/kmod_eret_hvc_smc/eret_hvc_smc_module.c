@@ -24,9 +24,9 @@ MODULE_VERSION("0.1");
 #endif
 
 // Provides an endpoint on
-//   /sys/kernel/eret_hvc_smc/address
+//   /sys/kernel/safeside_eret_hvc_smc/address
 // to which userspace programs can send their addresses that will be
-// speculatively fetched after speculating over ERET, HVC and SMC instructions.
+// fetched due to speculation over ERET, HVC and SMC instructions.
 // Currently should be accessible only by root, because there is no checking of
 // those addresses.
 
@@ -89,7 +89,7 @@ static int __init eret_hvc_smc_init(void) {
 
   pr_info("eret_hvc_smc init\n");
 
-  sysfs_entry = kobject_create_and_add("eret_hvc_smc", kernel_kobj);
+  sysfs_entry = kobject_create_and_add("safeside_eret_hvc_smc", kernel_kobj);
   if (!sysfs_entry) {
     return -ENOMEM;
   }
