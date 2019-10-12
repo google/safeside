@@ -50,7 +50,12 @@ endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
     (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^aarch64$"))
-  # Speculation over syscall
+  # Speculation over ERET, HVC and SMC instructions.
   add_executable(eret_hvc_smc_wrapper eret_hvc_smc_wrapper.cc)
   target_link_libraries(eret_hvc_smc_wrapper safeside)
+
+    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(aarch64)$"))
+  # Meltdown UD -- speculation over an undefined instruction
+  add_executable(meltdown_ud meltdown_ud.cc)
+  target_link_libraries(meltdown_ud safeside)
 endif()
