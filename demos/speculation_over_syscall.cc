@@ -28,7 +28,7 @@
 #include <iostream>
 
 #include <signal.h>
-#include <syscall.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
 
