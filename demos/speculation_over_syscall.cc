@@ -74,9 +74,7 @@ static char leak_byte(const char *data, size_t offset) {
         "svc #0\n"::"r"(__NR_kill), "r"(getpid()), "r"(SIGUSR1));
 
     // Waits indefinitely.
-    asm volatile(
-        "mov x8, %0\n"
-        "svc #0\n"::"r"(__NR_pause)):
+    pause();
 
     // Unreachable code. Speculatively access the unsafe offset.
     ForceRead(isolated_oracle.data() + static_cast<size_t>(data[offset]));
