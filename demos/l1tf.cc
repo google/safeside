@@ -18,6 +18,10 @@
 #  error Unsupported OS. Linux required.
 #endif
 
+#if !defined(__x86_64__) && !defined(__i386__)
+#  error Unsupported architecture. ARM64 required.
+#endif
+
 #include <array>
 #include <cstring>
 #include <fstream>
@@ -92,8 +96,13 @@ static void sigsegv(
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
+#ifdef __x86_64__
   ucontext->uc_mcontext.gregs[REG_RIP] =
       reinterpret_cast<greg_t>(afterspeculation);
+#else
+  ucontext->uc_mcontext.gregs[REG_EIP] =
+      reinterpret_cast<greg_t>(afterspeculation);
+#endif
 }
 
 static void set_signal() {
