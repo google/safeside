@@ -36,7 +36,7 @@
 #endif  // __i386__
 
 // Architecturally dependent full memory fence.
-static void MFence() {
+void MFence() {
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
   _mm_mfence();
@@ -52,7 +52,7 @@ static void MFence() {
 }
 
 // Architecturally dependent load memory fence.
-static void LFence() {
+void LFence() {
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
   _mm_lfence();

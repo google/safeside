@@ -16,14 +16,27 @@
 
 #include <cstdint>
 
+// Page size.
+#ifdef __powerpc__
+constexpr uint32_t PAGE_SIZE = 65536;
+#else
+constexpr uint32_t PAGE_SIZE = 4096;
+#endif
+
 // Forced memory load.
 void ForceRead(const void *p);
 
 // Flushing cacheline containing given address.
 void CLFlush(const void *memory);
 
-// Measures the latency of memory read from a given address
+// Measures the latency of memory read from a given address.
 uint64_t ReadLatency(const void *memory);
+
+// Memory fence.
+void MFence();
+
+// Load fence.
+void LFence();
 
 #ifdef __GNUC__
 // Unwinds the stack until the given pointer, flushes the stack pointer and

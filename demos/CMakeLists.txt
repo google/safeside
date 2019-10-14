@@ -54,3 +54,10 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   add_executable(meltdown_ud meltdown_ud.cc)
   target_link_libraries(meltdown_ud safeside)
 endif()
+
+if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
+    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)$"))
+  # L1 terminal fault -- Foreshadow OS -- Meltdown P
+  add_executable(l1tf l1tf.cc)
+  target_link_libraries(l1tf safeside)
+endif()
