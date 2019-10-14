@@ -26,9 +26,14 @@ void CLFlush(const void *memory);
 uint64_t ReadLatency(const void *memory);
 
 #ifdef __GNUC__
-// Unwinds the stack until the given pointer, flushes the stack pointer and
-// returns.
-void UnwindStackAndSlowlyReturnTo(const void *address);
+// Unwinds the stack until the given pointer (minus one byte), flushes the
+// stack pointer and returns. We use the pointer minus one instead of pointer
+// because of cases when the function argument is stored on the stack that
+// we want to unroll.
+void UnwindStackAndSlowlyReturnTo(const char *address);
+
+// Detects in runtime whether the compilation was optimized.
+bool OptimizedCompilation();
 
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86) || defined(__powerpc__)

@@ -57,9 +57,7 @@ static void LFence() {
     defined(_M_IX86)
   _mm_lfence();
 #elif defined(__aarch64__)
-  asm volatile(
-      "dsb ld\n"
-      "isb\n");
+  asm volatile("dsb ld");
 #elif defined(__powerpc__)
   asm volatile("sync");
 #else
@@ -119,10 +117,9 @@ uint64_t ReadLatency(const void *memory) {
 
 #if defined(__GNUC__) && !defined(__powerpc__)
 __attribute__((noinline))
-void UnwindStackAndSlowlyReturnTo(const void *address) {
+void UnwindStackAndSlowlyReturnTo(const char *address) {
 #if defined(__x86_64__) || defined(_M_X64)
   asm volatile(
-      "addq $8, %%rsp\n"
       "popstack:\n"
       "addq $8, %%rsp\n"
       "cmpq %0, (%%rsp)\n"
@@ -130,10 +127,9 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "clflush (%%rsp)\n"
       "mfence\n"
       "lfence\n"
-      "ret\n"::"r"(address));
+      "ret\n"::"r"(address - 1));
 #elif defined(__i386__) || defined(_M_IX86)
   asm volatile(
-      "addl $4, %%esp\n"
       "popstack:\n"
       "addl $4, %%esp\n"
       "cmpl %0, (%%esp)\n"
@@ -141,7 +137,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "clflush (%%esp)\n"
       "mfence\n"
       "lfence\n"
-      "ret\n"::"r"(address));
+      "ret\n"::"r"(address - 1));
 #elif defined(__aarch64__)
   asm volatile(
       // Unwind until the magic value and pop the magic value.
@@ -159,11 +155,36 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "mov x11, sp\n"
       "dc civac, x11\n"
       "dsb sy\n"
-      "isb\n"
       "ldr x30, [sp], #16\n"
-      "ret\n"::"r"(address));
+      "ret\n"::"r"(address - 1));
 #else
 #  error Unsupported CPU.
 #endif
 }
+
+#if !defined(__aarch64__)
+__attribute__((noinline))
+static void InvokedFunction(size_t *val) {
+#if defined(__x86_64__) || defined(_M_X64)
+  asm volatile("movq %%rbp, (%0)"::"r"(val));
+#elif defined(__i386__) || defined(_M_IX86)
+  asm volatile("movl %%ebp, (%0)"::"r"(val));
+#else
+#  error Unsupported CPU.
+#endif
+}
+
+bool OptimizedCompilation() {
+  size_t rootbp, leafbp;
+#if defined(__x86_64__) || defined(_M_X64)
+  asm volatile("movq %%rbp, (%0)"::"r"(&rootbp));
+#elif defined(__i386__) || defined(_M_IX86)
+  asm volatile("movl %%ebp, (%0)"::"r"(&rootbp));
+#else
+#  error Unsupported CPU.
+#endif
+  InvokedFunction(&leafbp);
+  return rootbp == leafbp;
+}
+#endif
 #endif

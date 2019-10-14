@@ -53,9 +53,10 @@ __attribute__((noinline))
 static void speculation() {
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
-  const void *return_address = afterspeculation;
+  const char *return_address = afterspeculation + 1;
 #elif defined(__aarch64__)
-  const void *return_address = reinterpret_cast<const void *>(return_handler);
+  const char *return_address =
+      reinterpret_cast<const char *>(return_handler) + 1;
 #else
 #  error Unsupported CPU.
 #endif
@@ -119,6 +120,15 @@ static char leak_byte() {
 }
 
 int main() {
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(_M_IX86)
+  if (!OptimizedCompilation()) {
+    std::cerr << "Unoptimized compilation. "
+              << "Compile the example with -O2 -fomit-frame-pointer."
+              << std::endl;
+    return EXIT_FAILURE;
+  }
+#endif
   std::cout << "Leaking the string: ";
   std::cout.flush();
   for (size_t i = 0; i < strlen(private_data); ++i) {
