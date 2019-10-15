@@ -41,11 +41,6 @@
  * back to userspace where we verify that the provided index in memory oracle
  * was speculatively accessed. */
 
-#include <array>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
@@ -53,6 +48,11 @@
 #ifndef __aarch64__
 #  error Unsupported architecture. ARM64 required.
 #endif
+
+#include <array>
+#include <cstring>
+#include <fstream>
+#include <iostream>
 
 #include "cache_sidechannel.h"
 #include "instr.h"
