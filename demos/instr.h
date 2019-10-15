@@ -90,4 +90,10 @@ inline void JumpToAfterSpeculation() {
   asm volatile("b afterspeculation");
 }
 #endif
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(_M_IX86) || defined(__powerpc__)
+inline void MemoryAndSpeculationBarrier() {
+  asm volatile("cpuid":::"eax","ebx","ecx","edx");
+}
+#endif
 #endif
