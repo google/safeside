@@ -19,7 +19,7 @@
 #endif
 
 #if !defined(__x86_64__) && !defined(__i386__)
-#  error Unsupported architecture. ARM64 required.
+#  error Unsupported architecture. Intel required.
 #endif
 
 #include <array>
