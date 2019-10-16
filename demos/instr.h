@@ -32,12 +32,6 @@ void CLFlush(const void *memory);
 // Measures the latency of memory read from a given address.
 uint64_t ReadLatency(const void *memory);
 
-// Memory fence.
-void MFence();
-
-// Load fence.
-void LFence();
-
 #ifdef __GNUC__
 // Unwinds the stack until the given pointer, flushes the stack pointer and
 // returns.
@@ -91,7 +85,7 @@ inline void JumpToAfterSpeculation() {
 }
 #endif
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86) || defined(__powerpc__)
+    defined(_M_IX86)
 inline void MemoryAndSpeculationBarrier() {
   asm volatile("cpuid":::"eax","ebx","ecx","edx");
 }
