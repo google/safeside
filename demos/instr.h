@@ -77,4 +77,31 @@ inline void JumpToAfterSpeculation() {
   asm volatile("b afterspeculation");
 }
 #endif
+
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((always_inline))
+inline void EnforceAlignmentAndSerialize() {
+  asm volatile(
+      "pushf\n"
+#ifdef __i386__
+      "orl $0x00040000, (%%esp)\n"
+#else
+      "orl $0x00040000, (%%rsp)\n"
+#endif
+      "popf\n"
+      "cpuid\n":::"eax", "ebx", "ecx", "edx");
+}
+
+__attribute__((always_inline))
+inline void UnenforceAlignment() {
+  asm volatile(
+      "pushf\n"
+#ifdef __i386__
+      "andl $~0x00040000, (%esp)\n"
+#else
+      "andl $~0x00040000, (%rsp)\n"
+#endif
+      "popf\n");
+}
+#endif
 #endif
