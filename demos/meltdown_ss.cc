@@ -59,7 +59,7 @@ static void setup_segment(int index, const char *base, bool present) {
   table_entry.entry_number = index;
   table_entry.base_addr = reinterpret_cast<size_t>(base);
   // No size limit for a present segment, one byte for a non-present segment.
-  table_entry.limit = 0xFFFFFFFF * static_cast<int>(present);
+  table_entry.limit = present ? 0xFFFFFFFF : 0;
   // No 16-bit segment.
   table_entry.seg_32bit = 1;
   // No direction or conforming bits.
