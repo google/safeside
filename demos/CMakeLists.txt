@@ -1,3 +1,5 @@
+include(platforms.cmake)
+
 # Use C++11 without extensions
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS off)
