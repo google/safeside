@@ -18,7 +18,7 @@ generate_and_build() {
 # Choose what to do based on OS and compiler.
 case "${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}" in
   linux_clang)
-    sudo apt install "linux-headers-$(uname -r)"
+    sudo apt install -q "linux-headers-$(uname -r)"
 
     generate_and_build build
     ;;
@@ -36,7 +36,7 @@ case "${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}" in
     # Need this `apt update` for the install to succeed. Without it, the
     # Travis worker only has lists for the ${distro}-security repository.
     sudo apt update
-    sudo apt install \
+    sudo apt install -q \
         "linux-headers-$(uname -r)" \
         g++-i686-linux-gnu \
         g++-aarch64-linux-gnu \
