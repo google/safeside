@@ -115,7 +115,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
 
 std::pair<bool, char> CacheSideChannel::AddHitAndRecomputeScores() {
   static size_t additional_offset_counter = 0;
-  size_t mixed_i = ((additional_offset_counter * 167) + 13) & 0x7F;
+  size_t mixed_i = ((additional_offset_counter * 167) + 13) & 0xFF;
   ForceRead(GetOracle().data() + mixed_i);
   additional_offset_counter = (additional_offset_counter + 1) % 256;
   return RecomputeScores(static_cast<char>(mixed_i));
