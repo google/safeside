@@ -14,6 +14,17 @@
  * limitations under the License.
  */
 
+/**
+ * We create an array of words, shift them by one byte to make them unaligned
+ * and then we copy the public and private data into respective disaligned
+ * arrays - one character is stored into one unaligned word.
+ * Afterwards we turn on the alignment enforcement and try to read the
+ * disaligned private array with that enforcement. That always leads to SIGBUS
+ * however the unaligned data are processed speculatively.
+ * It is necessary to have the AC in CR0 register turned on, but on Linux it is
+ * a standard configuration.
+ **/
+
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
