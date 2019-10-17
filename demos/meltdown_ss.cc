@@ -58,7 +58,7 @@ static void setup_segment(int index, const char *base, bool present) {
   struct user_desc table_entry;
   table_entry.entry_number = index;
   table_entry.base_addr = reinterpret_cast<size_t>(base);
-  // No size limit for a present segment, no space for an non-present segment.
+  // No size limit for a present segment, one byte for a non-present segment.
   table_entry.limit = 0xFFFFFFFF * static_cast<int>(present);
   // No 16-bit segment.
   table_entry.seg_32bit = 1;
@@ -68,7 +68,7 @@ static void setup_segment(int index, const char *base, bool present) {
   table_entry.read_exec_only = 0;
   // Limit is in bytes, not in pages.
   table_entry.limit_in_pages = 0;
-  // True if present is zero, otherwise false.
+  // True iff present is false.
   table_entry.seg_not_present = static_cast<int>(!present);
   // Useable entry.
   table_entry.useable = 1;
@@ -99,7 +99,7 @@ static char leak_byte(size_t offset) {
     // PL = 3, local_table = 1 * 4, index = 0 * 8.
     size_t fs_backup = ExchangeFS(3 + 4);
     // PL = 3, local_table = 1 * 4, index = 1 * 8.
-    size_t es_backup = ExchangeES(3 + 4 + 8); 
+    size_t es_backup = ExchangeES(3 + 4 + 8);
 
     // Making the segment that points to private data non present - that means
     // that each access to it architecturally fails. Just rewriting the
@@ -132,7 +132,7 @@ static char leak_byte(size_t offset) {
     asm volatile("afterspeculation:");
 
     // We must restore the segments - especially ES - because they are used in
-    // the C++ STL.
+    // the C++ STL (e.g. ia32_strcpy function).
     ExchangeFS(fs_backup);
     ExchangeES(es_backup);
 
@@ -173,7 +173,7 @@ int main() {
   std::cout << "Leaking the string: ";
   std::cout.flush();
   // Avoid the first dummy character that would be accessible using zero
-  // segment limit.
+  // segment limit. Therefore starting from index 1.
   for (size_t i = 1; i < strlen(private_data); ++i) {
     std::cout << leak_byte(i);
     std::cout.flush();
