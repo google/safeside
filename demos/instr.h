@@ -81,7 +81,7 @@ inline void JumpToAfterSpeculation() {
 #ifdef __i386__
 // Returns the original value of FS and sets the new value.
 __attribute__((always_inline))
-inline static size_t ExchangeFS(size_t input) {
+inline static int ExchangeFS(int input) {
   asm volatile(
       "mov %%fs, %%eax\n"
       "movl %1, %%fs\n"
@@ -92,7 +92,7 @@ inline static size_t ExchangeFS(size_t input) {
 
 // Returns the original value of ES and sets the new value.
 __attribute__((always_inline))
-inline static size_t ExchangeES(size_t input) {
+inline static int ExchangeES(int input) {
   asm volatile(
       "mov %%es, %%eax\n"
       "movl %1, %%es\n"
@@ -103,8 +103,8 @@ inline static size_t ExchangeES(size_t input) {
 
 // Reads an offset from the FS segment.
 __attribute__((always_inline))
-inline static char ReadUsingFS(size_t offset) {
-  size_t result;
+inline static char ReadUsingFS(unsigned int offset) {
+  unsigned int result;
 
   asm volatile(
       "movzbl %%fs:(, %1, 1), %0\n"
@@ -115,8 +115,8 @@ inline static char ReadUsingFS(size_t offset) {
 
 // Reads an offset from the ES segment.
 __attribute__((always_inline))
-inline static char ReadUsingES(size_t offset) {
-  size_t result;
+inline static char ReadUsingES(unsigned int offset) {
+  unsigned int result;
 
   asm volatile(
       "movzbl %%es:(, %1, 1), %0\n"
