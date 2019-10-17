@@ -84,9 +84,9 @@ __attribute__((always_inline))
 inline static int ExchangeFS(int input) {
   asm volatile(
       "mov %%fs, %%eax\n"
-      "movl %0, %%fs\n"
+      "movl %1, %%fs\n"
       "movl %%eax, %0\n"
-      :"=r"(input)::"eax");
+      :"=r"(input):"r"(input):"eax");
   return input;
 }
 
@@ -95,9 +95,9 @@ __attribute__((always_inline))
 inline static int ExchangeES(int input) {
   asm volatile(
       "mov %%es, %%eax\n"
-      "movl %0, %%es\n"
+      "movl %1, %%es\n"
       "movl %%eax, %0\n"
-      :"=r"(input)::"eax");
+      :"=r"(input):"r"(input):"eax");
   return input;
 }
 
