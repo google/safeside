@@ -91,7 +91,7 @@ static char leak_byte(size_t offset) {
     // First we have to setup the private segment as present, because otherwise
     // the write to ES would fail with SIGBUS on some Intel CPUs. We use index
     // 1 because index 0 is occupied by the public data segment.
-    setup_segment(1, private_data, 1);
+    setup_segment(1, private_data, true);
 
     // Assigning FS to the segment that points to public data and ES to the
     // segment that points to private data.
@@ -104,7 +104,7 @@ static char leak_byte(size_t offset) {
     // Making the segment that points to private data non present - that means
     // that each access to it architecturally fails. Just rewriting the
     // descriptor on index 1 with a non-present one.
-    setup_segment(1, private_data, 0);
+    setup_segment(1, private_data, false);
 
     // Block all speculation and memory forwarding with CPUID. Otherwise we
     // would get false positives on many Intel CPUs that allow speculation on
@@ -169,7 +169,7 @@ static void set_signal() {
 int main() {
   set_signal();
   // Setup the public data segment descriptor on index 0. It is always present.
-  setup_segment(0, public_data, 1);
+  setup_segment(0, public_data, true);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   // Avoid the first dummy character that would be accessible using zero
