@@ -49,7 +49,7 @@
 
 // Have one dummy character on the beginning of the private data. Segment limit
 // zero means that exactly one address is accessible. We want to access only
-// non-accesible characters.
+// non-accessible characters.
 const char *private_data = " It's a s3kr3t!!!";
 const char *public_data = "Hello, world!";
 
