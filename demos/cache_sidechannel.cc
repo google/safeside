@@ -68,7 +68,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
     // them all equally fast. Therefore it is necessary to confuse them by
     // accessing the offsets in a pseudo-random order.
     size_t mixed_i = ((i * 167) + 13) & 0xFF;
-    const void *timing_entry = &GetOracle()[mixed_i];
+    const void *timing_entry = GetOracle().data() + mixed_i;
     latencies[mixed_i] = ReadLatency(timing_entry);
   }
 
@@ -87,12 +87,12 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
   // different across platforms. Therefore we must first compute its estimate
   // using the safe_offset_char which should be a cache-hit.
   uint64_t hitmiss_diff = median_latency - latencies[
-      static_cast<size_t>(static_cast<unsigned char>(safe_offset_char))];
+      static_cast<unsigned char>(safe_offset_char)];
 
   int hitcount = 0;
   for (size_t i = 0; i < 256; ++i) {
     if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-        i != safe_offset_char) {
+        i != static_cast<unsigned char>(safe_offset_char)) {
       ++hitcount;
     }
   }
@@ -102,7 +102,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
   if (hitcount == 1) {
     for (size_t i = 0; i < 256; ++i) {
       if (latencies[i] < median_latency - hitmiss_diff / 2 &&
-          i != safe_offset_char) {
+          i != static_cast<unsigned char>(safe_offset_char)) {
         ++scores_[i];
       }
     }
@@ -115,7 +115,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
 
 std::pair<bool, char> CacheSideChannel::AddHitAndRecomputeScores() {
   static size_t additional_offset_counter = 0;
-  size_t mixed_i = ((additional_offset_counter * 167) + 13) & 0xFF;
+  size_t mixed_i = ((additional_offset_counter * 167) + 13) & 0x7F;
   ForceRead(GetOracle().data() + mixed_i);
   additional_offset_counter = (additional_offset_counter + 1) % 256;
   return RecomputeScores(static_cast<char>(mixed_i));

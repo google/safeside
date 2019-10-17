@@ -61,13 +61,15 @@ static char leak_byte(const char *data, size_t offset) {
 
     // Successful execution accesses safe_offset and loads ForceRead code into
     // cache.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[safe_offset]));
+    ForceRead(isolated_oracle.data() +
+              static_cast<unsigned char>(data[safe_offset]));
 
     // Guaranteed invalid opcode on aarch64. Raises SIGILL.
     asm volatile(".word 0x00000000");
 
     // Architecturally unreachable code.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[offset]));
+    ForceRead(isolated_oracle.data() +
+              static_cast<unsigned char>(data[offset]));
 
     std::cout << "Dead code. Must not be printed." << std::endl;
 
