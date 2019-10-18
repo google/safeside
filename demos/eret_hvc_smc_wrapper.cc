@@ -15,7 +15,7 @@
  */
 
 /**
- * Speculation over ERET/HVC and SMC instruction.
+ * Speculation over ERET, HVC and SMC instruction.
  *
  * In this example we demonstrate a behavior of ARM CPUs that speculate across
  * instructions whose equivalents are blocking on other architectures. Those are
