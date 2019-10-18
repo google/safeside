@@ -21,7 +21,7 @@
  * Afterwards we turn on the alignment enforcement and try to read the
  * disaligned private array with that enforcement. That always leads to SIGBUS
  * however the unaligned data are processed speculatively.
- * It is necessary to have the AC in CR0 register turned on, but on Linux it is
+ * It is necessary to have the AM in CR0 register turned on, but on Linux it is
  * a standard configuration.
  **/
 
@@ -85,9 +85,9 @@ static char leak_byte(size_t *disaligned_data, size_t offset) {
     // Accesses unaligned data despite of the enforcement. Triggers SIGBUS.
     ForceRead(isolated_oracle.data() + disaligned_data[offset]);
 
-    // Architecturally dead code. Never reached unless AC flag in CR0 is off.
+    // Architecturally dead code. Never reached unless AM flag in CR0 is off.
     std::cout << "Dead code. Must not be printed. "
-              << "Maybe you have to flip on the AC flag in CR0." << std::endl;
+              << "Maybe you have to flip on the AM flag in CR0." << std::endl;
 
     // The exit call must not be unconditional, otherwise clang would optimize
     // out everything that follows it and the linking would fail.
