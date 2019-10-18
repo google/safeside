@@ -100,9 +100,11 @@ static char leak_byte(size_t offset) {
     // segment that points to private data.
 
     // PL = 3, local_table = 1 * 4, index = 0 * 8.
-    size_t fs_backup = ExchangeFS(3 + 4);
+    int fs_backup = 3 + 4;
+    ExchangeFS(&fs_backup);
     // PL = 3, local_table = 1 * 4, index = 1 * 8.
-    size_t es_backup = ExchangeES(3 + 4 + 8);
+    int es_backup = 3 + 4 + 8;
+    ExchangeES(&es_backup);
 
     // Making the segment that points to private data non present - that means
     // that each access to it architecturally fails. Just rewriting the
@@ -136,8 +138,8 @@ static char leak_byte(size_t offset) {
 
     // We must restore the segments - especially ES - because they are used in
     // the C++ STL (e.g. ia32_strcpy function).
-    ExchangeFS(fs_backup);
-    ExchangeES(es_backup);
+    ExchangeFS(&fs_backup);
+    ExchangeES(&es_backup);
 
     std::pair<bool, char> result =
         sidechannel.RecomputeScores(public_data[safe_offset]);

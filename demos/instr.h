@@ -81,24 +81,22 @@ inline void JumpToAfterSpeculation() {
 #ifdef __i386__
 // Returns the original value of FS and sets the new value.
 __attribute__((always_inline))
-inline static int ExchangeFS(int input) {
+inline static void ExchangeFS(int *input) {
+  int tmp = 0;
   asm volatile(
-      "mov %%fs, %%eax\n"
-      "movl %1, %%fs\n"
-      "movl %%eax, %0\n"
-      :"=r"(input):"r"(input):"eax");
-  return input;
+      "mov %%fs, %1\n"
+      "mov (%0), %%fs\n"
+      "mov %1, (%0)\n"::"r"(input), "r"(tmp));
 }
 
 // Returns the original value of ES and sets the new value.
 __attribute__((always_inline))
-inline static int ExchangeES(int input) {
+inline static void ExchangeES(int *input) {
+  int tmp = 0;
   asm volatile(
-      "mov %%es, %%eax\n"
-      "movl %1, %%es\n"
-      "movl %%eax, %0\n"
-      :"=r"(input):"r"(input):"eax");
-  return input;
+      "mov %%es, %1\n"
+      "mov (%0), %%es\n"
+      "mov %1, (%0)\n"::"r"(input), "r"(tmp));
 }
 
 // Reads an offset from the FS segment.
@@ -128,7 +126,7 @@ inline static char ReadUsingES(unsigned int offset) {
 // Yields a serializing instruction.
 __attribute__((always_inline))
 inline void MemoryAndSpeculationBarrier() {
-  asm volatile("cpuid"::"a"(0):"ebx","ecx","edx");
+  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx");
 }
 #endif
 #endif
