@@ -88,7 +88,7 @@ inline void JumpToAfterSpeculation() {
     defined(_M_IX86)
 __attribute__((always_inline))
 inline void MemoryAndSpeculationBarrier() {
-  asm volatile("cpuid":::"eax","ebx","ecx","edx");
+  asm volatile("cpuid":"a"(0)::"ebx", "ecx", "edx");
 }
 #endif
 #endif
