@@ -24,7 +24,6 @@
 
 #include <array>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 
 #include <fcntl.h>
@@ -61,7 +60,7 @@ static char leak_byte(size_t offset) {
       ForceRead(private_page);
 
       // Flip the "present" bit in the private_page table record.
-      mprotect(private_page, PAGE_SIZE, PROT_NONE);
+      mprotect(private_page, kPageSizeBytes, PROT_NONE);
 
       // Block any speculation forward.
       MemoryAndSpeculationBarrier();
@@ -82,7 +81,7 @@ static char leak_byte(size_t offset) {
       asm volatile("afterspeculation:");
 
       // Flip back the "present" bit in the private_page table record.
-      mprotect(private_page, PAGE_SIZE, PROT_READ | PROT_WRITE);
+      mprotect(private_page, kPageSizeBytes, PROT_READ | PROT_WRITE);
     }
 
     std::pair<bool, char> result = sidechannel.AddHitAndRecomputeScores();
@@ -121,7 +120,7 @@ static void set_signal() {
 
 int main() {
   set_signal();
-  private_page = reinterpret_cast<char *>(mmap(nullptr, PAGE_SIZE,
+  private_page = reinterpret_cast<char *>(mmap(nullptr, kPageSizeBytes,
       PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
   memcpy(private_page, private_data, strlen(private_data) + 1);
   std::cout << "Leaking the string: ";
@@ -130,6 +129,6 @@ int main() {
     std::cout << leak_byte(i);
     std::cout.flush();
   }
-  munmap(private_page, PAGE_SIZE);
+  munmap(private_page, kPageSizeBytes);
   std::cout << "\nDone!\n";
 }

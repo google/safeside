@@ -18,9 +18,9 @@
 
 // Page size.
 #ifdef __powerpc__
-constexpr uint32_t PAGE_SIZE = 65536;
+constexpr uint32_t kPageSizeBytes = 65536;
 #else
-constexpr uint32_t PAGE_SIZE = 4096;
+constexpr uint32_t kPageSizeBytes = 4096;
 #endif
 
 // Forced memory load.
