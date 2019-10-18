@@ -16,13 +16,20 @@
 
 #include <cstdint>
 
+// Page size.
+#ifdef __powerpc__
+constexpr uint32_t kPageSizeBytes = 65536;
+#else
+constexpr uint32_t kPageSizeBytes = 4096;
+#endif
+
 // Forced memory load.
 void ForceRead(const void *p);
 
 // Flushing cacheline containing given address.
 void CLFlush(const void *memory);
 
-// Measures the latency of memory read from a given address
+// Measures the latency of memory read from a given address.
 uint64_t ReadLatency(const void *memory);
 
 #ifdef __GNUC__
@@ -75,6 +82,13 @@ inline void RestoreCalleeSavedRegs() {
 __attribute__((always_inline))
 inline void JumpToAfterSpeculation() {
   asm volatile("b afterspeculation");
+}
+#endif
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(_M_IX86)
+__attribute__((always_inline))
+inline void MemoryAndSpeculationBarrier() {
+  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx");
 }
 #endif
 #endif
