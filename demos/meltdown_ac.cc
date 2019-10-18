@@ -16,7 +16,7 @@
 
 /**
  * We create an array of words, shift them by one byte to make them unaligned
- * and then we copy the public and private data into respective disaligned
+ * and then we copy the public and private data into respective unaligned
  * arrays - one character is stored into one unaligned word.
  * Afterwards we turn on the alignment enforcement and try to read the
  * disaligned private array with that enforcement. That always leads to SIGBUS
