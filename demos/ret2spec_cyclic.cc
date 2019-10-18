@@ -21,7 +21,7 @@
  * We have two functions that we named after their constant return values. First
  * the returns_true function invokes itself kRecursionDepth times and in the
  * deepest invocation it calls returns_false function. Returns_false function
- * invokes kRecursionDepth times itself. All returns of the returns_false
+ * invokes itself kRecursionDepth times. All returns of the returns_false
  * function are predicted correctly, but returns of returns_true function are
  * mispredicted to the return address of the returns_false function, because all
  * RSB pointers were rewritten by returns_false invocations. We steer those
