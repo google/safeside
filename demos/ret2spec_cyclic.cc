@@ -45,7 +45,9 @@ constexpr size_t kRecursionDepth = 64;
 constexpr size_t kCacheLineSize = 64;
 
 // Global variables used to avoid passing parameters through recursive function
-// calls.
+// calls. Since we flush whole stack frames from the cache, it is important not
+// to store on stack any data that might be affected by being flushed from
+// cache.
 size_t current_offset;
 const std::array<BigByte, 256> *oracle_ptr;
 
