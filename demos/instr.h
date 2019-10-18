@@ -128,7 +128,7 @@ inline static char ReadUsingES(unsigned int offset) {
 // Yields a serializing instruction.
 __attribute__((always_inline))
 inline void MemoryAndSpeculationBarrier() {
-  asm volatile("cpuid":::"eax","ebx","ecx","edx");
+  asm volatile("cpuid"::"a"(0):"ebx","ecx","edx");
 }
 #endif
 #endif
