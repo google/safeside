@@ -25,6 +25,8 @@
  * private data). Finally we speculatively read from the non-present segment
  * beyond its size limits capturing the architectural failures with a SIGSEGV
  * handler.
+ *
+ * Intel does not seem to be vulnerable to Meltdown-SS. Works only on AMD CPUs.
  **/
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
@@ -55,9 +57,10 @@ const char *public_data = "Hello, world!";
 
 // Sets up a segment descriptor in the local descriptor table.
 static void setup_segment(int index, const char *base, bool present) {
+  // See: Intel SDM volume 3a "3.4.5 Segment Descriptors".
   struct user_desc table_entry;
   table_entry.entry_number = index;
-  table_entry.base_addr = reinterpret_cast<size_t>(base);
+  table_entry.base_addr = reinterpret_cast<unsigned int>(base);
   // No size limit for a present segment, one byte for a non-present segment.
   table_entry.limit = present ? 0xFFFFFFFF : 0;
   // No 16-bit segment.
@@ -69,7 +72,7 @@ static void setup_segment(int index, const char *base, bool present) {
   // Limit is in bytes, not in pages.
   table_entry.limit_in_pages = 0;
   // True iff present is false.
-  table_entry.seg_not_present = static_cast<int>(!present);
+  table_entry.seg_not_present = !present;
   // Useable entry.
   table_entry.useable = 1;
   int result = syscall(__NR_modify_ldt, 1, &table_entry,
