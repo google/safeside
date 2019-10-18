@@ -57,7 +57,7 @@ bool false_value = false;
 std::vector<char *> stack_mark_pointers;
 
 // Always returns false.
-bool returns_false(int counter) {
+static bool returns_false(int counter) {
   if (counter > 0) {
     if (returns_false(counter - 1)) {
       // Unreachable code. returns_false can never return true.
@@ -72,7 +72,7 @@ bool returns_false(int counter) {
 }
 
 // Always returns true.
-bool returns_true(int counter) {
+static bool returns_true(int counter) {
   // Creates a stack mark and stores it to the global vector.
   char stack_mark = 'a';
   stack_mark_pointers.push_back(&stack_mark);
