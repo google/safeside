@@ -1,4 +1,12 @@
 function(build_kernel_module MODULE_NAME)
+# Check if we should skip building the module.
+if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  message(STATUS "Skipping Linux kernel module on non-Linux OS")
+  return()
+elseif(${CMAKE_CROSSCOMPILING})
+  message(STATUS "Skipping kernel module in cross-compile build")
+  return()
+endif()
 # Determine what kernel source tree we'll use to build the module.
 # CMAKE_HOST_SYSTEM_VERSION uses `uname -r` on Linux.
 # https://cmake.org/cmake/help/latest/variable/CMAKE_HOST_SYSTEM_VERSION.html

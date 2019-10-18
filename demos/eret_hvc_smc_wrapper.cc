@@ -64,9 +64,8 @@ const char *private_data = "It's a s3kr3t!!!";
 // Writes userspace addresses into a SYSFS file while the kernel handler
 // accesses those adresses speculatively after it speculates over ERET, HVC and
 // SMC instructions.
-static char leak_byte(size_t offset) {
+static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     std::ofstream out("/sys/kernel/safeside_eret_hvc_smc/address");
@@ -81,7 +80,7 @@ static char leak_byte(size_t offset) {
     // Sends the secret address in the oracle to the kernel so that it's
     // accessed only in there and only speculatively.
     out << std::hex << static_cast<const void *>(
-        isolated_oracle.data() + static_cast<size_t>(private_data[offset]));
+        sidechannel.GetOracle().data() + static_cast<size_t>(data[offset]));
     out.close();
 
     std::pair<bool, char> result = sidechannel.AddHitAndRecomputeScores();
@@ -98,7 +97,7 @@ static char leak_byte(size_t offset) {
 
 int main() {
   for (size_t i = 0; i < strlen(private_data); ++i) {
-    std::cout << leak_byte(i);
+    std::cout << LeakByte(private_data, i);
     std::cout.flush();
   }
   std::cout << "\nDone!\n";
