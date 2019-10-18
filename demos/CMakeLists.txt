@@ -33,6 +33,10 @@ target_link_libraries(spectre_v1_indirect_jumps safeside)
 add_executable(spectre_v4 spectre_v4.cc)
 target_link_libraries(spectre_v4 safeside)
 
+# Cyclic Ret2Spec -- rewritting the RSB
+add_executable(ret2spec_cyclic ret2spec_cyclic.cc)
+target_link_libraries(ret2spec_cyclic safeside)
+
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(aarch64)$"))
   # Ret2Spec -- speculative execution using return stack buffers
