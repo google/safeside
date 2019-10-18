@@ -24,9 +24,9 @@
  * invokes kRecursionDepth times itself. All returns of the returns_false
  * function are predicted correctly, but returns of returns_true function are
  * mispredicted to the return address of the returns_false function, because all
- * RSB pointers were rewritten by returns_false invocations.
- * We steer those misprediction to an unreachable code path with
- * microarchitectural side effects.
+ * RSB pointers were rewritten by returns_false invocations. We steer those
+ * mispredictions to an unreachable code path with microarchitectural side
+ * effects.
  **/
 
 #include <array>
