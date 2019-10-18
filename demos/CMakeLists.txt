@@ -54,3 +54,10 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   add_executable(meltdown_ud meltdown_ud.cc)
   target_link_libraries(meltdown_ud safeside)
 endif()
+
+if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
+   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$"))
+   # Meltdown BR - speculation over the ia32 bounds check instruction
+  add_executable(meltdown_ud meltdown_ud.cc)
+  target_link_libraries(meltdown_ud safeside)
+endif()
