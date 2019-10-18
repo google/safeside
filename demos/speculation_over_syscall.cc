@@ -66,6 +66,9 @@ static char leak_byte(const char *data, size_t offset) {
 
     // Sends a SIGUSR1 signal to itself. The signal handler shifts the control
     // flow to the "afterspeculation" label.
+    // We don't want to use the "syscall" library function in order to avoid
+    // Spectre v2 effects that the CPU jumps over that call, because we cannot
+    // serialize that later.
     asm volatile(
         "mov x8, %0\n"
         "mov x0, %1\n"
