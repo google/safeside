@@ -68,6 +68,14 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
 endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
+   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$"))
+  # Meltdown SS -- speculative reading from non present segments and outside of
+  # segment limits
+  add_executable(meltdown_ss meltdown_ss.cc)
+  target_link_libraries(meltdown_ss safeside)
+endif()
+
+if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)$"))
   # L1 terminal fault -- Foreshadow OS -- Meltdown P
   add_executable(l1tf l1tf.cc)
