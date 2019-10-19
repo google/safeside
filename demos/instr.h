@@ -16,13 +16,20 @@
 
 #include <cstdint>
 
+// Page size.
+#ifdef __powerpc__
+constexpr uint32_t kPageSizeBytes = 65536;
+#else
+constexpr uint32_t kPageSizeBytes = 4096;
+#endif
+
 // Forced memory load.
 void ForceRead(const void *p);
 
 // Flushing cacheline containing given address.
 void CLFlush(const void *memory);
 
-// Measures the latency of memory read from a given address
+// Measures the latency of memory read from a given address.
 uint64_t ReadLatency(const void *memory);
 
 #ifdef __GNUC__
@@ -78,6 +85,15 @@ inline void JumpToAfterSpeculation() {
 }
 #endif
 
+#if defined(__i386__) || defined(__x86_64__)
+// Yields serializing instruction.
+// Must be inlined in order to avoid mispredicted Spectre v2 jumps over it.
+__attribute__((always_inline))
+inline void MemoryAndSpeculationBarrier() {
+  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx");
+}
+#endif
+
 #ifdef __i386__
 // Returns the original value of FS and sets the new value.
 __attribute__((always_inline))
@@ -122,11 +138,4 @@ inline static char ReadUsingES(unsigned int offset) {
 
   return static_cast<char>(result);
 }
-
-// Yields a serializing instruction.
-__attribute__((always_inline))
-inline void MemoryAndSpeculationBarrier() {
-  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx");
-}
-#endif
 #endif
