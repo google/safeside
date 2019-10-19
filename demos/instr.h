@@ -139,3 +139,4 @@ inline static char ReadUsingES(unsigned int offset) {
   return static_cast<char>(result);
 }
 #endif
+#endif

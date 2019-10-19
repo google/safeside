@@ -38,7 +38,6 @@
 
 #include <array>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 
 #include <asm/ldt.h>
