@@ -86,9 +86,11 @@ inline void JumpToAfterSpeculation() {
 #endif
 
 #if defined(__i386__) || defined(__x86_64__)
+// Yields serializing instruction.
+// Must be inlined in order to avoid mispredicted Spectre v2 jumps over it.
 __attribute__((always_inline))
 inline void MemoryAndSpeculationBarrier() {
-  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx");
+  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx", "memory");
 }
 
 __attribute__((always_inline))
@@ -114,6 +116,41 @@ inline void UnenforceAlignment() {
       "andl $~0x00040000, (%rsp)\n"
 #endif
       "popf\n");
+}
+#endif
+
+#ifdef __i386__
+// Returns the original value of FS and sets the new value.
+int ExchangeFS(int input);
+// Returns the original value of ES and sets the new value.
+int ExchangeES(int input);
+
+// Reads an offset from the FS segment.
+// Must be inlined because the fault occurs inside and the stack pointer would
+// be shifted.
+__attribute__((always_inline))
+inline unsigned int ReadUsingFS(unsigned int offset) {
+  unsigned int result;
+
+  asm volatile(
+      "movzbl %%fs:(, %1, 1), %0\n"
+      :"=r"(result):"r"(offset):"memory");
+
+  return result;
+}
+
+// Reads an offset from the ES segment.
+// Must be inlined because the fault occurs inside and the stack pointer would
+// be shifted.
+__attribute__((always_inline))
+inline unsigned int ReadUsingES(unsigned int offset) {
+  unsigned int result;
+
+  asm volatile(
+      "movzbl %%es:(, %1, 1), %0\n"
+      :"=r"(result):"r"(offset):"memory");
+
+  return result;
 }
 #endif
 #endif

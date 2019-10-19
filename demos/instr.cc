@@ -167,3 +167,23 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
 #endif
 }
 #endif
+
+#if defined(__GNUC__) && defined(__i386__)
+// Returns the original value of FS and sets the new value.
+int ExchangeFS(int input) {
+  int output;
+  asm volatile(
+      "mov %%fs, %0\n"
+      "mov %1, %%fs\n":"=d"(output):"a"(input):"memory");
+  return output;
+}
+
+// Returns the original value of ES and sets the new value.
+int ExchangeES(int input) {
+  int output;
+  asm volatile(
+      "mov %%es, %0\n"
+      "mov %1, %%es\n":"=d"(output):"a"(input):"memory");
+  return output;
+}
+#endif
