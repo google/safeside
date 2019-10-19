@@ -33,6 +33,10 @@ target_link_libraries(spectre_v1_indirect_jumps safeside)
 add_executable(spectre_v4 spectre_v4.cc)
 target_link_libraries(spectre_v4 safeside)
 
+# Cyclic Ret2Spec -- rewriting the RSB
+add_executable(ret2spec_cyclic ret2spec_cyclic.cc)
+target_link_libraries(ret2spec_cyclic safeside)
+
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(aarch64)$"))
   # Ret2Spec -- speculative execution using return stack buffers
@@ -50,6 +54,14 @@ endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(aarch64)$"))
+  # Speculation over ERET, HVC and SMC instructions
+  add_executable(eret_hvc_smc_wrapper eret_hvc_smc_wrapper.cc)
+  target_link_libraries(eret_hvc_smc_wrapper safeside)
+
+  # Speculation over syscall
+  add_executable(speculation_over_syscall speculation_over_syscall.cc)
+  target_link_libraries(speculation_over_syscall safeside)
+
   # Meltdown UD -- speculation over an undefined instruction
   add_executable(meltdown_ud meltdown_ud.cc)
   target_link_libraries(meltdown_ud safeside)
@@ -60,4 +72,8 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   # Meltdown AC -- speculative fetching of unaligned data
   add_executable(meltdown_ac meltdown_ac.cc)
   target_link_libraries(meltdown_ac safeside)
+
+  # L1 terminal fault -- Foreshadow OS -- Meltdown P
+  add_executable(l1tf l1tf.cc)
+  target_link_libraries(l1tf safeside)
 endif()
