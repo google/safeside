@@ -114,5 +114,6 @@ inline void UnenforceAlignment() {
       "andl $~0x00040000, (%rsp)\n"
 #endif
       "popf\n");
+}
 #endif
 #endif
