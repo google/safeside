@@ -90,53 +90,42 @@ inline void JumpToAfterSpeculation() {
 // Must be inlined in order to avoid mispredicted Spectre v2 jumps over it.
 __attribute__((always_inline))
 inline void MemoryAndSpeculationBarrier() {
-  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx");
+  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx", "memory");
 }
 #endif
 
 #ifdef __i386__
 // Returns the original value of FS and sets the new value.
-__attribute__((always_inline))
-inline static void ExchangeFS(int *input) {
-  int tmp = 0;
-  asm volatile(
-      "mov %%fs, %1\n"
-      "mov (%0), %%fs\n"
-      "mov %1, (%0)\n"::"r"(input), "r"(tmp));
-}
-
+int ExchangeFS(int input);
 // Returns the original value of ES and sets the new value.
-__attribute__((always_inline))
-inline static void ExchangeES(int *input) {
-  int tmp = 0;
-  asm volatile(
-      "mov %%es, %1\n"
-      "mov (%0), %%es\n"
-      "mov %1, (%0)\n"::"r"(input), "r"(tmp));
-}
+int ExchangeES(int input);
 
 // Reads an offset from the FS segment.
+// Must be inlined because the fault occurs inside and the stack pointer would
+// be shifted.
 __attribute__((always_inline))
-inline static char ReadUsingFS(unsigned int offset) {
+inline unsigned int ReadUsingFS(unsigned int offset) {
   unsigned int result;
 
   asm volatile(
       "movzbl %%fs:(, %1, 1), %0\n"
-      :"=r"(result):"r"(offset));
+      :"=r"(result):"r"(offset):"memory");
 
-  return static_cast<char>(result);
+  return result;
 }
 
 // Reads an offset from the ES segment.
+// Must be inlined because the fault occurs inside and the stack pointer would
+// be shifted.
 __attribute__((always_inline))
-inline static char ReadUsingES(unsigned int offset) {
+inline unsigned int ReadUsingES(unsigned int offset) {
   unsigned int result;
 
   asm volatile(
       "movzbl %%es:(, %1, 1), %0\n"
-      :"=r"(result):"r"(offset));
+      :"=r"(result):"r"(offset):"memory");
 
-  return static_cast<char>(result);
+  return result;
 }
 #endif
 #endif
