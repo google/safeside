@@ -44,8 +44,6 @@
 #include "cache_sidechannel.h"
 #include "instr.h"
 
-// TODO(asteinhauser): Check ARM, PowerPC and MacOS.
-
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
 
