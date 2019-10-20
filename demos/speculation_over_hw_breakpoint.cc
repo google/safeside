@@ -14,8 +14,19 @@
  * limitations under the License.
  */
 
+/**
+ * Demonstrates speculative execution over hardware breakpoint trap.
+ * We fork the process and run the demonstration in the child, while the parent
+ * takes care for setting up the breakpoints and moving the instruction pointer
+ * over the dead code after the trap that is executed only speculatively.
+ **/
+
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
+#endif
+
+#if !defined(__i386__) && !defined(__x86_64__)
+#  error Unsupported CPU. X86/64 required.
 #endif
 
 #include <array>
@@ -32,6 +43,8 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+
+// TODO(asteinhauser): Check ARM, PowerPC and MacOS.
 
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
@@ -152,14 +165,14 @@ void ParentProcess(pid_t child) {
         exit(EXIT_FAILURE);
       }
 
-      // Move the instruction pointer to afterspeculation.
+      // Move the child's instruction pointer to afterspeculation.
 #ifdef __x86_64__
       regs.rip = reinterpret_cast<size_t>(afterspeculation);
 #else
       regs.eip = reinterpret_cast<size_t>(afterspeculation);
 #endif
 
-      // Store the exchanged RIP value.
+      // Store the exchanged child's instruction pointer value.
       res = ptrace(PTRACE_SETREGS, child, nullptr, &regs);
       if (res == -1) {
         std::cerr << "PTRACE_SETREGS failed." << std::endl;
