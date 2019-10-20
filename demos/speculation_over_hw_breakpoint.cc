@@ -90,12 +90,12 @@ static char LeakByte(const char *data, size_t data_length, size_t offset) {
 }
 
 void ChildProcess() {
-  // Precompue the length of private data, so that we don't have to access it
+  // Precompute the length of private data, so that we don't have to access it
   // when it contains the hardware breakpoint.
   size_t private_data_length = strlen(private_data);
-  // Similarly we have to precompute the length of public data, because
-  // otherwise __strlen_avx2 executed on public data touches the breakpoint in
-  // private data.
+  // Similarly we have to precompute the length of public data, because on some
+  // systems the __strlen_avx2 executed on public data can touch the breakpoint
+  // in private data.
   size_t public_data_length = strlen(public_data);
 
   // Allow the parent to trace child's execution.
