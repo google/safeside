@@ -136,7 +136,7 @@ void ParentProcess(pid_t child) {
       }
 
       // Wake up the child.
-      res = ptrace(PTRACE_CONT, child, nullptr, 0);
+      res = ptrace(PTRACE_CONT, child, nullptr, nullptr);
       if (res == -1) {
         std::cerr << "PTRACE_CONT after SIGSTOP failed." << std::endl;
         exit(EXIT_FAILURE);
