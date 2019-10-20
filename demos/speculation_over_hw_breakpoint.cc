@@ -152,8 +152,12 @@ void ParentProcess(pid_t child) {
         exit(EXIT_FAILURE);
       }
 
-      // Move the RIP to afterspeculation.
+      // Move the instruction pointer to afterspeculation.
+#ifdef __x86_64__
       regs.rip = reinterpret_cast<size_t>(afterspeculation);
+#else
+      regs.eip = reinterpret_cast<size_t>(afterspeculation);
+#endif
 
       // Store the exchanged RIP value.
       res = ptrace(PTRACE_SETREGS, child, nullptr, &regs);
