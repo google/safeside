@@ -15,6 +15,10 @@
  */
 
 /**
+ * Demonstrates Meltdown-AC - speculative fetching of unaligned data when
+ * alignment is enforced. This vulnerability seems to be AMD-specific. It should
+ * not work on Intel CPUs.
+ *
  * We create an array of words, shift them by one byte to make them unaligned
  * and then we copy the public and private data into respective unaligned
  * arrays - one character is stored into one unaligned word.
