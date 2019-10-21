@@ -51,8 +51,7 @@ __attribute__((noinline))
 #  error Unsupported compiler.
 #endif
 static void speculation() {
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+#if defined(__i386__) || defined(__x86_64__)
   const void *return_address = afterspeculation;
 #elif defined(__aarch64__)
   const void *return_address = reinterpret_cast<const void *>(return_handler);

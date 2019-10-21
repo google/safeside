@@ -19,7 +19,7 @@
 #include "instr.h"
 
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+    defined(_M_AMD64) || defined(_M_IX86)
 #  ifdef _MSC_VER
 #    include <intrin.h>
 #  elif defined(__GNUC__)
@@ -38,7 +38,7 @@
 // Architecturally dependent full memory fence.
 static void MFence() {
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+    defined(_M_AMD64) || defined(_M_IX86)
   _mm_mfence();
 #elif defined(__aarch64__)
   asm volatile(
@@ -54,7 +54,7 @@ static void MFence() {
 // Architecturally dependent load memory fence.
 static void LFence() {
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+    defined(_M_AMD64) || defined(_M_IX86)
   _mm_lfence();
 #elif defined(__aarch64__)
   asm volatile(
@@ -71,7 +71,7 @@ static void LFence() {
 static uint64_t RdTsc() {
   uint64_t result;
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+    defined(_M_AMD64) || defined(_M_IX86)
   result = __rdtsc();
 #elif defined(__aarch64__)
   asm volatile("mrs %0, cntvct_el0" : "=r"(result));
@@ -92,7 +92,7 @@ void ForceRead(const void *p) {
 // Architecturally dependent cache flush.
 void CLFlush(const void *memory) {
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+    defined(_M_AMD64) || defined(_M_IX86)
   _mm_clflush(memory);
 #elif defined(__aarch64__)
   asm volatile("dc civac, %0" ::"r"(memory) : "memory");
@@ -120,7 +120,7 @@ uint64_t ReadLatency(const void *memory) {
 #if defined(__GNUC__) && !defined(__powerpc__)
 __attribute__((noinline))
 void UnwindStackAndSlowlyReturnTo(const void *address) {
-#if defined(__x86_64__) || defined(_M_X64)
+#ifdef __x86_64__
   asm volatile(
       "addq $8, %%rsp\n"
       "popstack:\n"
@@ -131,7 +131,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "mfence\n"
       "lfence\n"
       "ret\n"::"r"(address));
-#elif defined(__i386__) || defined(_M_IX86)
+#elif defined(__i386__)
   asm volatile(
       "addl $4, %%esp\n"
       "popstack:\n"
