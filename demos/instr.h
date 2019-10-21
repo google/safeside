@@ -46,7 +46,8 @@ void UnwindStackAndSlowlyReturnTo(const void *address);
 extern char afterspeculation[];
 
 // Yields serializing instruction.
-// Must be inlined in order to avoid mispredicted Spectre v2 jumps over it.
+// Must be inlined in order to avoid to avoid misprediction that skips the
+// call.
 __attribute__((always_inline))
 inline void MemoryAndSpeculationBarrier() {
 #if defined(__i386__) || defined(__x86_64__)
