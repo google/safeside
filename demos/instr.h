@@ -16,12 +16,15 @@
 
 #include <cstdint>
 
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(_M_IX86)
 #ifdef _MSC_VER
 #include <intrin.h>
 #elif defined(__GNUC__)
 #include <cpuid.h>
 #else
 #  error Unsupported compiler.
+#endif
 #endif
 
 // Page size.
