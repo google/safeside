@@ -45,6 +45,20 @@ void UnwindStackAndSlowlyReturnTo(const void *address);
 // (meltdown).
 extern char afterspeculation[];
 
+// Yields serializing instruction.
+// Must be inlined in order to avoid to avoid misprediction that skips the
+// call.
+__attribute__((always_inline))
+inline void MemoryAndSpeculationBarrier() {
+#if defined(__i386__) || defined(__x86_64__)
+  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx", "memory");
+#elif defined(__powerpc__)
+  asm volatile("sync");
+#else
+#  error Unsupported CPU.
+#endif
+}
+
 #elif defined(__aarch64__)
 // Push callee-saved registers and return address on stack and mark it with
 // magic value.
@@ -86,13 +100,6 @@ inline void JumpToAfterSpeculation() {
 #endif
 
 #if defined(__i386__) || defined(__x86_64__)
-// Yields serializing instruction.
-// Must be inlined in order to avoid mispredicted Spectre v2 jumps over it.
-__attribute__((always_inline))
-inline void MemoryAndSpeculationBarrier() {
-  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx", "memory");
-}
-
 __attribute__((always_inline))
 inline void EnforceAlignment() {
 #ifdef __i386__
