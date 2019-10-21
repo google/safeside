@@ -91,7 +91,7 @@ static struct kobject *sysfs_entry = NULL;
 static int __init eret_hvc_smc_init(void) {
   int error;
 
-  pr_info("eret_hvc_smc init\n");
+  pr_info("safeside_eret_hvc_smc init\n");
 
   sysfs_entry = kobject_create_and_add("safeside_eret_hvc_smc", kernel_kobj);
   if (!sysfs_entry) {
@@ -111,7 +111,7 @@ static int __init eret_hvc_smc_init(void) {
 }
 
 static void __exit eret_hvc_smc_exit(void) {
-  pr_info("eret_hvc_smc exit\n");
+  pr_info("safeside_eret_hvc_smc exit\n");
 
   kobject_put(sysfs_entry);
   sysfs_entry = NULL;

