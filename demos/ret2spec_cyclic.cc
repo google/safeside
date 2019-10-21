@@ -95,6 +95,7 @@ static bool ReturnsTrue(int counter) {
        i += kCacheLineSize) {
     CLFlush(&stack_mark + i);
   }
+  CLFlush(stack_mark_pointers.back());
   return true;
 }
 
