@@ -32,7 +32,7 @@ const char *private_data = "It's a s3kr3t!!!";
 size_t current_offset;
 const std::array<BigByte, 256> *oracle_ptr;
 
-#ifdef __aarch64__
+#ifdef SAFESIDE_ARM64
 // On ARM we need a local function to return to because of local vs. global
 // relocation mismatches.
 void return_handler() {
@@ -43,18 +43,11 @@ void return_handler() {
 // Call a "UnwindStackAndSlowlyReturnTo" function which unwinds the stack
 // jumping back to the "afterspeculation" label in the "leak_byte" function
 // never executing the code that follows.
-#ifdef _MSC_VER
-__declspec(noinline)
-#elif defined(__GNUC__)
-__attribute__((noinline))
-#else
-#  error Unsupported compiler.
-#endif
+SAFESIDE_NOINLINE
 static void speculation() {
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+#if defined(SAFESIDE_X64) || defined(SAFESIDE_IA32)
   const void *return_address = afterspeculation;
-#elif defined(__aarch64__)
+#elif defined(SAFESIDE_ARM64)
   const void *return_address = reinterpret_cast<const void *>(return_handler);
 #else
 #  error Unsupported CPU.
@@ -85,7 +78,7 @@ static char leak_byte() {
   for (int run = 0;; ++run) {
     sidechannel.FlushOracle();
 
-#ifdef __aarch64__
+#ifdef SAFESIDE_ARM64
     // On ARM we have to manually backup registers that are callee-saved,
     // because the "speculation" method will never restore their backups.
     BackupCalleeSavedRegsAndReturnAddress();
@@ -100,7 +93,7 @@ static char leak_byte() {
         "_afterspeculation:\n" // For MacOS.
         "afterspeculation:\n"); // For Linux.
 
-#ifdef __aarch64__
+#ifdef SAFESIDE_ARM64
     RestoreCalleeSavedRegs();
 #endif
 

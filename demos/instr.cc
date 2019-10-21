@@ -18,8 +18,7 @@
 // assembler.
 #include "instr.h"
 
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+#if defined(SAFESIDE_X64) || defined(SAFESIDE_IA32)
 #  ifdef _MSC_VER
 #    include <intrin.h>
 #  elif defined(__GNUC__)
@@ -27,24 +26,23 @@
 #  else
 #    error Unsupported compiler.
 #  endif  // _MSC_VER
-#elif defined(__aarch64__)
+#elif defined(SAFESIDE_ARM64)
 // No headers for ARM.
-#elif defined(__powerpc__)
+#elif defined(SAFESIDE_PPC)
 // No headers for PowerPC.
 #else
 #  error Unsupported CPU.
-#endif  // __i386__
+#endif  // SAFESIDE_IA32
 
 // Architecturally dependent full memory fence.
 static void MFence() {
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+#if defined(SAFESIDE_X64) || defined(SAFESIDE_IA32)
   _mm_mfence();
-#elif defined(__aarch64__)
+#elif defined(SAFESIDE_ARM64)
   asm volatile(
       "dsb sy\n"
       "isb\n");
-#elif defined(__powerpc__)
+#elif defined(SAFESIDE_PPC)
   asm volatile("sync");
 #else
 #  error Unsupported CPU.
@@ -53,14 +51,13 @@ static void MFence() {
 
 // Architecturally dependent load memory fence.
 static void LFence() {
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+#if defined(SAFESIDE_X64) || defined(SAFESIDE_IA32)
   _mm_lfence();
-#elif defined(__aarch64__)
+#elif defined(SAFESIDE_ARM64)
   asm volatile(
       "dsb ld\n"
       "isb\n");
-#elif defined(__powerpc__)
+#elif defined(SAFESIDE_PPC)
   asm volatile("sync");
 #else
 #  error Unsupported CPU.
@@ -70,12 +67,11 @@ static void LFence() {
 // Architecturally dependent CPU clock counter.
 static uint64_t RdTsc() {
   uint64_t result;
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+#if defined(SAFESIDE_X64) || defined(SAFESIDE_IA32)
   result = __rdtsc();
-#elif defined(__aarch64__)
+#elif defined(SAFESIDE_ARM64)
   asm volatile("mrs %0, cntvct_el0" : "=r"(result));
-#elif defined(__powerpc__)
+#elif defined(SAFESIDE_PPC)
   asm volatile("mftb %0" : "=r"(result));
 #else
 #  error Unsupported CPU.
@@ -91,12 +87,11 @@ void ForceRead(const void *p) {
 
 // Architecturally dependent cache flush.
 void CLFlush(const void *memory) {
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86)
+#if defined(SAFESIDE_X64) || defined(SAFESIDE_IA32)
   _mm_clflush(memory);
-#elif defined(__aarch64__)
+#elif defined(SAFESIDE_ARM64)
   asm volatile("dc civac, %0" ::"r"(memory) : "memory");
-#elif defined(__powerpc__)
+#elif defined(SAFESIDE_PPC)
   asm volatile("dcbf 0, %0" ::"r"(memory) : "memory");
 #else
 #  error Unsupported CPU.
@@ -117,10 +112,10 @@ uint64_t ReadLatency(const void *memory) {
   return result;
 }
 
-#if defined(__GNUC__) && !defined(__powerpc__)
-__attribute__((noinline))
+#if defined(__GNUC__) && !defined(SAFESIDE_PPC)
+SAFESIDE_NOINLINE
 void UnwindStackAndSlowlyReturnTo(const void *address) {
-#if defined(__x86_64__) || defined(_M_X64)
+#ifdef SAFESIDE_X64
   asm volatile(
       "addq $8, %%rsp\n"
       "popstack:\n"
@@ -131,7 +126,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "mfence\n"
       "lfence\n"
       "ret\n"::"r"(address));
-#elif defined(__i386__) || defined(_M_IX86)
+#elif defined(SAFESIDE_IA32)
   asm volatile(
       "addl $4, %%esp\n"
       "popstack:\n"
@@ -142,7 +137,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "mfence\n"
       "lfence\n"
       "ret\n"::"r"(address));
-#elif defined(__aarch64__)
+#elif defined(SAFESIDE_ARM64)
   asm volatile(
       // Unwind until the magic value and pop the magic value.
       "movz x9, 0x4567\n"
@@ -168,7 +163,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
 }
 #endif
 
-#if defined(__GNUC__) && defined(__i386__)
+#if defined(__GNUC__) && defined(SAFESIDE_IA32)
 // Returns the original value of FS and sets the new value.
 int ExchangeFS(int input) {
   int output;

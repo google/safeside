@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-#include <array>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-
-// TODO(asteinha): Windows, MacOS and vulnerable ARM support.
+#include "compiler_specifics.h"
 
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !defined(__x86_64__) && !defined(__i386__) && !defined(__powerpc__)
+#if !defined(SAFESIDE_X64) && !defined(SAFESIDE_IA32) && !defined(SAFESIDE_PPC)
 #  error Unsupported architecture. x86/x86_64 or PowerPC required.
 #endif
+
+#include <array>
+#include <cstring>
+#include <fstream>
+#include <iostream>
 
 #include <signal.h>
 
@@ -89,13 +89,13 @@ static void Sigsegv(
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#ifdef __x86_64__
+#ifdef SAFESIDE_X64
   ucontext->uc_mcontext.gregs[REG_RIP] =
       reinterpret_cast<greg_t>(afterspeculation);
-#elif defined(__i386__)
+#elif defined(SAFESIDE_IA32)
   ucontext->uc_mcontext.gregs[REG_EIP] =
       reinterpret_cast<greg_t>(afterspeculation);
-#elif defined(__powerpc__)
+#elif defined(SAFESIDE_PPC)
   ucontext->uc_mcontext.regs->nip =
       reinterpret_cast<size_t>(afterspeculation);
 #else
