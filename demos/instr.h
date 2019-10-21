@@ -16,6 +16,14 @@
 
 #include <cstdint>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#elif defined(__GNUC__)
+#include <cpuid.h>
+#else
+#  error Unsupported compiler.
+#endif
+
 // Page size.
 #ifdef __powerpc__
 constexpr uint32_t kPageSizeBytes = 65536;
@@ -32,6 +40,38 @@ void CLFlush(const void *memory);
 // Measures the latency of memory read from a given address.
 uint64_t ReadLatency(const void *memory);
 
+// Yields serializing instruction.
+// Must be inlined in order to avoid to avoid misprediction that skips the
+// call.
+#ifdef _MSC_VER
+__forceinline
+#elif defined(__GNUC__)
+__attribute__((always_inline))
+#else
+#  error Unsupported compiler.
+#endif
+inline void MemoryAndSpeculationBarrier() {
+#if defined(__i386__) || defined(__x86_64__)
+#  ifdef _MSC_VER
+  int cpuinfo [4];
+  __cpuid(cpuinfo, 0);
+#  elif defined(__GNUC__)
+  int a, b, c, d;
+  __cpuid(0, a, b, c, d);
+#  else
+#    error Unsupported compiler.
+#  endif
+#elif defined(__aarch64__)
+  asm volatile(
+      "dsb sy\n"
+      "isb\n");
+#elif defined(__powerpc__)
+  asm volatile("sync");
+#else
+#  error Unsupported CPU.
+#endif
+}
+
 #ifdef __GNUC__
 // Unwinds the stack until the given pointer, flushes the stack pointer and
 // returns.
@@ -44,20 +84,6 @@ void UnwindStackAndSlowlyReturnTo(const void *address);
 // addresses (ret2spec) or for skipping failures in signal handlers
 // (meltdown).
 extern char afterspeculation[];
-
-// Yields serializing instruction.
-// Must be inlined in order to avoid to avoid misprediction that skips the
-// call.
-__attribute__((always_inline))
-inline void MemoryAndSpeculationBarrier() {
-#if defined(__i386__) || defined(__x86_64__)
-  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx", "memory");
-#elif defined(__powerpc__)
-  asm volatile("sync");
-#else
-#  error Unsupported CPU.
-#endif
-}
 
 #elif defined(__aarch64__)
 // Push callee-saved registers and return address on stack and mark it with
