@@ -49,11 +49,11 @@ uint64_t ReadLatency(const void *memory);
 #ifdef _MSC_VER
 __forceinline
 #elif defined(__GNUC__)
-__attribute__((always_inline))
+__attribute__((always_inline)) inline
 #else
 #  error Unsupported compiler.
 #endif
-inline void MemoryAndSpeculationBarrier() {
+void MemoryAndSpeculationBarrier() {
 #if defined(__i386__) || defined(__x86_64__)
 #  ifdef _MSC_VER
   int cpuinfo [4];
