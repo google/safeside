@@ -18,8 +18,8 @@
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !defined(__x86_64__) && !defined(__i386__)
-#  error Unsupported architecture. Intel required.
+#if !defined(__x86_64__) && !defined(__i386__) && !defined(__powerpc__)
+#  error Unsupported architecture. Intel or PowerPC required.
 #endif
 
 #include <array>
@@ -105,9 +105,14 @@ static void sigsegv(
 #ifdef __x86_64__
   ucontext->uc_mcontext.gregs[REG_RIP] =
       reinterpret_cast<greg_t>(afterspeculation);
-#else
+#elif defined(__i386__)
   ucontext->uc_mcontext.gregs[REG_EIP] =
       reinterpret_cast<greg_t>(afterspeculation);
+#elif defined(__powerpc__)
+  ucontext->uc_mcontext.regs->nip =
+      reinterpret_cast<size_t>(afterspeculation);
+#else
+#  error Unsupported CPU.
 #endif
 }
 
