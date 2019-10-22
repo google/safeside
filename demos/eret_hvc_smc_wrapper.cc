@@ -68,7 +68,7 @@ static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
 
   for (int run = 0;; ++run) {
-    std::ofstream out("/sys/kernel/safeside_eret_hvc_smc/address");
+    std::ofstream out("/proc/safeside_eret_hvc_smc/address");
     if (out.fail()) {
       std::cerr << "Eret_hvc_smc module not loaded or not running as root."
                 << std::endl;

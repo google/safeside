@@ -1,20 +1,25 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
- * Copyright (c) 2019 Google LLC
+ * Copyright 2019 Google LLC
  *
- **/
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-#include <linux/fs.h>
-#include <linux/init.h>
-#include <linux/kernel.h>
-#include <linux/kobject.h>
 #include <linux/module.h>
-#include <linux/printk.h>
+#include <linux/proc_fs.h>
 #include <linux/slab.h>
-#include <linux/sysfs.h>
 #include <linux/uaccess.h>
 
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("Apache-2.0");
 MODULE_AUTHOR("Google");
 MODULE_DESCRIPTION("");
 MODULE_VERSION("0.1");
@@ -24,17 +29,22 @@ MODULE_VERSION("0.1");
 #endif
 
 // Provides an endpoint on
-//   /sys/kernel/safeside_eret_hvc_smc/address
+//   /proc/safeside_eret_hvc_smc/address
 // to which userspace programs can send their addresses that will be
 // fetched due to speculation over ERET, HVC and SMC instructions.
 // Currently should be accessible only by root, because there is no checking of
 // those addresses.
 
-static ssize_t address_store(struct kobject *kobj, struct kobj_attribute *attr,
-                             const char *buf, size_t length) {
+// Directory record. Must be available on unloading the module.
+struct proc_dir_entry *safeside_eret_hvc_smc;
+
+static ssize_t address_store(struct file *f, const char __user *buf,
+                             size_t length, loff_t *off) {
   ptrdiff_t userspace_address;
-  int *kernel_memory;
-  int res = kstrtoul(buf, 0, &userspace_address);
+  int res, *kernel_memory;
+  // Enable kernel access to userspace memory.
+  __uaccess_enable(ARM64_ALT_PAN_NOT_UAO);
+  res = kstrtoul(buf, 0, &userspace_address);
 
   if (res != 0) {
     // Incorrectly formatted address was provided.
@@ -44,8 +54,6 @@ static ssize_t address_store(struct kobject *kobj, struct kobj_attribute *attr,
     return length;
   }
 
-  // Enable kernel access to userspace memory.
-  __uaccess_enable(ARM64_ALT_PAN_NOT_UAO);
   kernel_memory = kmalloc(sizeof(int), GFP_KERNEL);
   kernel_memory[0] = 0;
 
@@ -83,28 +91,26 @@ static ssize_t address_store(struct kobject *kobj, struct kobj_attribute *attr,
   return length;
 }
 
-static struct kobj_attribute address_file_attribute =
-    __ATTR_WO(address); // writeable only by root.
-
-static struct kobject *sysfs_entry = NULL;
+static struct file_operations address_file_ops = {
+  write: address_store
+};
 
 static int __init eret_hvc_smc_init(void) {
-  int error;
+  struct proc_dir_entry *address;
 
   pr_info("safeside_eret_hvc_smc init\n");
 
-  sysfs_entry = kobject_create_and_add("safeside_eret_hvc_smc", kernel_kobj);
-  if (!sysfs_entry) {
+  safeside_eret_hvc_smc = proc_mkdir("safeside_eret_hvc_smc", NULL);
+  if (safeside_eret_hvc_smc == NULL) {
     return -ENOMEM;
   }
 
-  error = sysfs_create_file(sysfs_entry, &address_file_attribute.attr);
-
-  if (error != 0) {
-    kobject_put(sysfs_entry);
-    sysfs_entry = NULL;
-
-    return error;
+  // Write-only file, accessible only by root.
+  address = proc_create("address", 0200, safeside_eret_hvc_smc,
+                        &address_file_ops);
+  if (address == NULL) {
+    remove_proc_entry("safeside_eret_hvc_smc", NULL);
+    return -ENOMEM;
   }
 
   return 0;
@@ -113,8 +119,8 @@ static int __init eret_hvc_smc_init(void) {
 static void __exit eret_hvc_smc_exit(void) {
   pr_info("safeside_eret_hvc_smc exit\n");
 
-  kobject_put(sysfs_entry);
-  sysfs_entry = NULL;
+  remove_proc_entry("address", safeside_eret_hvc_smc);
+  remove_proc_entry("safeside_eret_hvc_smc", NULL);
 }
 
 module_init(eret_hvc_smc_init);
