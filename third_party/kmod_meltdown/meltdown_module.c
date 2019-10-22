@@ -18,7 +18,7 @@ MODULE_DESCRIPTION("");
 MODULE_VERSION("0.1");
 
 // Keeps a buffer in kernel memory and makes its address available at
-//   /sys/kernel/kernel_buffer/address
+//   /sys/kernel/safeside_meltdown/address
 // which is only accessible to root.
 
 // Secret data stored in the kernel memory whose content is never directly
@@ -47,12 +47,12 @@ static struct kobj_attribute length_file_attribute =
 
 static struct kobject *sysfs_entry = NULL;
 
-static int __init kernel_data_init(void) {
+static int __init meltdown_init(void) {
   int error;
 
-  pr_info("kernel_data init\n");
+  pr_info("safeside_meltdown init\n");
 
-  sysfs_entry = kobject_create_and_add("kernel_data", kernel_kobj);
+  sysfs_entry = kobject_create_and_add("safeside_meltdown", kernel_kobj);
   if (!sysfs_entry) {
     return -ENOMEM;
   }
@@ -72,12 +72,12 @@ static int __init kernel_data_init(void) {
   return 0;
 }
 
-static void __exit kernel_data_exit(void) {
-  pr_info("kernel_data exit\n");
+static void __exit meltdown_exit(void) {
+  pr_info("safeside_meltdown exit\n");
 
   kobject_put(sysfs_entry);
   sysfs_entry = NULL;
 }
 
-module_init(kernel_data_init);
-module_exit(kernel_data_exit);
+module_init(meltdown_init);
+module_exit(meltdown_exit);

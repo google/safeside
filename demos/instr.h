@@ -17,13 +17,20 @@
 #include <cstdint>
 #include <cstring>
 
+// Page size.
+#ifdef __powerpc__
+constexpr uint32_t kPageSizeBytes = 65536;
+#else
+constexpr uint32_t kPageSizeBytes = 4096;
+#endif
+
 // Forced memory load.
 void ForceRead(const void *p);
 
 // Flushing cacheline containing given address.
 void CLFlush(const void *memory);
 
-// Measures the latency of memory read from a given address
+// Measures the latency of memory read from a given address.
 uint64_t ReadLatency(const void *memory);
 
 #ifdef __GNUC__
@@ -38,6 +45,20 @@ void UnwindStackAndSlowlyReturnTo(const void *address);
 // addresses (ret2spec) or for skipping failures in signal handlers
 // (meltdown).
 extern char afterspeculation[];
+
+// Yields serializing instruction.
+// Must be inlined in order to avoid to avoid misprediction that skips the
+// call.
+__attribute__((always_inline))
+inline void MemoryAndSpeculationBarrier() {
+#if defined(__i386__) || defined(__x86_64__)
+  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx", "memory");
+#elif defined(__powerpc__)
+  asm volatile("sync");
+#else
+#  error Unsupported CPU.
+#endif
+}
 
 #elif defined(__aarch64__)
 // Push callee-saved registers and return address on stack and mark it with
@@ -102,6 +123,38 @@ inline void BoundsCheck(const char *str, size_t offset) {
   // asm volatile("bound %%rax, (%%rdx)"
   //              ::"a"(offset), "d"(&string_bounds):"memory");
   asm volatile(".word 0x0262"::"a"(offset), "d"(&string_bounds):"memory");
+
+// Returns the original value of FS and sets the new value.
+int ExchangeFS(int input);
+// Returns the original value of ES and sets the new value.
+int ExchangeES(int input);
+
+// Reads an offset from the FS segment.
+// Must be inlined because the fault occurs inside and the stack pointer would
+// be shifted.
+__attribute__((always_inline))
+inline unsigned int ReadUsingFS(unsigned int offset) {
+  unsigned int result;
+
+  asm volatile(
+      "movzbl %%fs:(, %1, 1), %0\n"
+      :"=r"(result):"r"(offset):"memory");
+
+  return result;
+}
+
+// Reads an offset from the ES segment.
+// Must be inlined because the fault occurs inside and the stack pointer would
+// be shifted.
+__attribute__((always_inline))
+inline unsigned int ReadUsingES(unsigned int offset) {
+  unsigned int result;
+
+  asm volatile(
+      "movzbl %%es:(, %1, 1), %0\n"
+      :"=r"(result):"r"(offset):"memory");
+
+  return result;
 }
 #endif
 #endif
