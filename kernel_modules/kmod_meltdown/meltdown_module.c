@@ -16,7 +16,7 @@
 
 #include <linux/module.h>
 #include <linux/proc_fs.h>
-#include <linux/uaccess.h>
+#include <linux/seq_file.h>
 
 MODULE_LICENSE("Apache-2.0");
 MODULE_AUTHOR("Google");
@@ -37,40 +37,38 @@ const char *private_data = "It's a s3kr3t!!!";
 struct proc_dir_entry *safeside_meltdown;
 
 // Print the address of `private_data` into the provided buffer.
-static ssize_t address_show(struct file *f, char *buf, size_t len,
-                            loff_t *off) {
-  ssize_t result;
-#ifdef __powerpc__
-  allow_write_to_user(buf, len);
-#endif
-  result = snprintf(buf, len, "%px\n", private_data);
-#ifdef __powerpc__
-  prevent_write_to_user(buf, len);
-#endif
-  return result;
+static int address_show(struct seq_file *file, void *v) {
+  seq_printf(file, "%px\n", private_data);
+  return 0;
 }
 
-// Print the length of `private_data` into the provided buffer.
+// Print the length of `private_data` into the sequential file.
 // At the same time loads `private_data` to cache by accessing it.
-static ssize_t length_show(struct file *f, char *buf, size_t len,
-                           loff_t *off) {
-  ssize_t result;
-#ifdef __powerpc__
-  allow_write_to_user(buf, len);
-#endif
-  result = snprintf(buf, len, "%d\n", (int) strlen(private_data));
-#ifdef __powerpc__
-  prevent_write_to_user(buf, len);
-#endif
-  return result;
+static int length_show(struct seq_file *file, void *v) {
+  seq_printf(file, "%d\n", (int) strlen(private_data));
+  return 0;
+}
+
+static int address_open(struct inode *i, struct file *file) {
+  return single_open(file, address_show, NULL);
+}
+
+static int length_open(struct inode *i, struct file *file) {
+  return single_open(file, length_show, NULL);
 }
 
 static struct file_operations address_file_ops = {
-  read: address_show
+  .open = address_open,
+  .read = seq_read,
+  .llseek = seq_lseek,
+  .release = single_release,
 };
 
 static struct file_operations length_file_ops = {
-  read: length_show
+  .open = length_open,
+  .read = seq_read,
+  .llseek = seq_lseek,
+  .release = single_release,
 };
 
 static int __init meltdown_init(void) {
