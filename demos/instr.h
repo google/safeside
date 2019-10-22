@@ -81,7 +81,7 @@ inline void JumpToAfterSpeculation() {
 
 #ifdef __i386__
 // Performs a bound check with the bound instruction. Works only on 32-bit x86.
-// Must be inlined in order to avoid Spectre v2 effects.
+// Must be inlined in order to avoid mispredicted jumps over it.
 __attribute__((always_inline))
 inline void BoundsCheck(const char *str, size_t offset) {
   struct {
@@ -92,17 +92,16 @@ inline void BoundsCheck(const char *str, size_t offset) {
   string_bounds.low = 0;
   string_bounds.high = strlen(str);
 
-#ifdef __INTEL_COMPILER
-  // ICC has a bug in compiling the bound instruction. It swaps the operands
-  // when translating C++ to assembler (basically changing the GNU syntax to
-  // Intel syntax) and afterwards the assembler naturally crashes with:
+  // ICC and older versions of Clang have a bug in compiling the bound
+  // instruction. They swap the operands when translating C++ to assembler
+  // (basically changing the GNU syntax to Intel syntax) and afterwards the
+  // assembler naturally crashes with:
   // Error: operand size mismatch for `bound'
   // Therefore we have to hardcode the opcode to mitigate the ICC bug.
+  // The following line is the same as:
+  // asm volatile("bound %%rax, (%%rdx)"
+  //              ::"a"(offset), "d"(&string_bounds):"memory");
   asm volatile(".word 0x0262"::"a"(offset), "d"(&string_bounds):"memory");
-#else
-  // G++ and Clang work correctly.
-  asm volatile("bound %0, (%1)"::"r"(offset), "r"(&string_bounds):"memory");
-#endif
 }
 #endif
 #endif

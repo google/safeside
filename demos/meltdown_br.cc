@@ -24,8 +24,8 @@
  * bounds check.
  **/
 
-#ifndef __linux__
-#  error Unsupported OS. Linux required.
+#if !defined(__linux__) && !defined(__APPLE__)
+#  error Unsupported OS. Linux or MacOS required.
 #endif
 
 #ifndef __i386__
@@ -79,7 +79,13 @@ static char leak_byte(const char *data, volatile size_t offset) {
     }
 
     // SIGSEGV signal handler moves the instruction pointer to this label.
+#ifdef __linux__
     asm volatile("afterspeculation:");
+#elif defined(__APPLE__)
+    asm volatile("_afterspeculation:");
+#else
+#  error Unsupported OS.
+#endif
 
     std::pair<bool, char> result =
         sidechannel.RecomputeScores(data[safe_offset]);
@@ -100,15 +106,29 @@ static void sigsegv(
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
+#ifdef __linux__
   ucontext->uc_mcontext.gregs[REG_EIP] =
       reinterpret_cast<greg_t>(afterspeculation);
+#elif defined(__APPLE__)
+  ucontext->uc_mcontext->__ss.__eip =
+      reinterpret_cast<uintptr_t>(afterspeculation);
+#else
+#  error Unsupported OS.
+#endif
 }
 
 static void set_signal() {
   struct sigaction act;
+  memset(&act, 0, sizeof(struct sigaction));
   act.sa_sigaction = sigsegv;
   act.sa_flags = SA_SIGINFO;
-  sigaction(SIGSEGV, &act, NULL);
+#ifdef __linux__
+  sigaction(SIGSEGV, &act, nullptr);
+#elif defined(__APPLE__)
+  sigaction(SIGTRAP, &act, nullptr);
+#else
+#  error Unsupported OS.
+#endif
 }
 
 int main() {
