@@ -123,6 +123,7 @@ inline void BoundsCheck(const char *str, size_t offset) {
   // asm volatile("bound %%rax, (%%rdx)"
   //              ::"a"(offset), "d"(&string_bounds):"memory");
   asm volatile(".word 0x0262"::"a"(offset), "d"(&string_bounds):"memory");
+}
 
 // Returns the original value of FS and sets the new value.
 int ExchangeFS(int input);
