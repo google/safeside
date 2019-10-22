@@ -37,7 +37,7 @@ target_link_libraries(spectre_v4 safeside)
 add_executable(ret2spec_cyclic ret2spec_cyclic.cc)
 target_link_libraries(ret2spec_cyclic safeside)
 
-if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$")
+if(${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$")
   # Spectre V1 BTB CA - mistraining BTB from another address space
   add_executable(spectre_v1_btb_ca spectre_v1_btb_ca.cc)
   target_link_libraries(spectre_v1_btb_ca safeside)
