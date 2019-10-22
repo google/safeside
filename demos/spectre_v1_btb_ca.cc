@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#ifndef __linux__
+#  error Unsupported OS. Linux required.
+#endif
+
 #include <array>
 #include <cstring>
 #include <iostream>
