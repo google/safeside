@@ -16,7 +16,7 @@
 
 #include <linux/module.h>
 #include <linux/proc_fs.h>
-#include <linux/seq_file.h>
+#include <linux/uaccess.h>
 
 MODULE_LICENSE("Apache-2.0");
 MODULE_AUTHOR("Google");
@@ -36,18 +36,42 @@ const char *private_data = "It's a s3kr3t!!!";
 // Directory record. Must be available on unloading the module.
 struct proc_dir_entry *safeside_meltdown;
 
-// Print the address of `private_data` into the sequential file.
-static int address_show(struct seq_file *file, void *data) {
-  seq_printf(file, "%px\n", private_data);
-  return 0;
+// Print the address of `private_data` into the provided buffer.
+static ssize_t address_show(struct file *f, char *buf, size_t len,
+                            loff_t *off) {
+  ssize_t result;
+#ifdef __powerpc__
+  allow_write_to_user(buf, len);
+#endif
+  result = snprintf(buf, len, "%px\n", private_data);
+#ifdef __powerpc__
+  prevent_write_to_user(buf, len);
+#endif
+  return result;
 }
 
-// Print the length of `private_data` into the sequential file.
+// Print the length of `private_data` into the provided buffer.
 // At the same time loads `private_data` to cache by accessing it.
-static int length_show(struct seq_file *file, void *data) {
-  seq_printf(file, "%d\n", (int) strlen(private_data));
-  return 0;
+static ssize_t length_show(struct file *f, char *buf, size_t len,
+                           loff_t *off) {
+  ssize_t result;
+#ifdef __powerpc__
+  allow_write_to_user(buf, len);
+#endif
+  result = snprintf(buf, len, "%d\n", (int) strlen(private_data));
+#ifdef __powerpc__
+  prevent_write_to_user(buf, len);
+#endif
+  return result;
 }
+
+static struct file_operations address_file_ops = {
+  read: address_show
+};
+
+static struct file_operations length_file_ops = {
+  read: length_show
+};
 
 static int __init meltdown_init(void) {
   struct proc_dir_entry *address, *length;
@@ -60,14 +84,13 @@ static int __init meltdown_init(void) {
   }
 
   // Read-only files, accessible only by root.
-  address = proc_create_single("address", 0400, safeside_meltdown,
-                               address_show);
+  address = proc_create("address", 0400, safeside_meltdown, &address_file_ops);
   if (address == NULL) {
     remove_proc_entry("safeside_meltdown", NULL);
     return -ENOMEM;
   }
 
-  length = proc_create_single("length", 0400, safeside_meltdown, length_show);
+  length = proc_create("length", 0400, safeside_meltdown, &length_file_ops);
   if (length == NULL) {
     remove_proc_entry("address", safeside_meltdown);
     remove_proc_entry("safeside_meltdown", NULL);
