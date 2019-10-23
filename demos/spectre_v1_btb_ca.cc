@@ -64,7 +64,7 @@ class PrivateDataAccessor: public DataAccessor {
 };
 
 // PublicDataAccessor returns public_data. Used only by the victim (parent).
-class PublicDataAccessor: public DataAccessor {
+class PublicDataAccessor : public DataAccessor {
  public:
   char GetDataByte(size_t index) override {
     return public_data[index];
