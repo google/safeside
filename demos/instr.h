@@ -99,6 +99,38 @@ inline void JumpToAfterSpeculation() {
 }
 #endif
 
+#if defined(__i386__) || defined(__x86_64__)
+__attribute__((always_inline))
+inline void EnforceAlignment() {
+#ifdef __i386__
+  asm volatile(
+      "pushfl\n"
+      "orl $0x00040000, (%esp)\n"
+      "popfl\n");
+#else
+  asm volatile(
+      "pushfq\n"
+      "orq $0x0000000000040000, (%rsp)\n"
+      "popfq\n");
+#endif
+}
+
+__attribute__((always_inline))
+inline void UnenforceAlignment() {
+#ifdef __i386__
+  asm volatile(
+      "pushfl\n"
+      "andl $~0x00040000, (%esp)\n"
+      "popfl\n");
+#else
+  asm volatile(
+      "pushfq\n"
+      "andq $~0x0000000000040000, (%rsp)\n"
+      "popfq\n");
+#endif
+}
+#endif
+
 #ifdef __i386__
 // Returns the original value of FS and sets the new value.
 int ExchangeFS(int input);
