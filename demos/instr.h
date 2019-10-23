@@ -57,7 +57,7 @@ inline void MemoryAndSpeculationBarrier() {
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
 #  ifdef _MSC_VER
-  int cpuinfo [4];
+  int cpuinfo[4];
   __cpuid(cpuinfo, 0);
 #  elif defined(__GNUC__)
   int a, b, c, d;
