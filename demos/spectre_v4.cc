@@ -40,7 +40,7 @@ constexpr size_t kArrayLength = 64;
 // Instead, the leak is performed by accessing out-of-bounds during speculative
 // execution, bypassing the bounds check by training the branch predictor to
 // think that the value will be in-range.
-static char leak_byte(const char *data, size_t offset) {
+static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
   std::unique_ptr<std::array<size_t *, kArrayLength>> array_of_pointers =
@@ -116,7 +116,7 @@ int main() {
     // On at least some machines, this will print the i'th byte from
     // private_data, despite the only actually-executed memory accesses being
     // to valid bytes in public_data.
-    std::cout << leak_byte(public_data, private_offset + i);
+    std::cout << LeakByte(public_data, private_offset + i);
     std::cout.flush();
   }
   std::cout << "\nDone!\n";

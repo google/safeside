@@ -35,20 +35,20 @@ const std::array<BigByte, 256> *oracle_ptr;
 #if SAFESIDE_ARM64
 // On ARM we need a local function to return to because of local vs. global
 // relocation mismatches.
-void return_handler() {
+void ReturnHandler() {
   JumpToAfterSpeculation();
 }
 #endif
 
 // Call a "UnwindStackAndSlowlyReturnTo" function which unwinds the stack
-// jumping back to the "afterspeculation" label in the "leak_byte" function
+// jumping back to the "afterspeculation" label in the "LeakByte" function
 // never executing the code that follows.
 SAFESIDE_NEVER_INLINE
-static void speculation() {
+static void Speculation() {
 #if SAFESIDE_X64 || SAFESIDE_IA32
   const void *return_address = afterspeculation;
 #elif SAFESIDE_ARM64
-  const void *return_address = reinterpret_cast<const void *>(return_handler);
+  const void *return_address = reinterpret_cast<const void *>(ReturnHandler);
 #else
 #  error Unsupported CPU.
 #endif
@@ -71,7 +71,7 @@ static void speculation() {
   }
 }
 
-static char leak_byte() {
+static char LeakByte() {
   CacheSideChannel sidechannel;
   oracle_ptr = &sidechannel.GetOracle(); // Save the pointer to global storage.
 
@@ -86,7 +86,7 @@ static char leak_byte() {
 
     // Yields two "call" instructions, one "ret" instruction, speculatively
     // accesses the oracle and ends up on the afterspeculation label below.
-    speculation();
+    Speculation();
 
     // Return target for the UnwindStackAndSlowlyReturnTo function.
     asm volatile(
@@ -116,7 +116,7 @@ int main() {
   std::cout.flush();
   for (size_t i = 0; i < strlen(private_data); ++i) {
     current_offset = i; // Saving the index to the global storage.
-    std::cout << leak_byte();
+    std::cout << LeakByte();
     std::cout.flush();
   }
   std::cout << "\nDone!\n";
