@@ -17,16 +17,19 @@
 /**
  * Demonstration of ret2spec that exploits the fact that return stack buffers
  * have limited size and they can be rewritten by recursive invocations of
- * another function.
- * We have two functions that we named after their constant return values. First
- * the ReturnsTrue function invokes itself kRecursionDepth times and in the
- * deepest invocation it calls ReturnsFalse function. Returns_false function
- * invokes itself kRecursionDepth times. All returns of the ReturnsFalse
- * function are predicted correctly, but returns of ReturnsTrue function are
- * mispredicted to the return address of the ReturnsFalse function, because all
- * RSB pointers were rewritten by ReturnsFalse invocations. We steer those
- * mispredictions to an unreachable code path with microarchitectural side
- * effects.
+ * another function by another process.
+ *
+ * We have two functions that we named after their constant return values. One
+ * process (the attacker) calls recursively the ReturnsFalse function and yields
+ * the CPU in the deepest invocation. This way it leaves the RSB full of return
+ * addresses to the ReturnsFalse invocation that are absolutely unreachable from
+ * the victim process.
+ *
+ * The victim process invokes recursively the ReturnTrue function, but before
+ * each return it flushes from cache the stack frame that contains the return
+ * address. The prediction uses the polluted RSB with return addresses injected
+ * by the attacker and the victim jumps to architecturally unreachable code that
+ * has microarchitectural side-effects.
  **/
 
 #include <array>
