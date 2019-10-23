@@ -30,11 +30,13 @@
  * demonstration runs into the unreachable code and terminates with a failure.
  **/
 
+#include "compiler_specifics.h"
+
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !defined(__i386__) && !defined(__x86_64__)
+#if !SAFESIDE_IA32 && !SAFESIDE_X64
 #  error Unsupported architecture. AMD required.
 #endif
 
@@ -127,7 +129,7 @@ static void sigbus(
   // SIGBUS signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#ifdef __x86_64__
+#if SAFESIDE_X64
   ucontext->uc_mcontext.gregs[REG_RIP] =
       reinterpret_cast<greg_t>(afterspeculation);
 #else
