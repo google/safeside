@@ -19,8 +19,6 @@
 #include <fstream>
 #include <iostream>
 
-// TODO(asteinha): Windows, MacOS and vulnerable ARM support.
-
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
@@ -33,6 +31,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 // Objective: given some control over accesses to the *non-secret* string
 // "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" that is

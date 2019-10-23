@@ -56,6 +56,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 // Private data to be leaked.
 const char *private_data = "It's a s3kr3t!!!";

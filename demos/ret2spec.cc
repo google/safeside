@@ -20,6 +20,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 // TODO(asteinha) Implement support for MSVC and Windows.
 // TODO(asteinha) Investigate the exploitability of PowerPC.

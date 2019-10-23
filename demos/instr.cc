@@ -17,6 +17,7 @@
 // File containing architecturally dependent features implemented in inline
 // assembler.
 #include "instr.h"
+#include "utils.h"
 
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
     defined(_M_IX86)
@@ -81,12 +82,6 @@ static uint64_t RdTsc() {
 #  error Unsupported CPU.
 #endif
   return result;
-}
-
-// Forces a memory read of the byte at address p. This will result in the byte
-// being loaded into cache.
-void ForceRead(const void *p) {
-  (void)*reinterpret_cast<const volatile char *>(p);
 }
 
 // Architecturally dependent cache flush.

@@ -23,9 +23,6 @@ constexpr uint32_t kPageSizeBytes = 65536;
 constexpr uint32_t kPageSizeBytes = 4096;
 #endif
 
-// Forced memory load.
-void ForceRead(const void *p);
-
 // Flushing cacheline containing given address.
 void CLFlush(const void *memory);
 
