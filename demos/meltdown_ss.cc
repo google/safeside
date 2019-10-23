@@ -35,7 +35,7 @@
 #  error Unsupported OS. Linux required.
 #endif
 
-#ifndef SAFESIDE_IA32
+#if !SAFESIDE_IA32
 #  error Unsupported architecture. 32-bit AMD required.
 #endif
 

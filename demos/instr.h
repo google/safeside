@@ -19,7 +19,7 @@
 #include "compiler_specifics.h"
 
 // Page size.
-#ifdef SAFESIDE_PPC
+#if SAFESIDE_PPC
 constexpr uint32_t kPageSizeBytes = 65536;
 #else
 constexpr uint32_t kPageSizeBytes = 4096;
@@ -34,12 +34,12 @@ void CLFlush(const void *memory);
 // Measures the latency of memory read from a given address.
 uint64_t ReadLatency(const void *memory);
 
-#ifdef __GNUC__
+#if SAFESIDE_GNUC
 // Unwinds the stack until the given pointer, flushes the stack pointer and
 // returns.
 void UnwindStackAndSlowlyReturnTo(const void *address);
 
-#if defined(SAFESIDE_X64) || defined(SAFESIDE_IA32)
+#if SAFESIDE_X64 || SAFESIDE_IA32 || SAFESIDE_PPC
 // Label defined in inline assembly. Used to define addresses for the
 // instruction pointer or program counter registers - either as return
 // addresses (ret2spec) or for skipping failures in signal handlers
@@ -51,16 +51,16 @@ extern char afterspeculation[];
 // call.
 SAFESIDE_ALWAYS_INLINE
 inline void MemoryAndSpeculationBarrier() {
-#if defined(SAFESIDE_X64) || defined(SAFESIDE_IA32)
+#if SAFESIDE_X64 || SAFESIDE_IA32
   asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx", "memory");
-#elif defined(SAFESIDE_PPC)
+#elif SAFESIDE_PPC
   asm volatile("sync");
 #else
 #  error Unsupported CPU.
 #endif
 }
 
-#elif defined(SAFESIDE_ARM64)
+#elif SAFESIDE_ARM64
 // Push callee-saved registers and return address on stack and mark it with
 // magic value.
 SAFESIDE_ALWAYS_INLINE
@@ -100,10 +100,10 @@ inline void JumpToAfterSpeculation() {
 }
 #endif
 
-#if defined(SAFESIZE_X64) || defined(SAFESIDE_IA32)
+#if SAFESIDE_X64 || SAFESIDE_IA32
 SAFESIDE_ALWAYS_INLINE
 inline void EnforceAlignment() {
-#ifdef SAFESIDE_IA32
+#if SAFESIDE_IA32
   asm volatile(
       "pushfl\n"
       "orl $0x00040000, (%esp)\n"
@@ -118,7 +118,7 @@ inline void EnforceAlignment() {
 
 SAFESIDE_ALWAYS_INLINE
 inline void UnenforceAlignment() {
-#ifdef SAFESIDE_IA32
+#if SAFESIDE_IA32
   asm volatile(
       "pushfl\n"
       "andl $~0x00040000, (%esp)\n"
@@ -132,7 +132,7 @@ inline void UnenforceAlignment() {
 }
 #endif
 
-#ifdef SAFESIDE_IA32
+#if SAFESIDE_IA32
 // Returns the original value of FS and sets the new value.
 int ExchangeFS(int input);
 // Returns the original value of ES and sets the new value.

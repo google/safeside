@@ -20,7 +20,7 @@
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !defined(SAFESIDE_X64) && !defined(SAFESIDE_IA32) && !defined(SAFESIDE_PPC)
+#if !SAFESIDE_X64 && !SAFESIDE_IA32 && !SAFESIDE_PPC
 #  error Unsupported architecture. x86/x86_64 or PowerPC required.
 #endif
 
@@ -89,13 +89,13 @@ static void Sigsegv(
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#ifdef SAFESIDE_X64
+#if SAFESIDE_X64
   ucontext->uc_mcontext.gregs[REG_RIP] =
       reinterpret_cast<greg_t>(afterspeculation);
-#elif defined(SAFESIDE_IA32)
+#elif SAFESIDE_IA32
   ucontext->uc_mcontext.gregs[REG_EIP] =
       reinterpret_cast<greg_t>(afterspeculation);
-#elif defined(SAFESIDE_PPC)
+#elif SAFESIDE_PPC
   ucontext->uc_mcontext.regs->nip =
       reinterpret_cast<size_t>(afterspeculation);
 #else
