@@ -18,7 +18,7 @@ MODULE_DESCRIPTION("");
 MODULE_VERSION("0.1");
 
 // Keeps a buffer in kernel memory and makes its address available at
-//   /sys/kernel/meltdown/address
+//   /sys/kernel/safeside_meltdown/address
 // which is only accessible to root.
 
 // Secret data stored in the kernel memory whose content is never directly
@@ -50,9 +50,9 @@ static struct kobject *sysfs_entry = NULL;
 static int __init meltdown_init(void) {
   int error;
 
-  pr_info("meltdown init\n");
+  pr_info("safeside_meltdown init\n");
 
-  sysfs_entry = kobject_create_and_add("meltdown", kernel_kobj);
+  sysfs_entry = kobject_create_and_add("safeside_meltdown", kernel_kobj);
   if (!sysfs_entry) {
     return -ENOMEM;
   }
@@ -73,7 +73,7 @@ static int __init meltdown_init(void) {
 }
 
 static void __exit meltdown_exit(void) {
-  pr_info("meltdown exit\n");
+  pr_info("safeside_meltdown exit\n");
 
   kobject_put(sysfs_entry);
   sysfs_entry = NULL;

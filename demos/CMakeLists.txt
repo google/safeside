@@ -50,6 +50,10 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   # Spectre V3 / Meltdown
   add_executable(meltdown meltdown.cc)
   target_link_libraries(meltdown safeside)
+
+  # L1 terminal fault -- Foreshadow OS -- Meltdown P
+  add_executable(l1tf l1tf.cc)
+  target_link_libraries(l1tf safeside)
 endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
@@ -77,7 +81,7 @@ endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)$"))
-  # L1 terminal fault -- Foreshadow OS -- Meltdown P
-  add_executable(l1tf l1tf.cc)
-  target_link_libraries(l1tf safeside)
+  # Meltdown AC -- speculative fetching of unaligned data
+  add_executable(meltdown_ac meltdown_ac.cc)
+  target_link_libraries(meltdown_ac safeside)
 endif()

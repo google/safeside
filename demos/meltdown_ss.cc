@@ -28,11 +28,14 @@
  *
  * Intel does not seem to be vulnerable to Meltdown-SS. Works only on AMD CPUs.
  **/
+
+#include "compiler_specifics.h"
+
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
 
-#ifndef __i386__
+#if !SAFESIDE_IA32
 #  error Unsupported architecture. 32-bit AMD required.
 #endif
 
