@@ -33,16 +33,22 @@ target_link_libraries(spectre_v1_indirect_jumps safeside)
 add_executable(spectre_v4 spectre_v4.cc)
 target_link_libraries(spectre_v4 safeside)
 
-# Cyclic Ret2Spec -- rewriting the RSB
-add_executable(ret2spec_cyclic ret2spec_cyclic.cc)
-target_link_libraries(ret2spec_cyclic safeside)
+# Recursive ret2spec -- rewriting the RSB by recursive calls
+add_executable(ret2spec_recursion_sa ret2spec_recursion_sa.cc)
+target_link_libraries(ret2spec_recursion_sa safeside)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$")
+  # Recursive ret2spec cross address space
+  add_executable(ret2spec_recursion_ca ret2spec_recursion_ca.cc)
+  target_link_libraries(ret2spec_recursion_ca safeside)
+endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(aarch64)$"))
-  # Ret2Spec -- speculative execution using return stack buffers
-  add_executable(ret2spec ret2spec.cc)
-  target_compile_options(ret2spec PRIVATE -fomit-frame-pointer)
-  target_link_libraries(ret2spec safeside)
+  # Manual ret2spec -- using inline assembly to create a call-ret disparity
+  add_executable(ret2spec_callret_disparity ret2spec_callret_disparity.cc)
+  target_compile_options(ret2spec_callret_disparity PRIVATE -fomit-frame-pointer)
+  target_link_libraries(ret2spec_callret_disparity safeside)
 endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
