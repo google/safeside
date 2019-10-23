@@ -100,6 +100,38 @@ inline void JumpToAfterSpeculation() {
 }
 #endif
 
+#if defined(SAFESIZE_X64) || defined(SAFESIDE_IA32)
+SAFESIDE_ALWAYS_INLINE
+inline void EnforceAlignment() {
+#ifdef SAFESIDE_IA32
+  asm volatile(
+      "pushfl\n"
+      "orl $0x00040000, (%esp)\n"
+      "popfl\n");
+#else
+  asm volatile(
+      "pushfq\n"
+      "orq $0x0000000000040000, (%rsp)\n"
+      "popfq\n");
+#endif
+}
+
+SAFESIDE_ALWAYS_INLINE
+inline void UnenforceAlignment() {
+#ifdef SAFESIDE_IA32
+  asm volatile(
+      "pushfl\n"
+      "andl $~0x00040000, (%esp)\n"
+      "popfl\n");
+#else
+  asm volatile(
+      "pushfq\n"
+      "andq $~0x0000000000040000, (%rsp)\n"
+      "popfq\n");
+#endif
+}
+#endif
+
 #ifdef SAFESIDE_IA32
 // Returns the original value of FS and sets the new value.
 int ExchangeFS(int input);
