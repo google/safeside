@@ -51,7 +51,7 @@ SAFESIDE_ALWAYS_INLINE
 inline void MemoryAndSpeculationBarrier() {
 #if SAFESIDE_X64 || SAFESIDE_IA32
 #  if SAFESIDE_MSVC
-  int cpuinfo [4];
+  int cpuinfo[4];
   __cpuid(cpuinfo, 0);
 #  elif SAFESIDE_GNUC
   int a, b, c, d;
