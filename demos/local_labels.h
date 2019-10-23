@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-// This file can be included at most once per compilation unit. Otherwise it
-// will crash during the linktime.
-
 #include "compiler_specifics.h"
 
 #if SAFESIDE_ARM64
