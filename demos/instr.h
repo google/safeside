@@ -16,8 +16,10 @@
 
 #include <cstdint>
 
+#include "compiler_specifics.h"
+
 // Page size.
-#ifdef __powerpc__
+#if SAFESIDE_PPC
 constexpr uint32_t kPageSizeBytes = 65536;
 #else
 constexpr uint32_t kPageSizeBytes = 4096;
@@ -32,13 +34,12 @@ void CLFlush(const void *memory);
 // Measures the latency of memory read from a given address.
 uint64_t ReadLatency(const void *memory);
 
-#ifdef __GNUC__
+#if SAFESIDE_GNUC
 // Unwinds the stack until the given pointer, flushes the stack pointer and
 // returns.
 void UnwindStackAndSlowlyReturnTo(const void *address);
 
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_X64) || \
-    defined(_M_IX86) || defined(__powerpc__)
+#if SAFESIDE_X64 || SAFESIDE_IA32 || SAFESIDE_PPC
 // Label defined in inline assembly. Used to define addresses for the
 // instruction pointer or program counter registers - either as return
 // addresses (ret2spec) or for skipping failures in signal handlers
@@ -48,21 +49,21 @@ extern char afterspeculation[];
 // Yields serializing instruction.
 // Must be inlined in order to avoid to avoid misprediction that skips the
 // call.
-__attribute__((always_inline))
+SAFESIDE_ALWAYS_INLINE
 inline void MemoryAndSpeculationBarrier() {
-#if defined(__i386__) || defined(__x86_64__)
+#if SAFESIDE_X64 || SAFESIDE_IA32
   asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx", "memory");
-#elif defined(__powerpc__)
+#elif SAFESIDE_PPC
   asm volatile("sync");
 #else
 #  error Unsupported CPU.
 #endif
 }
 
-#elif defined(__aarch64__)
+#elif SAFESIDE_ARM64
 // Push callee-saved registers and return address on stack and mark it with
 // magic value.
-__attribute__((always_inline))
+SAFESIDE_ALWAYS_INLINE
 inline void BackupCalleeSavedRegsAndReturnAddress() {
   asm volatile(
       // Store the callee-saved regs.
@@ -80,7 +81,7 @@ inline void BackupCalleeSavedRegsAndReturnAddress() {
       "str x10, [sp, #-16]!\n");
 }
 
-__attribute__((always_inline))
+SAFESIDE_ALWAYS_INLINE
 inline void RestoreCalleeSavedRegs() {
   asm volatile(
       "ldr x29, [sp], #16\n"
@@ -93,13 +94,45 @@ inline void RestoreCalleeSavedRegs() {
 
 // This way we avoid the global vs. local relocation of the afterspeculation
 // label addressing.
-__attribute__((always_inline))
+SAFESIDE_ALWAYS_INLINE
 inline void JumpToAfterSpeculation() {
   asm volatile("b afterspeculation");
 }
 #endif
 
-#ifdef __i386__
+#if SAFESIDE_X64 || SAFESIDE_IA32
+SAFESIDE_ALWAYS_INLINE
+inline void EnforceAlignment() {
+#if SAFESIDE_IA32
+  asm volatile(
+      "pushfl\n"
+      "orl $0x00040000, (%esp)\n"
+      "popfl\n");
+#else
+  asm volatile(
+      "pushfq\n"
+      "orq $0x0000000000040000, (%rsp)\n"
+      "popfq\n");
+#endif
+}
+
+SAFESIDE_ALWAYS_INLINE
+inline void UnenforceAlignment() {
+#if SAFESIDE_IA32
+  asm volatile(
+      "pushfl\n"
+      "andl $~0x00040000, (%esp)\n"
+      "popfl\n");
+#else
+  asm volatile(
+      "pushfq\n"
+      "andq $~0x0000000000040000, (%rsp)\n"
+      "popfq\n");
+#endif
+}
+#endif
+
+#if SAFESIDE_IA32
 // Returns the original value of FS and sets the new value.
 int ExchangeFS(int input);
 // Returns the original value of ES and sets the new value.
@@ -108,7 +141,7 @@ int ExchangeES(int input);
 // Reads an offset from the FS segment.
 // Must be inlined because the fault occurs inside and the stack pointer would
 // be shifted.
-__attribute__((always_inline))
+SAFESIDE_ALWAYS_INLINE
 inline unsigned int ReadUsingFS(unsigned int offset) {
   unsigned int result;
 
@@ -122,7 +155,7 @@ inline unsigned int ReadUsingFS(unsigned int offset) {
 // Reads an offset from the ES segment.
 // Must be inlined because the fault occurs inside and the stack pointer would
 // be shifted.
-__attribute__((always_inline))
+SAFESIDE_ALWAYS_INLINE
 inline unsigned int ReadUsingES(unsigned int offset) {
   unsigned int result;
 

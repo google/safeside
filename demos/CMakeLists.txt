@@ -84,4 +84,8 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   # Speculation over hardware breakpoint trap
   add_executable(speculation_over_hw_breakpoint speculation_over_hw_breakpoint.cc)
   target_link_libraries(speculation_over_hw_breakpoint safeside)
+
+  # Meltdown AC -- speculative fetching of unaligned data
+  add_executable(meltdown_ac meltdown_ac.cc)
+  target_link_libraries(meltdown_ac safeside)
 endif()
