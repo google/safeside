@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
+#include "compiler_specifics.h"
+
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !defined(__x86_64__) && !defined(__i386__)
-#  error Unsupported architecture. Intel required.
+#if !SAFESIDE_X64 && !SAFESIDE_IA32 && !SAFESIDE_PPC
+#  error Unsupported architecture. Intel or PowerPC required.
 #endif
 
 #include <array>
@@ -103,12 +105,17 @@ static void sigsegv(
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#ifdef __x86_64__
+#if SAFESIDE_X64
   ucontext->uc_mcontext.gregs[REG_RIP] =
       reinterpret_cast<greg_t>(afterspeculation);
-#else
+#elif SAFESIDE_IA32
   ucontext->uc_mcontext.gregs[REG_EIP] =
       reinterpret_cast<greg_t>(afterspeculation);
+#elif SAFESIDE_PPC
+  ucontext->uc_mcontext.regs->nip =
+      reinterpret_cast<size_t>(afterspeculation);
+#else
+#  error Unsupported CPU.
 #endif
 }
 
