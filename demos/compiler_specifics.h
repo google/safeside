@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SAFESIDE_COMPILER_SPECIFICS
+#ifndef DEMOS_COMPILER_SPECIFICS_H_
 #define SAFESIDE_COMPILER_SPECIFICS
 
 #if defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64)
