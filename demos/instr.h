@@ -18,6 +18,16 @@
 
 #include "compiler_specifics.h"
 
+#if SAFESIDE_X64 || SAFESIDE_IA32
+#  if SAFESIDE_MSVC
+#  include <intrin.h>
+#  elif SAFESIDE_GNUC
+#  include <cpuid.h>
+#  else
+#    error Unsupported compiler.
+#  endif
+#endif
+
 // Page size.
 #if SAFESIDE_PPC
 constexpr uint32_t kPageSizeBytes = 65536;
@@ -34,6 +44,32 @@ void CLFlush(const void *memory);
 // Measures the latency of memory read from a given address.
 uint64_t ReadLatency(const void *memory);
 
+// Yields serializing instruction.
+// Must be inlined in order to avoid to avoid misprediction that skips the
+// call.
+SAFESIDE_ALWAYS_INLINE
+inline void MemoryAndSpeculationBarrier() {
+#if SAFESIDE_X64 || SAFESIDE_IA32
+#  if SAFESIDE_MSVC
+  int cpuinfo[4];
+  __cpuid(cpuinfo, 0);
+#  elif SAFESIDE_GNUC
+  int a, b, c, d;
+  __cpuid(0, a, b, c, d);
+#  else
+#    error Unsupported compiler.
+#  endif
+#elif SAFESIDE_ARM64
+  asm volatile(
+      "dsb sy\n"
+      "isb\n");
+#elif SAFESIDE_PPC
+  asm volatile("sync");
+#else
+#  error Unsupported CPU.
+#endif
+}
+
 #if SAFESIDE_GNUC
 // Unwinds the stack until the given pointer, flushes the stack pointer and
 // returns.
@@ -46,21 +82,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address);
 // (meltdown).
 extern char afterspeculation[];
 
-// Yields serializing instruction.
-// Must be inlined in order to avoid to avoid misprediction that skips the
-// call.
-SAFESIDE_ALWAYS_INLINE
-inline void MemoryAndSpeculationBarrier() {
-#if SAFESIDE_X64 || SAFESIDE_IA32
-  asm volatile("cpuid"::"a"(0):"ebx", "ecx", "edx", "memory");
-#elif SAFESIDE_PPC
-  asm volatile("sync");
-#else
-#  error Unsupported CPU.
-#endif
-}
-
-#elif SAFESIDE_ARM64
+#elif defined(__aarch64__)
 // Push callee-saved registers and return address on stack and mark it with
 // magic value.
 SAFESIDE_ALWAYS_INLINE
