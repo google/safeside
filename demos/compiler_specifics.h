@@ -15,7 +15,7 @@
  */
 
 #ifndef DEMOS_COMPILER_SPECIFICS_H_
-#define SAFESIDE_COMPILER_SPECIFICS
+#define DEMOS_COMPILER_SPECIFICS_H_
 
 #if defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64)
 #define SAFESIDE_X64
