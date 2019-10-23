@@ -40,4 +40,4 @@
 #  error Unknown compiler.
 #endif
 
-#endif
+#endif  // DEMOS_COMPILER_SPECIFICS_H_
