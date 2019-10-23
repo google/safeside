@@ -92,11 +92,7 @@ static bool ReturnsTrue(int counter) {
   // own stack mark and the next one. Somewhere there must be also the return
   // address.
   stack_mark_pointers.pop_back();
-  for (int i = 0; i < (stack_mark_pointers.back() - &stack_mark);
-       i += kCacheLineSize) {
-    CLFlush(&stack_mark + i);
-  }
-  CLFlush(stack_mark_pointers.back());
+  FlushFromCache(&stack_mark, stack_mark_pointers.back());
   return true;
 }
 
