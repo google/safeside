@@ -19,7 +19,7 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
-MODULE_LICENSE("Apache-2.0");
+MODULE_LICENSE("Proprietary");
 MODULE_AUTHOR("Google");
 MODULE_DESCRIPTION("");
 MODULE_VERSION("0.1");
@@ -41,7 +41,8 @@ struct proc_dir_entry *safeside_eret_hvc_smc;
 static ssize_t address_store(struct file *f, const char __user *buf,
                              size_t length, loff_t *off) {
   ptrdiff_t userspace_address;
-  int res, *kernel_memory;
+  int res;
+  int *kernel_memory;
   // Enable kernel access to userspace memory.
   __uaccess_enable(ARM64_ALT_PAN_NOT_UAO);
   res = kstrtoul(buf, 0, &userspace_address);

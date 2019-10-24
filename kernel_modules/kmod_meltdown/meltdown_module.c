@@ -18,7 +18,7 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 
-MODULE_LICENSE("Apache-2.0");
+MODULE_LICENSE("Proprietary");
 MODULE_AUTHOR("Google");
 MODULE_DESCRIPTION("");
 MODULE_VERSION("0.1");
