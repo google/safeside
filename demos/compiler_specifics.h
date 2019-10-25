@@ -34,10 +34,12 @@
 #define SAFESIDE_MSVC 1
 #define SAFESIDE_NEVER_INLINE __declspec(noinline)
 #define SAFESIDE_ALWAYS_INLINE __forceinline
+#define SAFESIDE_FASTCALL __fastcall
 #elif defined(__GNUC__)
 #define SAFESIDE_GNUC 1
 #define SAFESIDE_NEVER_INLINE __attribute__((noinline))
 #define SAFESIDE_ALWAYS_INLINE __attribute__((always_inline))
+#define SAFESIDE_FASTCALL __attribute__((fastcall))
 #else
 #  error Unknown compiler.
 #endif
