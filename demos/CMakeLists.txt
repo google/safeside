@@ -29,6 +29,10 @@ target_link_libraries(spectre_v1 safeside)
 add_executable(spectre_v1_indirect_jumps spectre_v1_indirect_jumps.cc)
 target_link_libraries(spectre_v1_indirect_jumps safeside)
 
+# Spectre V2 -- branch target injection
+add_executable(spectre_v2 spectre_v2.cc)
+target_link_libraries(spectre_v2 safeside)
+
 # Spectre V4 -- speculative store bypass
 add_executable(spectre_v4 spectre_v4.cc)
 target_link_libraries(spectre_v4 safeside)
