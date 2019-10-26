@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS off)
 
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CONFIGURATION_TYPES "Release")
+set(CMAKE_CONFIGURATION_TYPES Release)
 
 # When targeting x86, we need to opt in to SSE2 instructions like
 # clflush, mfence, lfence.
