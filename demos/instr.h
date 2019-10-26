@@ -70,6 +70,19 @@ inline void MemoryAndSpeculationBarrier() {
 #endif
 }
 
+SAFESIDE_ALWAYS_INLINE
+inline void GenerateNop() {
+#if SAFESIDE_MSVC
+  __nop();
+#elif SAFESIDE_GNUC
+  // Memory clobber is to prevent ICC to push ESI on the stack.
+  // On other compilers it has no effect.
+  asm volatile("nop":::"memory");
+#else
+#  error Unsupported compiler.
+#endif
+}
+
 #if SAFESIDE_GNUC
 // Unwinds the stack until the given pointer, flushes the stack pointer and
 // returns.

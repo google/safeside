@@ -29,10 +29,6 @@ target_link_libraries(spectre_v1 safeside)
 add_executable(spectre_v1_indirect_jumps spectre_v1_indirect_jumps.cc)
 target_link_libraries(spectre_v1_indirect_jumps safeside)
 
-# Spectre V2 -- branch target injection
-add_executable(spectre_v2 spectre_v2.cc)
-target_link_libraries(spectre_v2 safeside)
-
 # Spectre V4 -- speculative store bypass
 add_executable(spectre_v4 spectre_v4.cc)
 target_link_libraries(spectre_v4 safeside)
@@ -40,6 +36,15 @@ target_link_libraries(spectre_v4 safeside)
 # Cyclic Ret2Spec -- rewriting the RSB
 add_executable(ret2spec_cyclic ret2spec_cyclic.cc)
 target_link_libraries(ret2spec_cyclic safeside)
+
+# Spectre V2 -- branch target injection
+add_executable(spectre_v2 spectre_v2.cc)
+if((${CMAKE_SYSTEM_NAME} MATCHES "^Darwin$")
+  target_compile_options(spectre_v2 PRIVATE -fomit-frame-pointer)
+elseif((${CMAKE_SYSTEM_NAME} MATCHES "^Windows$")
+  target_compile_options(spectre_v2 PRIVATE /Ob2)
+  target_compile_options(spectre_v2 PRIVATE /GL)
+target_link_libraries(spectre_v2 safeside)
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(aarch64)$"))
