@@ -2,14 +2,7 @@
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS off)
 
-# Enable at least some optimization in all builds. The Ret2Spec demo, in
-# particular, will segfault if built without optimizations.
-# TODO(https://git.io/JecmX): Fix the crash in Ret2Spec
-add_compile_options(-O2)
-
-# Disable run-time code checking on MSVC. It's enabled by default in CMake's
-# debug build settings, but it's incompatible with optimizations.
-string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+set(CMAKE_BUILD_TYPE "Release")
 
 # When targeting x86, we need to opt in to SSE2 instructions like
 # clflush, mfence, lfence.
