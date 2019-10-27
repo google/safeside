@@ -133,28 +133,31 @@ template<> struct DummyCalls<0> {
 // We fastcall the readers in the 32-bit mode so that there is only one
 // instruction. Otherwise there would be two (fetch the pointer from the stack
 // and fetch from the pointer).
+void
 #if SAFESIDE_IA32
 SAFESIDE_FASTCALL
 #endif
-void FirstActualRead(const void *addr) {
+FirstActualRead(const void *addr) {
   // We read the value 100 times to have enough places to jump to.
   Fetches<100>::generate(addr);
 }
 
 // DummyRead is between the two real reads, so that misjump chances are the
 // highest possible.
+void
 #if SAFESIDE_IA32
 SAFESIDE_FASTCALL
 #endif
-void DummyRead(const void *addr) {
+DummyRead(const void *addr) {
   // Does nothing - only NOPs.
   Nops<100>::generate();
 }
 
+void
 #if SAFESIDE_IA32
 SAFESIDE_FASTCALL
 #endif
-void SecondActualRead(const void *addr) {
+SecondActualRead(const void *addr) {
   // Read it one more time to avoid compiler deduplication with jump to the
   // FirstActualRead.
   Fetches<101>::generate(addr);
@@ -248,13 +251,16 @@ static char LeakByte(const char *data, size_t offset) {
 #endif
 
       // Inline 100 jumps to a real read from 100 different source addresses to
-      // 100 different destination addresses.
+      // the dynamic destination address (that has again 100 values).
       SafeCalls<100>::generate(
           second_real_reader, isolated_oracle.data() + static_cast<size_t>(
               data[safe_offset]));
 
       // Inline 100 jumps to the dummy read from 100 different source
-      // addresses to 100 different destination addresses.
+      // addresses to the dynamic destination address.
+      // Misjumps to actual reads in this section are pure injections, because
+      // architecturally those jumps lead always into the dummy reader full of
+      // nops.
       DummyCalls<100>::generate(
           dummy_reader.get(), isolated_oracle.data() + static_cast<size_t>(
               data[offset]));
