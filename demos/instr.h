@@ -187,37 +187,4 @@ inline unsigned int ReadUsingES(unsigned int offset) {
 
   return result;
 }
-
-// 1000 times fetches a pointer coming from a non-overflowing operation after
-// an INTO instruction.
-SAFESIDE_ALWAYS_INLINE
-inline void FetchAfterFalseOFCheck(const void *oracle, unsigned int stride,
-                                   const char *data, unsigned int offset) {
-  const char *address = reinterpret_cast<const char *>(oracle);
-  address += stride * data[offset];
-  unsigned int tmp;
-  asm volatile(
-      "subl $0, %0\n"
-      "subl $0, %0\n"
-      "into\n"
-      "movzbl (%0), %1\n"::"r"(address), "r"(tmp));
-}
-
-// Fetches a pointer coming from an overflowing operation after an INTO
-// instruction. That triggers the OF-trap. Must be inlined, because the
-// SIGSEGV handler just shift the EIP, but it cannot fix stack changes.
-SAFESIDE_ALWAYS_INLINE
-inline void FetchAfterTrueOFCheck(const void *oracle, unsigned int stride,
-                                  const char *data, unsigned int offset) {
-  const char *address = reinterpret_cast<const char *>(oracle);
-  address += stride * data[offset];
-  unsigned int tmp;
-  // Clobbers the CC, because the overflow flag in EFLAGS is changed.
-  asm volatile(
-      "subl $0x80000000, %0\n"
-      "subl $0x80000000, %0\n"
-      "into\n"
-      "movzbl (%0), %1\n"::"r"(address), "r"(tmp):"cc");
-}
-#endif
 #endif
