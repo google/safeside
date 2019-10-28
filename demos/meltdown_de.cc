@@ -94,8 +94,10 @@ const char *private_data[] = {
 
 constexpr size_t kPrivateDataLength = 16;
 
-// We must store zero as a global variable to avoid optimizing it out.
+// We must store zero and one as a global variables to avoid optimizing them
+// out.
 size_t zero = 0;
+size_t one = 1;
 
 static char LeakByte(size_t offset) {
   CacheSideChannel sidechannel;
@@ -113,7 +115,7 @@ static char LeakByte(size_t offset) {
     // string. During the modulo by zero, SIGFPE is raised and the signal
     // handler moves the instruction pointer to the afterspeculation label.
     ForceRead(isolated_oracle.data() + static_cast<size_t>(
-        private_data[offset][1 % zero]));
+        private_data[offset][one % zero]));
 
     std::cout << "Dead code. Must not be printed." << std::endl;
 
