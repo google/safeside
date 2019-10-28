@@ -188,8 +188,8 @@ inline unsigned int ReadUsingES(unsigned int offset) {
   return result;
 }
 
-// 1000 times fetches a pointer coming from a non-overflowing operation after
-// an INTO instruction.
+// Fetches a pointer coming from a non-overflowing operation after an INTO
+// instruction.
 SAFESIDE_ALWAYS_INLINE
 inline void FetchAfterFalseOFCheck(const void *oracle, unsigned int stride,
                                    const char *data, unsigned int offset) {
