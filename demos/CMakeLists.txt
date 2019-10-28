@@ -77,7 +77,10 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   # segment limits
   add_executable(meltdown_ss meltdown_ss.cc)
   target_link_libraries(meltdown_ss safeside)
+endif()
 
+if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
+   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$"))
   # Meltdown OF -- speculative fetching from an overflowing address after an
   # INTO check
   add_executable(meltdown_of meltdown_of.cc)

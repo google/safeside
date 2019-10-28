@@ -20,21 +20,18 @@
  * instruction opcode exists only on IA32, this vulnerability cannot be
  * demonstrated on X64 or AMD64.
  * We cause the overflow trap by taking the secret address that should not be
- * accessed and subtracting from it twice 0x80000000. That cannot change its
- * value because it's always 32-bit number. However, the second subtraction
- * creates an overflow. Since the address was a userspace address, its binary
- * representation began with 0. After the first subtraction only the first
- * zero changed to 1. The second substraction has two operands with leading
- * bit 1, but the result has the leading bit 0 - therefore the overflow flag in
- * EFLAGS is turned on. Afterwards we yield the INTO instruction and fetch
+ * accessed and adding or subtracting from it twice 0x80000000. That cannot
+ * change its value because it's always 32-bit number. We pick addition or
+ * subtraction by the first bit of the address, so that the second operation
+ * creates an overflow. Afterwards we yield the INTO instruction and fetch
  * from the address. Even though the INTO instruction triggers OF (which is
  * ensured by the dead code guard), the next load is speculatively performed.
  **/
 
 #include "compiler_specifics.h"
 
-#ifndef __linux__
-#  error Unsupported OS. Linux required.
+#if !defined(__linux__) && !defined(__APPLE__)
+#  error Unsupported OS. Linux or MacOS required.
 #endif
 
 #if !SAFESIDE_IA32
@@ -77,7 +74,13 @@ static char LeakByte(const char *data, size_t offset) {
       }
 
       // SIGSEGV signal handler moves the instruction pointer to this label.
+#ifdef __linux__
       asm volatile("afterspeculation:");
+#elif defined(__APPLE__)
+      asm volatile("_afterspeculation:");
+#else
+#  error Unsupported OS.
+#endif
     }
 
     std::pair<bool, char> result =
@@ -99,15 +102,28 @@ static void Sigsegv(
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
+#ifdef __linux__
   ucontext->uc_mcontext.gregs[REG_EIP] =
       reinterpret_cast<greg_t>(afterspeculation);
+#elif defined(__APPLE__)
+  ucontext->uc_mcontext->__ss.__eip =
+      reinterpret_cast<uintptr_t>(afterspeculation);
+#else
+#  error Unsupported OS.
+#endif
 }
 
 static void SetSignal() {
   struct sigaction act;
   act.sa_sigaction = Sigsegv;
   act.sa_flags = SA_SIGINFO;
-  sigaction(SIGSEGV, &act, NULL);
+#ifdef __linux__
+  sigaction(SIGSEGV, &act, nullptr);
+#elif defined(__APPLE__)
+  sigaction(SIGFPE, &act, nullptr);
+#else
+#  error Unsupported OS.
+#endif
 }
 
 int main() {

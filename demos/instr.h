@@ -212,12 +212,20 @@ inline void FetchAfterTrueOFCheck(const void *oracle, unsigned int stride,
   const char *address = reinterpret_cast<const char *>(oracle);
   address += stride * data[offset];
   unsigned int tmp;
-  // Clobbers the CC, because the overflow flag in EFLAGS is changed.
-  asm volatile(
-      "subl $0x80000000, %0\n"
-      "subl $0x80000000, %0\n"
-      "into\n"
-      "movzbl (%0), %1\n"::"r"(address), "r"(tmp):"cc");
+  if (reinterpret_cast<unsigned int>(address) & 0x80000000) {
+    // Clobbers the CC, because the overflow flag in EFLAGS is changed.
+    asm volatile(
+        "subl $0x80000000, %0\n"
+        "subl $0x80000000, %0\n"
+        "into\n"
+        "movzbl (%0), %1\n"::"r"(address), "r"(tmp):"cc");
+  } else {
+    asm volatile(
+        "addl $0x80000000, %0\n"
+        "addl $0x80000000, %0\n"
+        "into\n"
+        "movzbl (%0), %1\n"::"r"(address), "r"(tmp):"cc");
+  }
 }
 #endif
 #endif
