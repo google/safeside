@@ -188,3 +188,4 @@ inline unsigned int ReadUsingES(unsigned int offset) {
   return result;
 }
 #endif
+#endif
