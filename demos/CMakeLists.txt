@@ -84,4 +84,8 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   # Meltdown AC -- speculative fetching of unaligned data
   add_executable(meltdown_ac meltdown_ac.cc)
   target_link_libraries(meltdown_ac safeside)
+
+  # Meltdown DE -- speculative computation with division by zero remainder
+  add_executable(meltdown_de meltdown_de.cc)
+  target_link_libraries(meltdown_de safeside)
 endif()
