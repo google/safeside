@@ -50,6 +50,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 // Have one dummy character on the beginning of the private data. Segment limit
 // zero means that exactly one address is accessible. We want to access only
