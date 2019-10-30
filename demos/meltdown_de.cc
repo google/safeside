@@ -69,6 +69,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 const char *public_data = "Hello, world!";
 
