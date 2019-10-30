@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-// Forced memory load.
+// Forced memory load. Used during speculative execution to create a
+// microarchitectural side effect in the cache.
 void ForceRead(const void *p);
 
-// Flush a memory interval from cache.
+// Flush a memory interval from cache. Used to induce speculative execution on
+// flushed values until they are fetched back to the cache.
 void FlushFromCache(const char *start, const char *end);
