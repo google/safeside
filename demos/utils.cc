@@ -21,13 +21,15 @@
 
 constexpr size_t kCacheLineSize = 64;
 
-// Forces a memory read of the byte at address p. This will result in the byte
-// being loaded into cache.
+// Forced memory load. Used during both real and speculative execution to create
+// a microarchitectural side effect in the cache. Also used for latency
+// measurement in the FLUSH+RELOAD technique.
 void ForceRead(const void *p) {
   (void)*reinterpret_cast<const volatile char *>(p);
 }
 
-// Flush a memory interval from cache.
+// Flush a memory interval from cache. Used to induce speculative execution on
+// flushed values until they are fetched back to the cache.
 void FlushFromCache(const char *start, const char *end) {
   // Start on the first byte and continue in kCacheLineSize steps.
   for (const char *ptr = start; ptr < end; ptr += kCacheLineSize) {

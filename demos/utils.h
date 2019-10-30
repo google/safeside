@@ -15,7 +15,8 @@
  */
 
 // Forced memory load. Used during both real and speculative execution to create
-// a microarchitectural side effect in the cache.
+// a microarchitectural side effect in the cache. Also used for latency
+// measurement in the FLUSH+RELOAD technique.
 void ForceRead(const void *p);
 
 // Flush a memory interval from cache. Used to induce speculative execution on
