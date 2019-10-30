@@ -43,24 +43,25 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
 
 static char LeakByte(const char *data, size_t data_length, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     size_t safe_offset = run % data_length;
     sidechannel.FlushOracle();
 
     // Successful access of the safe offset.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[safe_offset]));
+    ForceRead(oracle.data() + static_cast<size_t>(data[safe_offset]));
 
     // This access traps on hardware breakpoint and the tracer shifts the
     // instruction pointer to the afterspeculation label.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[offset]));
+    ForceRead(oracle.data() + static_cast<size_t>(data[offset]));
 
     std::cout << "Dead code. Must not be printed." << std::endl;
 
@@ -123,14 +124,20 @@ void ParentProcess(pid_t child) {
   while (true) {
     int wstatus, res;
     wait(&wstatus);
-    if (WIFSTOPPED(wstatus) && WSTOPSIG(wstatus) == SIGSTOP) {
+    if (!WIFSTOPPED(wstatus)) {
+      break;  // Unexpected wait event.
+    }
+
+    if (WSTOPSIG(wstatus) == SIGSTOP) {
+      // Set debug registers.
       // The child stopped itself with "raise(SIGSTOP)". We have to put the
       // breakpoint on the current character of private_data and let it
       // continue.
-      // Pointing dr0 on the current index in private_data and incrementing
-      // the index.
+      // Pointing dr0 on the current index in private_data.
       res = ptrace(PTRACE_POKEUSER, child, offsetof(user, u_debugreg[0]),
-                   private_data + index++);
+                   private_data + index);
+      // Post-incrementing the index so that the first call is with index 0.
+      ++index;
       if (res == -1) {
         std::cerr << "PTRACE_POKEUSER on dr0 failed." << std::endl;
         exit(EXIT_FAILURE);
@@ -139,6 +146,8 @@ void ParentProcess(pid_t child) {
       // Setting the 0th, 15th and 16th bit in dr7.
       // 0th bit means the active breakpoint is in local dr0.
       // 15th and 16th bits mean the trap activates on each read and write.
+      // We leave the length bits set to 00 so that we get one-byte
+      // granularity.
       res = ptrace(PTRACE_POKEUSER, child, offsetof(user, u_debugreg[7]),
                    0x30001);
       if (res == -1) {
@@ -152,7 +161,8 @@ void ParentProcess(pid_t child) {
         std::cerr << "PTRACE_CONT after SIGSTOP failed." << std::endl;
         exit(EXIT_FAILURE);
       }
-    } else if (WIFSTOPPED(wstatus) && WSTOPSIG(wstatus) == SIGTRAP) {
+    } else if (WSTOPSIG(wstatus) == SIGTRAP) {
+      // Move instruction pointer.
       // The child was trapped by stepping on the hardware breakpoint. We just
       // move its instruction pointer to the afterspeculation label.
       user_regs_struct regs;
@@ -170,7 +180,7 @@ void ParentProcess(pid_t child) {
       regs.eip = reinterpret_cast<size_t>(afterspeculation);
 #endif
 
-      // Store the exchanged child's instruction pointer value.
+      // Store the shifted child's instruction pointer value.
       res = ptrace(PTRACE_SETREGS, child, nullptr, &regs);
       if (res == -1) {
         std::cerr << "PTRACE_SETREGS failed." << std::endl;
@@ -184,6 +194,7 @@ void ParentProcess(pid_t child) {
         exit(EXIT_FAILURE);
       }
     } else {
+      // Unexpected signal received by the child.
       // The child didn't stop with SIGSTOP nor SIGTRAP.
       // Terminating the parent.
       break;
