@@ -20,6 +20,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 // Objective: given some control over accesses to the *non-secret* string
 // "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" without

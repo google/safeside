@@ -19,7 +19,7 @@ if((${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$") AND
 endif()
 
 # Support library
-add_library(safeside cache_sidechannel.cc instr.cc)
+add_library(safeside cache_sidechannel.cc instr.cc utils.cc)
 
 # Spectre V1 -- bounds check bypass
 add_executable(spectre_v1 spectre_v1.cc)
@@ -84,4 +84,11 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   # segment limits
   add_executable(meltdown_ss meltdown_ss.cc)
   target_link_libraries(meltdown_ss safeside)
+endif()
+
+if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
+   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)$"))
+  # Meltdown AC -- speculative fetching of unaligned data
+  add_executable(meltdown_ac meltdown_ac.cc)
+  target_link_libraries(meltdown_ac safeside)
 endif()

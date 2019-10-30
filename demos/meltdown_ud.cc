@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
+#include "compiler_specifics.h"
+
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
 
-#ifndef __aarch64__
+#if !SAFESIDE_ARM64
 #  error Unsupported architecture. ARM64 required.
 #endif
 
@@ -31,6 +33,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
