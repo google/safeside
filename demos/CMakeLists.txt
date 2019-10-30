@@ -19,7 +19,7 @@ if((${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$") AND
 endif()
 
 # Support library
-add_library(safeside cache_sidechannel.cc instr.cc)
+add_library(safeside cache_sidechannel.cc instr.cc utils.cc)
 
 # Spectre V1 -- bounds check bypass
 add_executable(spectre_v1 spectre_v1.cc)

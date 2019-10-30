@@ -20,6 +20,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 // Objective: given some control over accesses to the *non-secret* string
 // "xxxxxxxxxxxxxx", construct a program that obtains "It's a s3kr3t!!!" without
@@ -123,9 +124,7 @@ static char LeakByte(size_t offset) {
       // We make sure to flush whole accessor object in case it is
       // hypothetically on multiple cache-lines.
       const char *accessor_bytes = reinterpret_cast<const char*>(accessor);
-      for (size_t j = 0; j < object_size_in_bytes; j += kCacheLineSize) {
-        CLFlush(accessor_bytes + j);
-      }
+      FlushFromCache(accessor_bytes, accessor_bytes + object_size_in_bytes);
 
       // Speculative fetch at the offset. Architecturally it fetches
       // always from the public_data, though speculatively it fetches the
