@@ -154,13 +154,6 @@ void ParentProcess(pid_t child) {
         std::cerr << "PTRACE_POKEUSER on dr7 failed." << errno << std::endl;
         exit(EXIT_FAILURE);
       }
-
-      // Wake up the child.
-      res = ptrace(PTRACE_CONT, child, nullptr, nullptr);
-      if (res == -1) {
-        std::cerr << "PTRACE_CONT after SIGSTOP failed." << std::endl;
-        exit(EXIT_FAILURE);
-      }
     } else if (WSTOPSIG(wstatus) == SIGTRAP) {
       // Move instruction pointer.
       // The child was trapped by stepping on the hardware breakpoint. We just
@@ -186,18 +179,18 @@ void ParentProcess(pid_t child) {
         std::cerr << "PTRACE_SETREGS failed." << std::endl;
         exit(EXIT_FAILURE);
       }
-
-      // Wake up the child.
-      res = ptrace(PTRACE_CONT, child, nullptr, nullptr);
-      if (res == -1) {
-        std::cerr << "PTRACE_CONT after SIGTRAP failed." << std::endl;
-        exit(EXIT_FAILURE);
-      }
     } else {
       // Unexpected signal received by the child.
       // The child didn't stop with SIGSTOP nor SIGTRAP.
       // Terminating the parent.
       break;
+    }
+
+    // Wake up the child.
+    res = ptrace(PTRACE_CONT, child, nullptr, nullptr);
+    if (res == -1) {
+      std::cerr << "PTRACE_CONT after signal failed." << std::endl;
+      exit(EXIT_FAILURE);
     }
   }
 }
