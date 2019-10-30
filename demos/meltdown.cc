@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-#include <array>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-
-// TODO(asteinha): Windows, MacOS and vulnerable ARM support.
+#include "compiler_specifics.h"
 
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !defined(__x86_64__) && !defined(__i386__) && !defined(__powerpc__)
+#if !SAFESIDE_X64 && !SAFESIDE_IA32 && !SAFESIDE_PPC
 #  error Unsupported architecture. x86/x86_64 or PowerPC required.
 #endif
+
+#include <array>
+#include <cstring>
+#include <fstream>
+#include <iostream>
 
 #include <signal.h>
 
@@ -52,7 +52,7 @@ static char LeakByte(const char *data, size_t offset) {
 
   for (int run = 0;; ++run) {
     // Load the kernel memory into the cache to speed up its leakage.
-    std::ifstream is("/sys/kernel/safeside_meltdown/length");
+    std::ifstream is("/proc/safeside_meltdown/length");
     is.get();
     is.close();
 
@@ -89,13 +89,13 @@ static void Sigsegv(
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#ifdef __x86_64__
+#if SAFESIDE_X64
   ucontext->uc_mcontext.gregs[REG_RIP] =
       reinterpret_cast<greg_t>(afterspeculation);
-#elif defined(__i386__)
+#elif SAFESIDE_IA32
   ucontext->uc_mcontext.gregs[REG_EIP] =
       reinterpret_cast<greg_t>(afterspeculation);
-#elif defined(__powerpc__)
+#elif SAFESIDE_PPC
   ucontext->uc_mcontext.regs->nip =
       reinterpret_cast<size_t>(afterspeculation);
 #else
@@ -112,7 +112,7 @@ static void SetSignal() {
 
 int main() {
   size_t private_data, private_length;
-  std::ifstream in("/sys/kernel/safeside_meltdown/address");
+  std::ifstream in("/proc/safeside_meltdown/address");
   if (in.fail()) {
     std::cerr << "Meltdown module not loaded or not running as root."
               << std::endl;
@@ -121,7 +121,7 @@ int main() {
   in >> std::hex >> private_data;
   in.close();
 
-  in.open("/sys/kernel/safeside_meltdown/length");
+  in.open("/proc/safeside_meltdown/length");
   in >> std::dec >> private_length;
   in.close();
 

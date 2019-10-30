@@ -41,11 +41,13 @@
  * back to userspace where we verify that the provided index in memory oracle
  * was speculatively accessed. */
 
+#include "compiler_specifics.h"
+
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
 
-#ifndef __aarch64__
+#if !SAFESIDE_ARM64
 #  error Unsupported architecture. ARM64 required.
 #endif
 
@@ -68,7 +70,7 @@ static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
 
   for (int run = 0;; ++run) {
-    std::ofstream out("/sys/kernel/safeside_eret_hvc_smc/address");
+    std::ofstream out("/proc/safeside_eret_hvc_smc/address");
     if (out.fail()) {
       std::cerr << "Eret_hvc_smc module not loaded or not running as root."
                 << std::endl;
