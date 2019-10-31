@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
-// Forced memory load. Used during both real and speculative execution to create
-// a microarchitectural side effect in the cache. Also used for latency
-// measurement in the FLUSH+RELOAD technique.
-void ForceRead(const void *p);
+#include "compiler_specifics.h"
+
+// Forced memory load. Loads the memory into cache. Used during both real and
+// speculative execution to create a microarchitectural side effect in the
+// cache. Also used for latency measurement in the FLUSH+RELOAD technique.
+// Should be inlined to minimize the speculation window.
+SAFESIDE_ALWAYS_INLINE
+inline void ForceRead(const void *p) {
+  (void)*reinterpret_cast<const volatile char *>(p);
+}
 
 // Flush a memory interval from cache. Used to induce speculative execution on
 // flushed values until they are fetched back to the cache.

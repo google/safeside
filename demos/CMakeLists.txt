@@ -81,9 +81,13 @@ endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)$"))
-  # Speculation over hardware breakpoint trap
+  # Speculation over hardware breakpoint trap (read watcher)
   add_executable(speculation_over_hw_breakpoint speculation_over_hw_breakpoint.cc)
   target_link_libraries(speculation_over_hw_breakpoint safeside)
+
+  # Speculation over hardware breakpoint fault (execution watcher)
+  add_executable(speculation_over_exec_hw_breakpoint speculation_over_exec_hw_breakpoint.cc)
+  target_link_libraries(speculation_over_exec_hw_breakpoint safeside)
 
   # Meltdown AC -- speculative fetching of unaligned data
   add_executable(meltdown_ac meltdown_ac.cc)
