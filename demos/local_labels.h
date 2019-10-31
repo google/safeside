@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef DEMOS_LOCAL_LABELS_H
+#define DEMOS_LOCAL_LABELS_H
 
 #include "compiler_specifics.h"
 
@@ -33,3 +35,5 @@ static void LocalHandler() {
   asm volatile("b afterspeculation");
 }
 #endif
+
+#endif  // DEMOS_LOCAL_LABELS_H
