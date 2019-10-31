@@ -124,12 +124,12 @@ void ChildProcess() {
   // Synchronize with the parent. Let it setup the hardware breakpoint on the
   // critical nop instruction.
   raise(SIGSTOP);
+  MemoryAndSpeculationBarrier();
 
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;
   for (size_t i = 0; i < strlen(private_data); ++i) {
-    MemoryAndSpeculationBarrier();
     std::cout << LeakByte(public_data, private_offset + i);
     std::cout.flush();
   }
