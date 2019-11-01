@@ -91,7 +91,7 @@ auto private_data_accessor =
 // reads private data instead of public data.
 static char LeakByte(size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
   auto array_of_pointers =
       std::unique_ptr<std::array<DataAccessor *, kAccessorArrayLength>>(
           new std::array<DataAccessor *, kAccessorArrayLength>());
@@ -129,7 +129,7 @@ static char LeakByte(size_t offset) {
       // Speculative fetch at the offset. Architecturally the victim fetches
       // always from the public_data, though speculatively it fetches the
       // private_data when it is mistrained.
-      ForceRead(isolated_oracle.data() +
+      ForceRead(oracle.data() +
                 static_cast<size_t>(accessor->GetDataByte(offset)));
     }
 
