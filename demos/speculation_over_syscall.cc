@@ -41,7 +41,7 @@
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
 
-static char leak_byte(const char *data, size_t offset) {
+static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
 
@@ -91,7 +91,7 @@ static char leak_byte(const char *data, size_t offset) {
   }
 }
 
-static void sigusr1(
+static void Sigusr1(
     int /* signum */, siginfo_t * /* siginfo */, void *context) {
   // SIGUSR1 signal handler.
   // Moves the instruction pointer to the "afterspeculation" label jumping to
@@ -100,20 +100,20 @@ static void sigusr1(
   ucontext->uc_mcontext.pc = reinterpret_cast<greg_t>(LocalHandler);
 }
 
-static void set_signal() {
+static void SetSignal() {
   struct sigaction act;
-  act.sa_sigaction = sigusr1;
+  act.sa_sigaction = Sigusr1;
   act.sa_flags = SA_SIGINFO;
   sigaction(SIGUSR1, &act, NULL);
 }
 
 int main() {
-  set_signal();
+  SetSignal();
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;
   for (size_t i = 0; i < strlen(private_data); ++i) {
-    std::cout << leak_byte(public_data, private_offset + i);
+    std::cout << LeakByte(public_data, private_offset + i);
     std::cout.flush();
   }
   std::cout << "\nDone!\n";

