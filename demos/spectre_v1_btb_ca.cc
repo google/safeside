@@ -120,11 +120,7 @@ static char LeakByte(size_t offset) {
       // We make sure to flush whole accessor object in case it is
       // hypothetically on multiple cache-lines.
       const char *accessor_bytes = reinterpret_cast<const char *>(accessor);
-
-      for (size_t j = 0; j < sizeof(PublicDataAccessor); j += kCacheLineSize) {
-        CLFlush(accessor_bytes + j);
-      }
-      CLFlush(accessor_bytes + sizeof(PublicDataAccessor) - 1);
+      FlushFromCache(accessor_bytes, accessor_bytes + sizeof(DataAccessor));
 
       // Speculative fetch at the offset. Architecturally the victim fetches
       // always from the public_data, though speculatively it fetches the
