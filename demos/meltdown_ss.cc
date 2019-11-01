@@ -62,6 +62,7 @@ const char *public_data = "Hello, world!";
 static void setup_segment(int index, const char *base, bool present) {
   // See: Intel SDM volume 3a "3.4.5 Segment Descriptors".
   struct user_desc table_entry;
+  memset(&table_entry, 0, sizeof(struct user_desc));
   table_entry.entry_number = index;
   table_entry.base_addr = reinterpret_cast<unsigned int>(base);
   // No size limit for a present segment, one byte for a non-present segment.
@@ -78,8 +79,6 @@ static void setup_segment(int index, const char *base, bool present) {
   table_entry.limit_in_pages = 0;
   // True iff present is false.
   table_entry.seg_not_present = !present;
-  // Useable entry.
-  table_entry.useable = 1;
   int result = syscall(__NR_modify_ldt, 1, &table_entry,
                        sizeof(struct user_desc));
   if (result != 0) {
