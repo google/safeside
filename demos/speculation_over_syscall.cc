@@ -35,25 +35,11 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_labels.h"
+#include "utils.h"
 
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
-
-// Local handler necessary for avoiding local/global linking mismatches on ARM.
-// When we use extern char[] declaration for a label defined in assembly, the
-// compiler yields this sequence that fails loading the actual address of the
-// label:
-// adrp x0, :got:label
-// ldr x0, [x0, #:got_lo12:label]
-// On the other hand when we use this local handler, the compiler yield this
-// sequence of instructions:
-// adrp x0, label
-// add x0, x0, :lo12:label
-// and that works correctly because it if an effective equivalent of
-// adr x0, label.
-static void LocalHandler() {
-  asm volatile("b afterspeculation");
-}
 
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;

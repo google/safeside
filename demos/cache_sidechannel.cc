@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "cache_sidechannel.h"
-
 #include <list>
 #include <vector>
 
+#include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 // Returns the indices of the biggest and second-biggest values in the range.
 template <typename RangeT>

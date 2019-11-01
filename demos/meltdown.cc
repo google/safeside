@@ -33,6 +33,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 // Objective: given some control over accesses to the *non-secret* string
 // "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" that is
@@ -52,7 +53,7 @@ static char LeakByte(const char *data, size_t offset) {
 
   for (int run = 0;; ++run) {
     // Load the kernel memory into the cache to speed up its leakage.
-    std::ifstream is("/sys/kernel/safeside_meltdown/length");
+    std::ifstream is("/proc/safeside_meltdown/length");
     is.get();
     is.close();
 
@@ -112,7 +113,7 @@ static void SetSignal() {
 
 int main() {
   size_t private_data, private_length;
-  std::ifstream in("/sys/kernel/safeside_meltdown/address");
+  std::ifstream in("/proc/safeside_meltdown/address");
   if (in.fail()) {
     std::cerr << "Meltdown module not loaded or not running as root."
               << std::endl;
@@ -121,7 +122,7 @@ int main() {
   in >> std::hex >> private_data;
   in.close();
 
-  in.open("/sys/kernel/safeside_meltdown/length");
+  in.open("/proc/safeside_meltdown/length");
   in >> std::dec >> private_length;
   in.close();
 

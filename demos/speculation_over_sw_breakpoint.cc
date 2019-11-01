@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-#include "compiler_specifics.h"
+/**
+ * In this example we demonstrate speculative execution over BRK instruction
+ * that is executed non-speculatively and HLT instruction that is executed
+ * speculatively.
+ **/
 
 #ifndef __linux__
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !SAFESIDE_ARM64
+#ifndef __aarch64__
 #  error Unsupported architecture. ARM64 required.
 #endif
 
 #include <array>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 
 #include <signal.h>
@@ -34,28 +37,31 @@
 #include "cache_sidechannel.h"
 #include "instr.h"
 #include "local_labels.h"
-#include "utils.h"
 
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
 
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     size_t safe_offset = run % strlen(public_data);
     sidechannel.FlushOracle();
 
-    // Successful execution accesses safe_offset and loads ForceRead code into
-    // cache.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[safe_offset]));
+    // Successful execution accesses safe_offset.
+    ForceRead(oracle.data() + static_cast<size_t>(data[safe_offset]));
 
-    // Guaranteed invalid opcode on aarch64. Raises SIGILL.
-    asm volatile(".word 0x00000000");
+    // Executes self-hosted breakpoint. That saises SIGTRAP.
+    asm volatile("brk #0");
 
-    // Architecturally unreachable code.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[offset]));
+    // Architecturally unreachable code begins.
+    // Speculatively runs also over the HLT instruction (external debug
+    // breakpoint) without being serialized.
+    asm volatile("hlt #0");
+
+    // Speculatively accesses the memory oracle.
+    ForceRead(oracle.data() + static_cast<size_t>(data[offset]));
 
     std::cout << "Dead code. Must not be printed." << std::endl;
 
@@ -65,7 +71,7 @@ static char LeakByte(const char *data, size_t offset) {
       exit(EXIT_FAILURE);
     }
 
-    // SIGILL signal handler moves the instruction pointer to this label.
+    // SIGTRAP signal handler moves the instruction pointer to this label.
     asm volatile("afterspeculation:");
 
     std::pair<bool, char> result =
@@ -82,9 +88,9 @@ static char LeakByte(const char *data, size_t offset) {
   }
 }
 
-static void Sigill(
+static void Sigtrap(
     int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGILL signal handler.
+  // SIGTRAP signal handler.
   // Moves the instruction pointer to the "afterspeculation" label jumping to
   // the "LocalHandler" function.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
@@ -93,9 +99,9 @@ static void Sigill(
 
 static void SetSignal() {
   struct sigaction act;
-  act.sa_sigaction = Sigill;
+  act.sa_sigaction = Sigtrap;
   act.sa_flags = SA_SIGINFO;
-  sigaction(SIGILL, &act, NULL);
+  sigaction(SIGTRAP, &act, NULL);
 }
 
 int main() {
