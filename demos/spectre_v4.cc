@@ -43,7 +43,7 @@ constexpr size_t kArrayLength = 64;
 // think that the value will be in-range.
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
   std::unique_ptr<std::array<size_t *, kArrayLength>> array_of_pointers =
       std::unique_ptr<std::array<size_t *, kArrayLength>>(
           new std::array<size_t *, kArrayLength>);
@@ -92,7 +92,7 @@ static char LeakByte(const char *data, size_t offset) {
       // Speculative fetch at the local_offset. Architecturally it fetches
       // always at the safe_offset, though speculatively it prefetches the
       // unsafe offset when i is at the local_pointer_index.
-      ForceRead(isolated_oracle.data() + static_cast<size_t>(
+      ForceRead(oracle.data() + static_cast<size_t>(
           data[local_offset]));
     }
 

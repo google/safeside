@@ -40,7 +40,7 @@ const char *private_data = "It's a s3kr3t!!!";
 // think that the value will be in-range.
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
   // The size needs to be unloaded from cache to force speculative execution
   // to guess the result of comparison.
   //
@@ -80,7 +80,7 @@ static char LeakByte(const char *data, size_t offset) {
         // This branch was trained to always be taken during speculative
         // execution, so it's taken even on the 2048th iteration, when the
         // condition is false!
-        ForceRead(isolated_oracle.data() + static_cast<size_t>(
+        ForceRead(oracle.data() + static_cast<size_t>(
             data[local_offset]));
       }
     }

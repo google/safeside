@@ -79,7 +79,7 @@ class CensoringDataAccessor: public DataAccessor {
 // CensoringDataAccessor.
 static char LeakByte(size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
   auto array_of_pointers =
       std::unique_ptr<std::array<DataAccessor *, kAccessorArrayLength>>(
           new std::array<DataAccessor *, kAccessorArrayLength>());
@@ -129,7 +129,7 @@ static char LeakByte(size_t offset) {
       // Speculative fetch at the offset. Architecturally it fetches
       // always from the public_data, though speculatively it fetches the
       // private_data when i is at the local_pointer_index.
-      ForceRead(isolated_oracle.data() + static_cast<size_t>(
+      ForceRead(oracle.data() + static_cast<size_t>(
           accessor->GetDataByte(offset, read_private_data)));
     }
 
