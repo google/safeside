@@ -71,6 +71,13 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   target_link_libraries(meltdown_ud safeside)
 endif()
 
+if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
+   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$"))
+   # Meltdown BR - speculation over the ia32 bounds check instruction
+  add_executable(meltdown_br meltdown_br.cc)
+  target_link_libraries(meltdown_br safeside)
+endif()
+
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$"))
   # Meltdown SS -- speculative reading from non present segments and outside of
