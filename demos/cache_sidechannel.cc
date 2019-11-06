@@ -55,7 +55,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
   size_t best_val = 0, runner_up_val = 0;
 
   // Here's the timing side channel: find which char was loaded by measuring
-  // latency. Indexing into isolated_oracle causes the relevant region of
+  // latency. Indexing into oracle causes the relevant region of
   // memory to be loaded into cache, which makes it faster to load again than
   // it is to load entries that had not been accessed.
   // Only two offsets will have been accessed: safe_offset_char (which we

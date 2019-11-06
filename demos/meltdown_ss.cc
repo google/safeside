@@ -89,7 +89,7 @@ static void SetupSegment(int index, const char *base, bool present) {
 
 static char LeakByte(size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     size_t safe_offset = run % strlen(public_data);
@@ -119,11 +119,11 @@ static char LeakByte(size_t offset) {
     MemoryAndSpeculationBarrier();
 
     // Successful execution accesses safe_offset in the public data.
-    ForceRead(isolated_oracle.data() +
+    ForceRead(oracle.data() +
               static_cast<size_t>(ReadUsingFS(safe_offset)));
 
     // Accessing the private data architecturally fails with SIGSEGV.
-    ForceRead(isolated_oracle.data() +
+    ForceRead(oracle.data() +
               static_cast<size_t>(ReadUsingES(offset)));
 
     // Unreachable code.
