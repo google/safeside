@@ -26,8 +26,8 @@ add_executable(spectre_v1 spectre_v1.cc)
 target_link_libraries(spectre_v1 safeside)
 
 # Spectre V1 BTB SA -- mistraining BTB in the same address space
-add_executable(spectre_v1_indirect_jumps spectre_v1_indirect_jumps.cc)
-target_link_libraries(spectre_v1_indirect_jumps safeside)
+add_executable(spectre_v1_btb_sa spectre_v1_btb_sa.cc)
+target_link_libraries(spectre_v1_btb_sa safeside)
 
 # Spectre V4 -- speculative store bypass
 add_executable(spectre_v4 spectre_v4.cc)
