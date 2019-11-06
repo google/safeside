@@ -80,7 +80,7 @@ static char leak_byte(const char *data, volatile size_t offset) {
     }
 
     // SIGSEGV signal handler moves the instruction pointer to this label.
-#ifdef __linux__
+#if defined(__linux__)
     asm volatile("afterspeculation:");
 #elif defined(__APPLE__)
     asm volatile("_afterspeculation:");
