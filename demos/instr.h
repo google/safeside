@@ -168,7 +168,7 @@ inline void BoundsCheck(const char *str, size_t offset) {
   } string_bounds;
 
   string_bounds.low = 0;
-  string_bounds.high = strlen(str);
+  string_bounds.high = strlen(str) - 1;
 
   // ICC and older versions of Clang have a bug in compiling the bound
   // instruction. They swap the operands when translating C++ to assembler
@@ -179,7 +179,7 @@ inline void BoundsCheck(const char *str, size_t offset) {
   // The following line is the same as:
   // asm volatile("bound %%rax, (%%rdx)"
   //              ::"a"(offset), "d"(&string_bounds):"memory");
-  asm volatile(".word 0x0262"::"a"(offset), "d"(&string_bounds):"memory");
+  asm volatile(".byte 0x62, 0x02"::"a"(offset), "d"(&string_bounds):"memory");
 }
 
 // Reads an offset from the FS segment.
