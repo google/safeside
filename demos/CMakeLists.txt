@@ -25,7 +25,7 @@ add_library(safeside cache_sidechannel.cc instr.cc)
 add_executable(spectre_v1 spectre_v1.cc)
 target_link_libraries(spectre_v1 safeside)
 
-# Spectre V1 BTB SA -- mistrating BTB in the same address space
+# Spectre V1 BTB SA -- mistraining BTB in the same address space
 add_executable(spectre_v1_btb_sa spectre_v1_btb_sa.cc)
 target_link_libraries(spectre_v1_btb_sa safeside)
 
