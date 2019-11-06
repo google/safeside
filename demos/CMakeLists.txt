@@ -21,11 +21,11 @@ endif()
 # Support library
 add_library(safeside cache_sidechannel.cc instr.cc utils.cc)
 
-# Spectre V1 -- bounds check bypass
+# Spectre V1 PHT -- bounds check bypass
 add_executable(spectre_v1 spectre_v1.cc)
 target_link_libraries(spectre_v1 safeside)
 
-# Spectre V1 indirect jumps -- mistrating BTB instead of PHT.
+# Spectre V1 BTB SA -- mistraining BTB in the same address space
 add_executable(spectre_v1_indirect_jumps spectre_v1_indirect_jumps.cc)
 target_link_libraries(spectre_v1_indirect_jumps safeside)
 
@@ -36,6 +36,12 @@ target_link_libraries(spectre_v4 safeside)
 # Cyclic Ret2Spec -- rewriting the RSB
 add_executable(ret2spec_cyclic ret2spec_cyclic.cc)
 target_link_libraries(ret2spec_cyclic safeside)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$")
+  # Spectre V1 BTB CA - mistraining BTB from another address space
+  add_executable(spectre_v1_btb_ca spectre_v1_btb_ca.cc)
+  target_link_libraries(spectre_v1_btb_ca safeside)
+endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(aarch64)$"))
