@@ -21,6 +21,8 @@
  * over the dead code after the trap that is executed only speculatively.
  **/
 
+#include "compiler_specifics.h"
+
 #if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
