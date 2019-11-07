@@ -16,6 +16,8 @@
 
 #include <cstddef>
 
+#include <signal.h>
+
 #include "instr.h"
 #include "utils.h"
 
@@ -39,6 +41,7 @@ void FlushFromCache(const char *start, const char *end) {
   CLFlush(end - 1);
 }
 
+#if SAFESIDE_LINUX || SAFESIDE_MAC
 static void SignalHandler(
     int /* signum */, siginfo_t * /* siginfo */, void *context) {
   // On IA32, X64 and PPC moves the instruction pointer to the
@@ -81,3 +84,4 @@ void OnSignalMoveRipToAfterspeculation(int signal) {
   act.sa_flags = SA_SIGINFO;
   sigaction(signal, &act, nullptr);
 }
+#endif
