@@ -20,14 +20,8 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
 #include "utils.h"
-
-// TODO(asteinha) Implement support for MSVC and Windows.
-// TODO(asteinha) Investigate the exploitability of PowerPC.
-
-// Private data that is accessed only speculatively. The architectural access
-// to it is unreachable in the control flow.
-const char *private_data = "It's a s3kr3t!!!";
 
 // Global variable stores for avoiding to pass data through function arguments.
 size_t current_offset;

@@ -36,9 +36,8 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
 #include "utils.h"
-
-const char *private_data = "It's a s3kr3t!!!";
 
 // Recursion depth should be equal or greater than the RSB size, but not
 // excessively high because of the possibility of stack overflow.

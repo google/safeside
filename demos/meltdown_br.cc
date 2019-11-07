@@ -40,10 +40,8 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
 #include "utils.h"
-
-const char *public_data = "Hello, world!";
-const char *private_data = "It's a s3kr3t!!!";
 
 // ICC requires the offset variable to be volatile. If it isn't, ICC schedules
 // to spill it to stack after the second ForceRead call and that never happens

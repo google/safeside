@@ -22,15 +22,9 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
 #include "utils.h"
 
-// Objective: given some control over accesses to the *non-secret* string
-// "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" without
-// ever accessing it in the C++ execution model, using speculative execution and
-// side channel attacks
-//
-const char *public_data = "Hello, world!";
-const char *private_data = "It's a s3kr3t!!!";
 constexpr size_t kArrayLength = 64;
 
 // Leaks the byte that is physically located at &text[0] + offset, without ever
