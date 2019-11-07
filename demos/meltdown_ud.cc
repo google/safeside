@@ -79,24 +79,8 @@ static char LeakByte(const char *data, size_t offset) {
   }
 }
 
-static void Sigill(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGILL signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label jumping to
-  // the "LocalHandler" function.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-  ucontext->uc_mcontext.pc = reinterpret_cast<greg_t>(LocalHandler);
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  act.sa_sigaction = Sigill;
-  act.sa_flags = SA_SIGINFO;
-  sigaction(SIGILL, &act, NULL);
-}
-
 int main() {
-  SetSignal();
+  OnSignalMoveRipToAfterspeculation(SIGILL);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;

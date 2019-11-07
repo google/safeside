@@ -22,3 +22,7 @@ void ForceRead(const void *p);
 // Flush a memory interval from cache. Used to induce speculative execution on
 // flushed values until they are fetched back to the cache.
 void FlushFromCache(const char *start, const char *end);
+
+// Sets up signal handling that moves the instruction pointer to the
+// afterspeculation (or LocalHandler in case of ARM) label.
+void OnSignalMoveRipToAfterspeculation(int signal);

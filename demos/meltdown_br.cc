@@ -99,38 +99,14 @@ static char LeakByte(const char *data, volatile size_t offset) {
   }
 }
 
-static void Sigsegv(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGSEGV signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#if SAFESIDE_LINUX
-  ucontext->uc_mcontext.gregs[REG_EIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif SAFESIDE_MAC
-  ucontext->uc_mcontext->__ss.__eip =
-      reinterpret_cast<uintptr_t>(afterspeculation);
-#else
-#  error Unsupported OS.
-#endif
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  memset(&act, 0, sizeof(struct sigaction));
-  act.sa_sigaction = Sigsegv;
-  act.sa_flags = SA_SIGINFO;
-#if SAFESIDE_LINUX
-  sigaction(SIGSEGV, &act, nullptr);
-#elif SAFESIDE_MAC
-  sigaction(SIGTRAP, &act, nullptr);
-#else
-#  error Unsupported OS.
-#endif
-}
-
 int main() {
-  SetSignal();
+#if SAFESIDE_LINUX
+  OnSignalMoveRipToAfterspeculation(SIGSEGV);
+#elif SAFESIDE_MAC
+  OnSignalMoveRipToAfterspeculation(SIGTRAP);
+#else
+#  error Unsupported OS.
+#endif
   std::cout << "Leaking the string: ";
   std::cout.flush();
   size_t private_offset = private_data - public_data;

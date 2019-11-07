@@ -38,3 +38,46 @@ void FlushFromCache(const char *start, const char *end) {
   // Flush explicitly the last byte.
   CLFlush(end - 1);
 }
+
+static void SignalHandler(
+    int /* signum */, siginfo_t * /* siginfo */, void *context) {
+  // On IA32, X64 and PPC moves the instruction pointer to the
+  // "afterspeculation" label. On ARM64 moves the instruction pointer to the
+  // "LocalHandler" label.
+  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
+#if SAFESIDE_LINUX
+#  if SAFESIDE_IA32
+  ucontext->uc_mcontext.gregs[REG_EIP] =
+      reinterpret_cast<greg_t>(afterspeculation);
+#  elif SAFESIDE_X64
+  ucontext->uc_mcontext.gregs[REG_RIP] =
+      reinterpret_cast<greg_t>(afterspeculation);
+#  elif SAFESIDE_ARM64
+  ucontext->uc_mcontext.pc = reinterpret_cast<greg_t>(LocalHandler);
+#  elif SAFESIDE_PPC
+  ucontext->uc_mcontext.regs->nip =
+      reinterpret_cast<uintptr_t>(afterspeculation);
+#  else
+#    error Unsupported CPU.
+#  endif
+#elif SAFESIDE_MAC
+#  if SAFESIDE_IA32
+  ucontext->uc_mcontext->__ss.__eip =
+      reinterpret_cast<uintptr_t>(afterspeculation);
+#  elif SAFESIDE_X64
+  ucontext->uc_mcontext->__ss.__rip =
+      reinterpret_cast<uintptr_t>(afterspeculation);
+#else
+#  error Unsupported OS.
+#endif
+}
+
+// Sets up signal handling that moves the instruction pointer to the
+// afterspeculation (or LocalHandler in case of ARM) label.
+void OnSignalMoveRipToAfterspeculation(int signal) {
+  struct sigaction act;
+  memset(&act, 0, sizeof(struct sigaction));
+  act.sa_sigaction = SignalHandler;
+  act.sa_flags = SA_SIGINFO;
+  sigaction(signal, &act, nullptr);
+}
