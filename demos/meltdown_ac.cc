@@ -48,6 +48,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
@@ -77,7 +78,7 @@ static void InitializeUnalignedData() {
 
 static char LeakByte(uintptr_t *unaligned_data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     size_t safe_offset = run % strlen(public_data);
@@ -85,13 +86,13 @@ static char LeakByte(uintptr_t *unaligned_data, size_t offset) {
 
     // Successful execution accesses safe_offset and loads ForceRead code into
     // cache.
-    ForceRead(isolated_oracle.data() + unaligned_data[safe_offset]);
+    ForceRead(oracle.data() + unaligned_data[safe_offset]);
 
     EnforceAlignment();
     MemoryAndSpeculationBarrier();
 
     // Accesses unaligned data despite of the enforcement. Triggers SIGBUS.
-    ForceRead(isolated_oracle.data() + unaligned_data[offset]);
+    ForceRead(oracle.data() + unaligned_data[offset]);
 
     // Architecturally dead code. Never reached unless AM flag in CR0 is off.
     std::cout << "Dead code. Must not be printed. "
