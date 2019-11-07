@@ -16,7 +16,7 @@
 
 #include "compiler_specifics.h"
 
-#ifndef __linux__
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 
@@ -36,9 +36,9 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
 #include "utils.h"
 
-const char *private_data = "It's a s3kr3t!!!";
 char *private_page = nullptr;
 
 /**
