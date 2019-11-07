@@ -18,6 +18,14 @@
 
 #include "compiler_specifics.h"
 
+// Generic strings used across examples. The public_data is intended to be
+// accessed in the C++ execution model. The content of the private_data is
+// intended to be leaked outside of the C++ execution model using sidechannels.
+// Concrete sidechannel is dependent on the concrete vulnerability that we are
+// demonstrating.
+const char *public_data = "Hello, world!";
+const char *private_data = "It's a s3kr3t!!!";
+
 #if SAFESIDE_ARM64
 // Local handler necessary for avoiding local/global linking mismatches on ARM.
 // When we use extern char[] declaration for a label defined in assembly, the

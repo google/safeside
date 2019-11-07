@@ -58,10 +58,8 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
 #include "utils.h"
-
-// Private data to be leaked.
-const char *private_data = "It's a s3kr3t!!!";
 
 // Userspace wrapper of the eret_hvc_smc kernel module.
 // Writes userspace addresses into a SYSFS file while the kernel handler

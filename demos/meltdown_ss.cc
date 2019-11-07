@@ -50,13 +50,8 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
 #include "utils.h"
-
-// Have one dummy character on the beginning of the private data. Segment limit
-// zero means that exactly one address is accessible. We want to access only
-// non-accessible characters.
-const char *private_data = " It's a s3kr3t!!!";
-const char *public_data = "Hello, world!";
 
 // Sets up a segment descriptor in the local descriptor table.
 static void SetupSegment(int index, const char *base, bool present) {
@@ -64,7 +59,9 @@ static void SetupSegment(int index, const char *base, bool present) {
   struct user_desc table_entry;
   memset(&table_entry, 0, sizeof(struct user_desc));
   table_entry.entry_number = index;
-  table_entry.base_addr = reinterpret_cast<unsigned int>(base);
+  // We must shift the base address one byte below to bypass the minimal segment
+  // size which is one byte.
+  table_entry.base_addr = reinterpret_cast<unsigned int>(base - 1);
   // No size limit for a present segment, one byte for a non-present segment.
   // Limit is the offset of the last accessible byte, so even a value of zero
   // creates a one-byte segment.
@@ -179,9 +176,7 @@ int main() {
   SetupSegment(0, public_data, true);
   std::cout << "Leaking the string: ";
   std::cout.flush();
-  // Avoid the first dummy character that would be accessible using zero
-  // segment limit. Therefore starting from index 1.
-  for (size_t i = 1; i < strlen(private_data); ++i) {
+  for (size_t i = 0; i < strlen(private_data); ++i) {
     std::cout << LeakByte(i);
     std::cout.flush();
   }
