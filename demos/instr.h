@@ -214,8 +214,8 @@ inline unsigned int ReadUsingES(unsigned int offset) {
   return result;
 }
 
-// Fetches a pointer coming from a non-overflowing operation after an INTO
-// instruction.
+// Adds an offset to pointer, checks it is not overflowing using INTO and
+// dereferences it.
 SAFESIDE_ALWAYS_INLINE
 inline void SupposedlySafeOffsetAndDereference(const char *address,
                                                unsigned int offset) {
