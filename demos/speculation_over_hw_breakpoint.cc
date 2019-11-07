@@ -27,7 +27,7 @@
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !defined(__i386__) && !defined(__x86_64__)
+#if !SAFESIDE_IA32 && !SAFESIDE_X64
 #  error Unsupported CPU. X86/64 required.
 #endif
 
@@ -167,7 +167,7 @@ void ParentProcess(pid_t child) {
       }
 
       // Move the child's instruction pointer to afterspeculation.
-#ifdef __x86_64__
+#if SAFESIDE_X64
       regs.rip = reinterpret_cast<size_t>(afterspeculation);
 #else
       regs.eip = reinterpret_cast<size_t>(afterspeculation);

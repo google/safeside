@@ -80,7 +80,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address);
 // (meltdown).
 extern char afterspeculation[];
 
-#elif defined(__aarch64__)
+#elif SAFESIDE_ARM64
 // Push callee-saved registers and return address on stack and mark it with
 // magic value.
 SAFESIDE_ALWAYS_INLINE

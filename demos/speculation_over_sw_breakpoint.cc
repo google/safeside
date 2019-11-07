@@ -26,7 +26,7 @@
 #  error Unsupported OS. Linux required.
 #endif
 
-#ifndef __aarch64__
+#if !SAFESIDE_ARM64
 #  error Unsupported architecture. ARM64 required.
 #endif
 
