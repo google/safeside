@@ -213,5 +213,16 @@ inline unsigned int ReadUsingES(unsigned int offset) {
 
   return result;
 }
+
+// Adds an offset to pointer, checks it is not overflowing using INTO and
+// dereferences it.
+SAFESIDE_ALWAYS_INLINE
+inline void SupposedlySafeOffsetAndDereference(const char *address,
+                                               unsigned int offset) {
+  asm volatile(
+      "addl %1, %0\n"
+      "into\n"
+      "movzbl (%0), %1\n"::"r"(address), "r"(offset):"cc");
+}
 #endif
 #endif
