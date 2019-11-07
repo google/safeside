@@ -19,15 +19,15 @@ if((${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$") AND
 endif()
 
 # Support library
-add_library(safeside cache_sidechannel.cc instr.cc)
+add_library(safeside cache_sidechannel.cc instr.cc utils.cc)
 
-# Spectre V1 -- bounds check bypass
+# Spectre V1 PHT -- bounds check bypass
 add_executable(spectre_v1 spectre_v1.cc)
 target_link_libraries(spectre_v1 safeside)
 
-# Spectre V1 indirect jumps -- mistrating BTB instead of PHT.
-add_executable(spectre_v1_indirect_jumps spectre_v1_indirect_jumps.cc)
-target_link_libraries(spectre_v1_indirect_jumps safeside)
+# Spectre V1 BTB SA -- mistraining BTB in the same address space
+add_executable(spectre_v1_btb_sa spectre_v1_btb_sa.cc)
+target_link_libraries(spectre_v1_btb_sa safeside)
 
 # Spectre V4 -- speculative store bypass
 add_executable(spectre_v4 spectre_v4.cc)
@@ -36,6 +36,12 @@ target_link_libraries(spectre_v4 safeside)
 # Cyclic Ret2Spec -- rewriting the RSB
 add_executable(ret2spec_cyclic ret2spec_cyclic.cc)
 target_link_libraries(ret2spec_cyclic safeside)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$")
+  # Spectre V1 BTB CA - mistraining BTB from another address space
+  add_executable(spectre_v1_btb_ca spectre_v1_btb_ca.cc)
+  target_link_libraries(spectre_v1_btb_ca safeside)
+endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(aarch64)$"))
@@ -71,6 +77,13 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   target_link_libraries(meltdown_ud safeside)
 endif()
 
+if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
+   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$"))
+   # Meltdown BR - speculation over the ia32 bounds check instruction
+  add_executable(meltdown_br meltdown_br.cc)
+  target_link_libraries(meltdown_br safeside)
+endif()
+
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$"))
   # Meltdown SS -- speculative reading from non present segments and outside of
@@ -89,7 +102,15 @@ endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)$"))
+  # Speculation over hardware breakpoint trap
+  add_executable(speculation_over_hw_breakpoint speculation_over_hw_breakpoint.cc)
+  target_link_libraries(speculation_over_hw_breakpoint safeside)
+
   # Meltdown AC -- speculative fetching of unaligned data
   add_executable(meltdown_ac meltdown_ac.cc)
   target_link_libraries(meltdown_ac safeside)
+
+  # Meltdown DE -- speculative computation with division by zero remainder
+  add_executable(meltdown_de meltdown_de.cc)
+  target_link_libraries(meltdown_de safeside)
 endif()

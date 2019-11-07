@@ -36,8 +36,8 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
-
-const char *private_data = "It's a s3kr3t!!!";
+#include "local_content.h"
+#include "utils.h"
 
 // Recursion depth should be equal or greater than the RSB size, but not
 // excessively high because of the possibility of stack overflow.
@@ -63,8 +63,8 @@ static bool ReturnsFalse(int counter) {
   if (counter > 0) {
     if (ReturnsFalse(counter - 1)) {
       // Unreachable code. ReturnsFalse can never return true.
-      const std::array<BigByte, 256> &isolated_oracle = *oracle_ptr;
-      ForceRead(isolated_oracle.data() +
+      const std::array<BigByte, 256> &oracle = *oracle_ptr;
+      ForceRead(oracle.data() +
                 static_cast<unsigned char>(private_data[current_offset]));
       std::cout << "Dead code. Must not be printed." << std::endl;
       exit(EXIT_FAILURE);
@@ -91,17 +91,14 @@ static bool ReturnsTrue(int counter) {
   // own stack mark and the next one. Somewhere there must be also the return
   // address.
   stack_mark_pointers.pop_back();
-  for (int i = 0; i < (stack_mark_pointers.back() - &stack_mark);
-       i += kCacheLineSize) {
-    CLFlush(&stack_mark + i);
-  }
+  FlushFromCache(&stack_mark, stack_mark_pointers.back());
   return true;
 }
 
 static char LeakByte() {
   CacheSideChannel sidechannel;
   oracle_ptr = &sidechannel.GetOracle();
-  const std::array<BigByte, 256> &isolated_oracle = *oracle_ptr;
+  const std::array<BigByte, 256> &oracle = *oracle_ptr;
 
   for (int run = 0;; ++run) {
     sidechannel.FlushOracle();
