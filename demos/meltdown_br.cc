@@ -24,7 +24,9 @@
  * bounds check.
  **/
 
-#if !defined(__linux__) && !defined(__APPLE__)
+#include "compiler_specifics.h"
+
+#if !SAFESIDE_LINUX && !SAFESIDE_MAC
 #  error Unsupported OS. Linux or MacOS required.
 #endif
 
@@ -77,9 +79,9 @@ static char LeakByte(const char *data, volatile size_t offset) {
     }
 
     // SIGSEGV signal handler moves the instruction pointer to this label.
-#if defined(__linux__)
+#if SAFESIDE_LINUX
     asm volatile("afterspeculation:");
-#elif defined(__APPLE__)
+#elif SAFESIDE_MAC
     asm volatile("_afterspeculation:");
 #else
 #  error Unsupported OS.
@@ -104,10 +106,10 @@ static void Sigsegv(
   // SIGSEGV signal handler.
   // Moves the instruction pointer to the "afterspeculation" label.
   ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#ifdef __linux__
+#if SAFESIDE_LINUX
   ucontext->uc_mcontext.gregs[REG_EIP] =
       reinterpret_cast<greg_t>(afterspeculation);
-#elif defined(__APPLE__)
+#elif SAFESIDE_MAC
   ucontext->uc_mcontext->__ss.__eip =
       reinterpret_cast<uintptr_t>(afterspeculation);
 #else
@@ -120,9 +122,9 @@ static void SetSignal() {
   memset(&act, 0, sizeof(struct sigaction));
   act.sa_sigaction = Sigsegv;
   act.sa_flags = SA_SIGINFO;
-#ifdef __linux__
+#if SAFESIDE_LINUX
   sigaction(SIGSEGV, &act, nullptr);
-#elif defined(__APPLE__)
+#elif SAFESIDE_MAC
   sigaction(SIGTRAP, &act, nullptr);
 #else
 #  error Unsupported OS.

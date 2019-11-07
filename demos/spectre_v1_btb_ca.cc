@@ -25,7 +25,9 @@
  * branch address that is injected by the child.
  **/
 
-#ifndef __linux__
+#include "compiler_specifics.h"
+
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 

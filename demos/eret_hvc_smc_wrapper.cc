@@ -43,7 +43,7 @@
 
 #include "compiler_specifics.h"
 
-#ifndef __linux__
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 
