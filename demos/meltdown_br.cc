@@ -24,11 +24,13 @@
  * bounds check.
  **/
 
+#include "compiler_specifics.h"
+
 #if !defined(__linux__) && !defined(__APPLE__)
 #  error Unsupported OS. Linux or MacOS required.
 #endif
 
-#ifndef __i386__
+#if !SAFESIDE_IA32
 #  error Unsupported architecture. 32-bit x86 required.
 #endif
 
