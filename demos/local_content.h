@@ -44,4 +44,34 @@ static void LocalHandler() {
 }
 #endif
 
+#if SAFESIDE_LINUX || SAFESIDE_MAC
+void SignalHandler(
+    int /* signum */, siginfo_t * /* siginfo */, void *context) {
+  // On IA32, X64 and PPC moves the instruction pointer to the
+  // "afterspeculation" label. On ARM64 moves the instruction pointer to the
+  // "LocalHandler" label.
+  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
+#if SAFESIDE_LINUX && SAFESIDE_IA32
+  ucontext->uc_mcontext.gregs[REG_EIP] =
+      reinterpret_cast<greg_t>(afterspeculation);
+#elif SAFESIDE_LINUX && SAFESIDE_X64
+  ucontext->uc_mcontext.gregs[REG_RIP] =
+      reinterpret_cast<greg_t>(afterspeculation);
+#elif SAFESIDE_LINUX && SAFESIDE_ARM64
+  ucontext->uc_mcontext.pc = reinterpret_cast<greg_t>(LocalHandler);
+#elif SAFESIDE_LINUX && SAFESIDE_PPC
+  ucontext->uc_mcontext.regs->nip =
+      reinterpret_cast<uintptr_t>(afterspeculation);
+#elif SAFESIDE_MAC && SAFESIDE_IA32
+  ucontext->uc_mcontext->__ss.__eip =
+      reinterpret_cast<uintptr_t>(afterspeculation);
+#elif SAFESIDE_MAC && SAFESIDE_X64
+  ucontext->uc_mcontext->__ss.__rip =
+      reinterpret_cast<uintptr_t>(afterspeculation);
+#else
+#  error Unsupported OS/CPU combination.
+#endif
+}
+#endif
+
 #endif  // DEMOS_LOCAL_LABELS_H

@@ -96,9 +96,9 @@ int main() {
   in >> std::dec >> private_length;
   in.close();
 
+  OnSignalMoveRipToAfterspeculation(SIGSEGV);
   std::cout << "Leaking the string: ";
   std::cout.flush();
-  OnSignalMoveRipToAfterspeculation(SIGSEGV);
   const size_t private_offset =
       reinterpret_cast<const char *>(private_data) - public_data;
   for (size_t i = 0; i < private_length; ++i) {
