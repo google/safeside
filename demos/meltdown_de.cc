@@ -36,7 +36,7 @@
  * 14 % 0 = 3
  * 15 % 0 = 3
  * 16 % 0 = 2
- * 7 times more 2
+ * 7 times more 2 (x % 0 == 2 for x in {17..23})
  * 8 times 3
  * 16 times 2
  * 16 times 3
@@ -52,7 +52,7 @@
 
 #include "compiler_specifics.h"
 
-#ifndef __linux__
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 
@@ -62,7 +62,6 @@
 
 #include <array>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 
 #include <signal.h>
@@ -73,8 +72,10 @@
 
 const char *public_data = "Hello, world!";
 
+constexpr size_t kPrivateDataLength = 16;
+
 // First two characters of each string are always dummy.
-const char *private_data[] = {
+const char *private_data[kPrivateDataLength] = {
   "XXI",
   "XXt",
   "XX'",
@@ -92,8 +93,6 @@ const char *private_data[] = {
   "XX!",
   "XX!",
 };
-
-constexpr size_t kPrivateDataLength = 16;
 
 // We must store zero and one as a global variables to avoid optimizing them
 // out.
