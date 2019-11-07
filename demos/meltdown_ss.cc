@@ -60,7 +60,7 @@ static void SetupSegment(int index, const char *base, bool present) {
   memset(&table_entry, 0, sizeof(struct user_desc));
   table_entry.entry_number = index;
   // We must shift the base address one byte below to bypass the minimal segment
-  // size that is one byte.
+  // size which is one byte.
   table_entry.base_addr = reinterpret_cast<unsigned int>(base - 1);
   // No size limit for a present segment, one byte for a non-present segment.
   // Limit is the offset of the last accessible byte, so even a value of zero
