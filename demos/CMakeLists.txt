@@ -21,9 +21,9 @@ endif()
 # Support library
 add_library(safeside cache_sidechannel.cc instr.cc utils.cc)
 
-# Spectre V1 PHT -- bounds check bypass
-add_executable(spectre_v1 spectre_v1.cc)
-target_link_libraries(spectre_v1 safeside)
+# Spectre V1 PHT SA -- mistraining PHT in the same address space
+add_executable(spectre_v1_pht_sa spectre_v1_pht_sa.cc)
+target_link_libraries(spectre_v1_pht_sa safeside)
 
 # Spectre V1 BTB SA -- mistraining BTB in the same address space
 add_executable(spectre_v1_btb_sa spectre_v1_btb_sa.cc)
@@ -33,9 +33,9 @@ target_link_libraries(spectre_v1_btb_sa safeside)
 add_executable(spectre_v4 spectre_v4.cc)
 target_link_libraries(spectre_v4 safeside)
 
-# Cyclic Ret2Spec -- rewriting the RSB
-add_executable(ret2spec_cyclic ret2spec_cyclic.cc)
-target_link_libraries(ret2spec_cyclic safeside)
+# Ret2Spec -- rewriting the RSB using recursion in the same address space
+add_executable(ret2spec_sa ret2spec_sa.cc)
+target_link_libraries(ret2spec_sa safeside)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$")
   # Spectre V1 BTB CA - mistraining BTB from another address space
@@ -45,10 +45,11 @@ endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(aarch64)$"))
-  # Ret2Spec -- speculative execution using return stack buffers
-  add_executable(ret2spec ret2spec.cc)
-  target_compile_options(ret2spec PRIVATE -fomit-frame-pointer)
-  target_link_libraries(ret2spec safeside)
+  # Ret2Spec -- speculative execution using return stack buffers creating a
+  # call-ret disparity by inline assembly
+  add_executable(ret2spec_callret_disparity ret2spec_callret_disparity.cc)
+  target_compile_options(ret2spec_callret_disparity PRIVATE -fomit-frame-pointer)
+  target_link_libraries(ret2spec_callret_disparity safeside)
 endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
@@ -103,8 +104,8 @@ endif()
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
    (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)$"))
   # Speculation over hardware breakpoint trap (read watcher)
-  add_executable(speculation_over_hw_breakpoint speculation_over_hw_breakpoint.cc)
-  target_link_libraries(speculation_over_hw_breakpoint safeside)
+  add_executable(speculation_over_read_hw_breakpoint speculation_over_read_hw_breakpoint.cc)
+  target_link_libraries(speculation_over_read_hw_breakpoint safeside)
 
   # Speculation over hardware breakpoint fault (execution watcher)
   add_executable(speculation_over_exec_hw_breakpoint speculation_over_exec_hw_breakpoint.cc)
