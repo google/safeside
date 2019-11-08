@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#ifndef DEMOS_UTILS_H
+#define DEMOS_UTILS_H
+
 #include "compiler_specifics.h"
 
 // Forced memory load. Loads the memory into cache. Used during both real and
@@ -28,3 +31,4 @@ inline void ForceRead(const void *p) {
 // Flush a memory interval from cache. Used to induce speculative execution on
 // flushed values until they are fetched back to the cache.
 void FlushFromCache(const char *start, const char *end);
+#endif  // DEMOS_UTILS_H

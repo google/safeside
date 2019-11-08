@@ -23,17 +23,18 @@
  * over the dead code after the fault.
  **/
 
-#ifndef __linux__
+#include "compiler_specifics.h"
+
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !defined(__i386__) && !defined(__x86_64__)
+#if !SAFESIDE_IA32 && !SAFESIDE_X64
 #  error Unsupported CPU. X86/64 required.
 #endif
 
 #include <array>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 
 #include <signal.h>
@@ -45,10 +46,8 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
 #include "utils.h"
-
-const char *public_data = "Hello, world!";
-const char *private_data = "It's a s3kr3t!!!";
 
 // Points to the "nop" instruction that will be guarded by the execution
 // breakpoint.
@@ -137,8 +136,6 @@ void ChildProcess() {
 }
 
 void ParentProcess(pid_t child) {
-  // Index of the breakpoint in the private data.
-  size_t index = 0;
   while (true) {
     int wstatus, res;
     wait(&wstatus);
@@ -181,7 +178,7 @@ void ParentProcess(pid_t child) {
       }
 
       // Move the child's instruction pointer to afterspeculation.
-#ifdef __x86_64__
+#if SAFESIDE_X64
       regs.rip = reinterpret_cast<size_t>(afterspeculation);
 #else
       regs.eip = reinterpret_cast<size_t>(afterspeculation);
