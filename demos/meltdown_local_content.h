@@ -69,7 +69,8 @@ static void SignalHandler(
 }
 
 // Sets up signal handling that moves the instruction pointer to the
-// afterspeculation (or LocalHandler in case of ARM) label.
+// afterspeculation (or LocalHandler in case of ARM) label. See the commentary
+// to LocalHandler function why we must treat ARM differently.
 static void OnSignalMoveRipToAfterspeculation(int signal) {
   struct sigaction act;
   memset(&act, 0, sizeof(struct sigaction));
