@@ -39,6 +39,7 @@
 #include "cache_sidechannel.h"
 #include "instr.h"
 #include "local_content.h"
+#include "meltdown_local_content.h"
 
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;

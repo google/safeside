@@ -68,6 +68,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "meltdown_local_content.h"
 #include "utils.h"
 
 const char *public_data = "Hello, world!";

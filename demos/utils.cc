@@ -40,19 +40,3 @@ void FlushFromCache(const char *start, const char *end) {
   // Flush explicitly the last byte.
   CLFlush(end - 1);
 }
-
-#if SAFESIDE_LINUX || SAFESIDE_MAC
-// Signal handler provided by the local_content.h. It must be compiled locally
-// in the compilation unit.
-void SignalHandler(int /* signum */, siginfo_t * /* siginfo */, void *context);
-
-// Sets up signal handling that moves the instruction pointer to the
-// afterspeculation (or LocalHandler in case of ARM) label.
-void OnSignalMoveRipToAfterspeculation(int signal) {
-  struct sigaction act;
-  memset(&act, 0, sizeof(struct sigaction));
-  act.sa_sigaction = SignalHandler;
-  act.sa_flags = SA_SIGINFO;
-  sigaction(signal, &act, nullptr);
-}
-#endif

@@ -34,6 +34,7 @@
 #include "cache_sidechannel.h"
 #include "instr.h"
 #include "local_content.h"
+#include "meltdown_local_content.h"
 #include "utils.h"
 
 // Leaks the byte that is physically located at &text[0] + offset, without

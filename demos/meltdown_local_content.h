@@ -13,18 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef DEMOS_LOCAL_LABELS_H
-#define DEMOS_LOCAL_LABELS_H
+#ifndef DEMOS_MELTDOWN_LOCAL_CONTENT_H
+#define DEMOS_MELTDOWN_LOCAL_CONTENT_H
 
 #include "compiler_specifics.h"
 
-// Generic strings used across examples. The public_data is intended to be
-// accessed in the C++ execution model. The content of the private_data is
-// intended to be leaked outside of the C++ execution model using sidechannels.
-// Concrete sidechannel is dependent on the concrete vulnerability that we are
-// demonstrating.
-const char *public_data = "Hello, world!";
-const char *private_data = "It's a s3kr3t!!!";
+#if SAFESIDE_LINUX || SAFESIDE_MAC
+#include <signal.h>
+#endif
 
 #if SAFESIDE_ARM64
 // Local handler necessary for avoiding local/global linking mismatches on ARM.
@@ -45,7 +41,7 @@ static void LocalHandler() {
 #endif
 
 #if SAFESIDE_LINUX || SAFESIDE_MAC
-void SignalHandler(
+static void SignalHandler(
     int /* signum */, siginfo_t * /* siginfo */, void *context) {
   // On IA32, X64 and PPC moves the instruction pointer to the
   // "afterspeculation" label. On ARM64 moves the instruction pointer to the
@@ -72,6 +68,16 @@ void SignalHandler(
 #  error Unsupported OS/CPU combination.
 #endif
 }
+
+// Sets up signal handling that moves the instruction pointer to the
+// afterspeculation (or LocalHandler in case of ARM) label.
+static void OnSignalMoveRipToAfterspeculation(int signal) {
+  struct sigaction act;
+  memset(&act, 0, sizeof(struct sigaction));
+  act.sa_sigaction = SignalHandler;
+  act.sa_flags = SA_SIGINFO;
+  sigaction(signal, &act, nullptr);
+}
 #endif
 
-#endif  // DEMOS_LOCAL_LABELS_H
+#endif  // DEMOS_MELTDOWN_LOCAL_CONTENT_H

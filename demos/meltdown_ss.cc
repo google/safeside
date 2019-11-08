@@ -51,6 +51,7 @@
 #include "cache_sidechannel.h"
 #include "instr.h"
 #include "local_content.h"
+#include "meltdown_local_content.h"
 #include "utils.h"
 
 // Sets up a segment descriptor in the local descriptor table.
