@@ -16,8 +16,6 @@
 
 #include <cstddef>
 
-#include <signal.h>
-
 #include "instr.h"
 #include "utils.h"
 
