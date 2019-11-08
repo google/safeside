@@ -44,6 +44,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "meltdown_local_content.h"
 #include "local_content.h"
 
 static char LeakByte(const char *data, size_t offset) {
@@ -78,9 +79,9 @@ static char LeakByte(const char *data, size_t offset) {
       }
 
       // SIGSEGV signal handler moves the instruction pointer to this label.
-#ifdef __linux__
+#if SAFESIDE_LINUX
       asm volatile("afterspeculation:");
-#elif defined(__APPLE__)
+#elif SAFESIDE_MAC
       asm volatile("_afterspeculation:");
 #else
 #  error Unsupported OS.
@@ -101,37 +102,14 @@ static char LeakByte(const char *data, size_t offset) {
   }
 }
 
-static void Sigsegv(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGSEGV signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#ifdef __linux__
-  ucontext->uc_mcontext.gregs[REG_EIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif defined(__APPLE__)
-  ucontext->uc_mcontext->__ss.__eip =
-      reinterpret_cast<uintptr_t>(afterspeculation);
-#else
-#  error Unsupported OS.
-#endif
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  act.sa_sigaction = Sigsegv;
-  act.sa_flags = SA_SIGINFO;
-#ifdef __linux__
-  sigaction(SIGSEGV, &act, nullptr);
-#elif defined(__APPLE__)
-  sigaction(SIGFPE, &act, nullptr);
-#else
-#  error Unsupported OS.
-#endif
-}
-
 int main() {
-  SetSignal();
+#if SAFESIDE_LINUX
+  OnSignalMoveRipToAfterspeculation(SIGSEGV);
+#elif SAFESIDE_MAC
+  OnSignalMoveRipToAfterspeculation(SIGFPE);
+#else
+#  error Unsupported OS.
+#endif
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;

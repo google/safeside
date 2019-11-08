@@ -68,6 +68,7 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "meltdown_local_content.h"
 #include "utils.h"
 
 const char *public_data = "Hello, world!";
@@ -142,31 +143,8 @@ static char LeakByte(size_t offset) {
   }
 }
 
-static void Sigfpe(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGFPE signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#if SAFESIDE_X64
-  ucontext->uc_mcontext.gregs[REG_RIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif SAFESIDE_IA32
-  ucontext->uc_mcontext.gregs[REG_EIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#else
-#  error Unsupported architecture.
-#endif
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  act.sa_sigaction = Sigfpe;
-  act.sa_flags = SA_SIGINFO;
-  sigaction(SIGFPE, &act, NULL);
-}
-
 int main() {
-  SetSignal();
+  OnSignalMoveRipToAfterspeculation(SIGFPE);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   for (size_t i = 0; i < kPrivateDataLength; ++i) {

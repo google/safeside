@@ -39,6 +39,7 @@
 #include "cache_sidechannel.h"
 #include "instr.h"
 #include "local_content.h"
+#include "meltdown_local_content.h"
 
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
@@ -87,24 +88,8 @@ static char LeakByte(const char *data, size_t offset) {
   }
 }
 
-static void Sigtrap(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGTRAP signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label jumping to
-  // the "LocalHandler" function.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-  ucontext->uc_mcontext.pc = reinterpret_cast<greg_t>(LocalHandler);
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  act.sa_sigaction = Sigtrap;
-  act.sa_flags = SA_SIGINFO;
-  sigaction(SIGTRAP, &act, NULL);
-}
-
 int main() {
-  SetSignal();
+  OnSignalMoveRipToAfterspeculation(SIGTRAP);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;

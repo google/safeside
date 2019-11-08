@@ -51,6 +51,7 @@
 #include "cache_sidechannel.h"
 #include "instr.h"
 #include "local_content.h"
+#include "meltdown_local_content.h"
 #include "utils.h"
 
 // Sets up a segment descriptor in the local descriptor table.
@@ -154,24 +155,8 @@ static char LeakByte(size_t offset) {
   }
 }
 
-static void Sigsegv(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGSEGV signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-  ucontext->uc_mcontext.gregs[REG_EIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  act.sa_sigaction = Sigsegv;
-  act.sa_flags = SA_SIGINFO;
-  sigaction(SIGSEGV, &act, NULL);
-}
-
 int main() {
-  SetSignal();
+  OnSignalMoveRipToAfterspeculation(SIGSEGV);
   // Setup the public data segment descriptor on index 0. It is always present.
   SetupSegment(0, public_data, true);
   std::cout << "Leaking the string: ";
