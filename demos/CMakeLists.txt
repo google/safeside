@@ -21,7 +21,7 @@ endif()
 # Support library
 add_library(safeside cache_sidechannel.cc instr.cc utils.cc)
 
-# Spectre V1 PHT SA -- mistrating PHT in the same address space
+# Spectre V1 PHT SA -- mistraining PHT in the same address space
 add_executable(spectre_v1_pht_sa spectre_v1_pht_sa.cc)
 target_link_libraries(spectre_v1_pht_sa safeside)
 
