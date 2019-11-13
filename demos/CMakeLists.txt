@@ -34,7 +34,7 @@ add_executable(spectre_v4 spectre_v4.cc)
 target_link_libraries(spectre_v4 safeside)
 
 # Ret2Spec -- rewriting the RSB using recursion in the same address space
-add_executable(ret2spec_sa ret2spec_sa.cc)
+add_executable(ret2spec_sa ret2spec_sa.cc ret2spec_common.cc)
 target_link_libraries(ret2spec_sa safeside)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$")
@@ -43,7 +43,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$")
   target_link_libraries(spectre_v1_btb_ca safeside)
 
   # Ret2spec CA -- rewriting the RSB using recursion from another address space
-  add_executable(ret2spec_ca ret2spec_ca.cc)
+  add_executable(ret2spec_ca ret2spec_ca.cc ret2spec_common.cc)
   target_link_libraries(ret2spec_ca safeside)
 endif()
 
