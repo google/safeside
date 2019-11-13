@@ -9,14 +9,18 @@ make -C build
 
 # Everything should be built now.
 
-./build/demos/spectre_v1
+./build/demos/spectre_v1_pht_sa
+
+./build/demos/spectre_v1_btb_ca
 
 # You need to load the kernel module before running this
 sudo ./build/demos/meltdown
 
 ./build/demos/spectre_v4
 
-./build/demos/ret2spec
+./build/demos/ret2spec_sa
+
+etc.
 ```
 
 ## Tested environments

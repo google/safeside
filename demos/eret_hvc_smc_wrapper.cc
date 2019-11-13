@@ -43,7 +43,7 @@
 
 #include "compiler_specifics.h"
 
-#ifndef __linux__
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 
@@ -58,9 +58,8 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
-
-// Private data to be leaked.
-const char *private_data = "It's a s3kr3t!!!";
+#include "local_content.h"
+#include "utils.h"
 
 // Userspace wrapper of the eret_hvc_smc kernel module.
 // Writes userspace addresses into a SYSFS file while the kernel handler
@@ -70,7 +69,7 @@ static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
 
   for (int run = 0;; ++run) {
-    std::ofstream out("/sys/kernel/safeside_eret_hvc_smc/address");
+    std::ofstream out("/proc/safeside_eret_hvc_smc/address");
     if (out.fail()) {
       std::cerr << "Eret_hvc_smc module not loaded or not running as root."
                 << std::endl;

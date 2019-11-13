@@ -15,6 +15,7 @@
  */
 
 #include <cstdint>
+#include <cstring>
 
 #include "compiler_specifics.h"
 
@@ -34,9 +35,6 @@ constexpr uint32_t kPageSizeBytes = 65536;
 #else
 constexpr uint32_t kPageSizeBytes = 4096;
 #endif
-
-// Forced memory load.
-void ForceRead(const void *p);
 
 // Flushing cacheline containing given address.
 void CLFlush(const void *memory);
@@ -82,7 +80,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address);
 // (meltdown).
 extern char afterspeculation[];
 
-#elif defined(__aarch64__)
+#elif SAFESIDE_ARM64
 // Push callee-saved registers and return address on stack and mark it with
 // magic value.
 SAFESIDE_ALWAYS_INLINE
@@ -160,16 +158,42 @@ int ExchangeFS(int input);
 // Returns the original value of ES and sets the new value.
 int ExchangeES(int input);
 
+// Performs a bound check with the bound instruction. Works only on 32-bit x86.
+// Must be inlined in order to avoid mispredicted jumps over it.
+SAFESIDE_ALWAYS_INLINE
+inline void BoundsCheck(const char *str, size_t offset) {
+  struct {
+    int32_t low;
+    int32_t high;
+  } string_bounds;
+
+  string_bounds.low = 0;
+  string_bounds.high = strlen(str) - 1;
+
+  // ICC and older versions of Clang have a bug in compiling the bound
+  // instruction. They swap the operands when translating C++ to assembler
+  // (basically changing the GNU syntax to Intel syntax) and afterwards the
+  // assembler naturally crashes with:
+  // Error: operand size mismatch for `bound'
+  // Therefore we have to hardcode the opcode to mitigate the ICC bug.
+  // The following line is the same as:
+  // asm volatile("bound %%rax, (%%rdx)"
+  //              ::"a"(offset), "d"(&string_bounds):"memory");
+  asm volatile(".byte 0x62, 0x02"::"a"(offset), "d"(&string_bounds):"memory");
+}
+
 // Reads an offset from the FS segment.
 // Must be inlined because the fault occurs inside and the stack pointer would
 // be shifted.
+// We fetch offset + 1 from the segment base, because the base is shifted one
+// byte below to bypass 1-byte minimal segment size.
 SAFESIDE_ALWAYS_INLINE
 inline unsigned int ReadUsingFS(unsigned int offset) {
   unsigned int result;
 
   asm volatile(
       "movzbl %%fs:(, %1, 1), %0\n"
-      :"=r"(result):"r"(offset):"memory");
+      :"=r"(result):"r"(offset + 1):"memory");
 
   return result;
 }
@@ -177,15 +201,28 @@ inline unsigned int ReadUsingFS(unsigned int offset) {
 // Reads an offset from the ES segment.
 // Must be inlined because the fault occurs inside and the stack pointer would
 // be shifted.
+// We fetch offset + 1 from the segment base, because the base is shifted one
+// byte below to bypass 1-byte minimal segment size.
 SAFESIDE_ALWAYS_INLINE
 inline unsigned int ReadUsingES(unsigned int offset) {
   unsigned int result;
 
   asm volatile(
       "movzbl %%es:(, %1, 1), %0\n"
-      :"=r"(result):"r"(offset):"memory");
+      :"=r"(result):"r"(offset + 1):"memory");
 
   return result;
+}
+
+// Adds an offset to pointer, checks it is not overflowing using INTO and
+// dereferences it.
+SAFESIDE_ALWAYS_INLINE
+inline void SupposedlySafeOffsetAndDereference(const char *address,
+                                               unsigned int offset) {
+  asm volatile(
+      "addl %1, %0\n"
+      "into\n"
+      "movzbl (%0), %1\n"::"r"(address), "r"(offset):"cc");
 }
 #endif
 #endif

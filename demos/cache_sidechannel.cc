@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "cache_sidechannel.h"
-
 #include <list>
 #include <vector>
 
+#include "cache_sidechannel.h"
 #include "instr.h"
+#include "utils.h"
 
 // Returns the indices of the biggest and second-biggest values in the range.
 template <typename RangeT>
@@ -55,7 +55,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
   size_t best_val = 0, runner_up_val = 0;
 
   // Here's the timing side channel: find which char was loaded by measuring
-  // latency. Indexing into isolated_oracle causes the relevant region of
+  // latency. Indexing into oracle causes the relevant region of
   // memory to be loaded into cache, which makes it faster to load again than
   // it is to load entries that had not been accessed.
   // Only two offsets will have been accessed: safe_offset_char (which we
@@ -73,7 +73,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
   }
 
   std::list<uint64_t> sorted_latencies_list(latencies.begin(), latencies.end());
-  // We have to used the std::list::sort implementation, because invocations of
+  // We have to use the std::list::sort implementation, because invocations of
   // std::sort, std::stable_sort, std::nth_element and std::partial_sort when
   // compiled with optimizations intervene with the neural network based AMD
   // memory disambiguation dynamic predictor and the Spectre v4 example fails
