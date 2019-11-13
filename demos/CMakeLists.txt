@@ -41,6 +41,10 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$")
   # Spectre V1 BTB CA - mistraining BTB from another address space
   add_executable(spectre_v1_btb_ca spectre_v1_btb_ca.cc)
   target_link_libraries(spectre_v1_btb_ca safeside)
+
+  # Ret2spec CA -- rewriting the RSB using recursion from another address space
+  add_executable(ret2spec_ca ret2spec_ca.cc)
+  target_link_libraries(ret2spec_ca safeside)
 endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
@@ -83,6 +87,11 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
    # Meltdown BR - speculation over the ia32 bounds check instruction
   add_executable(meltdown_br meltdown_br.cc)
   target_link_libraries(meltdown_br safeside)
+
+  # Meltdown OF -- speculative fetching from an overflowing address after an
+  # INTO check
+  add_executable(meltdown_of meltdown_of.cc)
+  target_link_libraries(meltdown_of safeside)
 endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
@@ -91,14 +100,6 @@ if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
   # segment limits
   add_executable(meltdown_ss meltdown_ss.cc)
   target_link_libraries(meltdown_ss safeside)
-endif()
-
-if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
-   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$"))
-  # Meltdown OF -- speculative fetching from an overflowing address after an
-  # INTO check
-  add_executable(meltdown_of meltdown_of.cc)
-  target_link_libraries(meltdown_of safeside)
 endif()
 
 if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
