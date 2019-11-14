@@ -23,7 +23,7 @@
 
 // Returns the indices of the biggest and second-biggest values in the range.
 template <typename RangeT>
-static std::pair<size_t, size_t> top_two_indices(const RangeT &range) {
+static std::pair<size_t, size_t> TwoTwoIndices(const RangeT &range) {
   std::pair<size_t, size_t> result = {0, 0};  // first biggest, second biggest
   for (size_t i = 0; i < range.size(); ++i) {
     if (range[i] > range[result.first]) {
@@ -108,7 +108,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
     }
   }
 
-  std::tie(best_val, runner_up_val) = top_two_indices(scores_);
+  std::tie(best_val, runner_up_val) = TwoTwoIndices(scores_);
   return std::make_pair((scores_[best_val] > 2 * scores_[runner_up_val] + 40),
                         best_val);
 }
