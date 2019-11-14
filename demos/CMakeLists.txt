@@ -93,9 +93,13 @@ add_demo(meltdown_ud SYSTEMS Linux PROCESSORS aarch64)
 # Meltdown BR - speculation over the ia32 bounds check instruction
 add_demo(meltdown_br SYSTEMS Linux Darwin PROCESSORS i686)
 
-# Meltdown SS -- speculative reading from non present segments and outside of
-# segment limits
+# Meltdown SS -- speculative reading from outside of SS segment limits
 add_demo(meltdown_ss SYSTEMS Linux PROCESSORS i686)
+
+# Meltdown GP segment limits -- speculative reading from outside of FS segment
+# limits
+add_demo(meltdown_gp_segment_limit_violation
+         SYSTEMS Linux PROCESSORS i686)
 
 # Meltdown OF -- speculative fetching from an overflowing address after an
 # INTO check

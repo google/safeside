@@ -153,11 +153,6 @@ inline void UnenforceAlignment() {
 #endif
 
 #if SAFESIDE_IA32
-// Returns the original value of FS and sets the new value.
-int ExchangeFS(int input);
-// Returns the original value of ES and sets the new value.
-int ExchangeES(int input);
-
 // Performs a bound check with the bound instruction. Works only on 32-bit x86.
 // Must be inlined in order to avoid mispredicted jumps over it.
 SAFESIDE_ALWAYS_INLINE
@@ -182,36 +177,74 @@ inline void BoundsCheck(const char *str, size_t offset) {
   asm volatile(".byte 0x62, 0x02"::"a"(offset), "d"(&string_bounds):"memory");
 }
 
+// Reads an offset from the SS segment.
+// Must be inlined because the fault occurs inside and the stack pointer would
+// be shifted.
+// We fetch offset + 1 from the segment base, because the base is shifted one
+// byte below to bypass 1-byte minimal segment size.
+SAFESIDE_ALWAYS_INLINE
+inline unsigned int ReadUsingSS(unsigned int ss, unsigned int offset) {
+  unsigned int result;
+
+  asm volatile(
+      "movl %1, %%ss\n"
+      // Open a possibility for a speculation window.
+      ".rept 1000\n"
+      "xorl %1, %1\n"
+      ".endr\n"
+      "movzbl %%ss:(, %2, 1), %0\n"
+      :"=d"(result):"a"(ss),"b"(offset + 1):"memory");
+
+  return result;
+}
+
+// Returns the original value of SS.
+SAFESIDE_ALWAYS_INLINE
+inline unsigned int BackupSS() {
+  int output;
+  asm volatile("movl %%ss, %0\n":"=d"(output)::"memory");
+  return output;
+}
+
+// Restore the SS value.
+SAFESIDE_ALWAYS_INLINE
+inline void RestoreSS(unsigned int input) {
+  asm volatile("movl %0, %%ss\n"::"a"(input):"memory");
+}
+
 // Reads an offset from the FS segment.
 // Must be inlined because the fault occurs inside and the stack pointer would
 // be shifted.
 // We fetch offset + 1 from the segment base, because the base is shifted one
 // byte below to bypass 1-byte minimal segment size.
 SAFESIDE_ALWAYS_INLINE
-inline unsigned int ReadUsingFS(unsigned int offset) {
+inline unsigned int ReadUsingFS(unsigned int fs, unsigned int offset) {
   unsigned int result;
 
   asm volatile(
-      "movzbl %%fs:(, %1, 1), %0\n"
-      :"=r"(result):"r"(offset + 1):"memory");
+      "movl %1, %%fs\n"
+      // Open a possibility for a speculation window.
+      ".rept 1000\n"
+      "xorl %1, %1\n"
+      ".endr\n"
+      "movzbl %%fs:(, %2, 1), %0\n"
+      :"=d"(result):"a"(fs),"b"(offset + 1):"memory");
 
   return result;
 }
 
-// Reads an offset from the ES segment.
-// Must be inlined because the fault occurs inside and the stack pointer would
-// be shifted.
-// We fetch offset + 1 from the segment base, because the base is shifted one
-// byte below to bypass 1-byte minimal segment size.
+// Returns the original value of FS.
 SAFESIDE_ALWAYS_INLINE
-inline unsigned int ReadUsingES(unsigned int offset) {
-  unsigned int result;
+inline unsigned int BackupFS() {
+  int output;
+  asm volatile("movl %%fs, %0\n":"=d"(output)::"memory");
+  return output;
+}
 
-  asm volatile(
-      "movzbl %%es:(, %1, 1), %0\n"
-      :"=r"(result):"r"(offset + 1):"memory");
-
-  return result;
+// Restore the FS value.
+SAFESIDE_ALWAYS_INLINE
+inline void RestoreFS(unsigned int input) {
+  asm volatile("movl %0, %%fs\n"::"a"(input):"memory");
 }
 
 // Adds an offset to pointer, checks it is not overflowing using INTO and

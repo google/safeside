@@ -15,15 +15,10 @@
  */
 
 /**
- * Demonstrates the Meltdown-SS. Speculative fetching of data from the stack
- * segment violating segment limits. Since segment limits are enforced only in
- * 32-bit mode, this example does not work on x86_64.
- * We initialize a segment descriptor, point it one character before the
- * private_data and set the segment size to one byte (smallest segment size
- * possible). Finally we speculatively read from the stack segment beyond its
- * size limits capturing the architectural failures with a SIGBUS handler.
- *
- * Intel does not seem to be vulnerable to Meltdown-SS. Works only on AMD CPUs.
+ * Demonstrates the Meltdown-GP using segment limit violation.
+ * It's the same as Meltdown-SS, only we are using FS instead of SS and that
+ * leads to #GP instead of #SS. Linux handles it with SIGSEGV instead of
+ * SIGBUS. Otherwise it's equivalent to Meltdown-SS.
  **/
 
 #include "compiler_specifics.h"
@@ -33,16 +28,16 @@
 #endif
 
 #if !SAFESIDE_IA32
-#  error Unsupported architecture. 32-bit AMD required.
+#  error Unsupported architecture. IA32 required.
 #endif
 
-#define SAFESIDE_SEGMENT_DESCRIPTOR_SS 1
+#define SAFESIDE_SEGMENT_DESCRIPTOR_FS 1
 
 #include "meltdown_segmentation_common.h"
 
 int main() {
-  descriptor_backup = BackupSS();
-  OnSignalMoveRipToAfterspeculation(SIGBUS);
+  descriptor_backup = BackupFS();
+  OnSignalMoveRipToAfterspeculation(SIGSEGV);
   SetupSegment(1, private_data, 0, true);
   std::cout << "Leaking the string: ";
   std::cout.flush();
