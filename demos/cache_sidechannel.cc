@@ -73,7 +73,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
   }
 
   std::list<uint64_t> sorted_latencies_list(latencies.begin(), latencies.end());
-  // We have to used the std::list::sort implementation, because invocations of
+  // We have to use the std::list::sort implementation, because invocations of
   // std::sort, std::stable_sort, std::nth_element and std::partial_sort when
   // compiled with optimizations intervene with the neural network based AMD
   // memory disambiguation dynamic predictor and the Spectre v4 example fails

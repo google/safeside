@@ -44,4 +44,10 @@
 #  error Unknown compiler.
 #endif
 
+#ifdef __linux__
+#define SAFESIDE_LINUX 1
+#elif defined(__APPLE__)
+#define SAFESIDE_MAC 1
+#endif
+
 #endif  // DEMOS_COMPILER_SPECIFICS_H_

@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-#include <cstddef>
-
-#include "instr.h"
-#include "utils.h"
-
-constexpr size_t kCacheLineSize = 64;
-
-// Flush a memory interval from cache. Used to induce speculative execution on
-// flushed values until they are fetched back to the cache.
-void FlushFromCache(const char *start, const char *end) {
-  // Start on the first byte and continue in kCacheLineSize steps.
-  for (const char *ptr = start; ptr < end; ptr += kCacheLineSize) {
-    CLFlush(ptr);
-  }
-  // Flush explicitly the last byte.
-  CLFlush(end - 1);
-}
+#ifndef DEMOS_LOCAL_CONTENT_H
+#define DEMOS_LOCAL_CONTENT_H
+// Generic strings used across examples. The public_data is intended to be
+// accessed in the C++ execution model. The content of the private_data is
+// intended to be leaked outside of the C++ execution model using sidechannels.
+// Concrete sidechannel is dependent on the concrete vulnerability that we are
+// demonstrating.
+const char *public_data = "Hello, world!";
+const char *private_data = "It's a s3kr3t!!!";
+#endif  // DEMOS_LOCAL_CONTENT_H

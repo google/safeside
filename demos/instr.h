@@ -93,7 +93,7 @@ void UnwindStackAndSlowlyReturnTo(const void *address);
 // (meltdown).
 extern char afterspeculation[];
 
-#elif defined(__aarch64__)
+#elif SAFESIDE_ARM64
 // Push callee-saved registers and return address on stack and mark it with
 // magic value.
 SAFESIDE_ALWAYS_INLINE
@@ -198,13 +198,15 @@ inline void BoundsCheck(const char *str, size_t offset) {
 // Reads an offset from the FS segment.
 // Must be inlined because the fault occurs inside and the stack pointer would
 // be shifted.
+// We fetch offset + 1 from the segment base, because the base is shifted one
+// byte below to bypass 1-byte minimal segment size.
 SAFESIDE_ALWAYS_INLINE
 inline unsigned int ReadUsingFS(unsigned int offset) {
   unsigned int result;
 
   asm volatile(
       "movzbl %%fs:(, %1, 1), %0\n"
-      :"=r"(result):"r"(offset):"memory");
+      :"=r"(result):"r"(offset + 1):"memory");
 
   return result;
 }
@@ -212,15 +214,28 @@ inline unsigned int ReadUsingFS(unsigned int offset) {
 // Reads an offset from the ES segment.
 // Must be inlined because the fault occurs inside and the stack pointer would
 // be shifted.
+// We fetch offset + 1 from the segment base, because the base is shifted one
+// byte below to bypass 1-byte minimal segment size.
 SAFESIDE_ALWAYS_INLINE
 inline unsigned int ReadUsingES(unsigned int offset) {
   unsigned int result;
 
   asm volatile(
       "movzbl %%es:(, %1, 1), %0\n"
-      :"=r"(result):"r"(offset):"memory");
+      :"=r"(result):"r"(offset + 1):"memory");
 
   return result;
+}
+
+// Adds an offset to pointer, checks it is not overflowing using INTO and
+// dereferences it.
+SAFESIDE_ALWAYS_INLINE
+inline void SupposedlySafeOffsetAndDereference(const char *address,
+                                               unsigned int offset) {
+  asm volatile(
+      "addl %1, %0\n"
+      "into\n"
+      "movzbl (%0), %1\n"::"r"(address), "r"(offset):"cc");
 }
 #endif
 #endif

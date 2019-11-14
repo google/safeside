@@ -32,7 +32,7 @@
 
 #include "compiler_specifics.h"
 
-#ifndef __linux__
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 
@@ -48,10 +48,9 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
+#include "meltdown_local_content.h"
 #include "utils.h"
-
-const char *public_data = "Hello, world!";
-const char *private_data = "It's a s3kr3t!!!";
 
 // Storage for the public data.
 // Must be at least a native word size. That's why we pick uintptr_t.
@@ -125,30 +124,9 @@ static char LeakByte(uintptr_t *unaligned_data, size_t offset) {
   }
 }
 
-static void sigbus(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGBUS signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#if SAFESIDE_X64
-  ucontext->uc_mcontext.gregs[REG_RIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#else
-  ucontext->uc_mcontext.gregs[REG_EIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#endif
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  act.sa_sigaction = sigbus;
-  act.sa_flags = SA_SIGINFO;
-  sigaction(SIGBUS, &act, NULL);
-}
-
 int main() {
   InitializeUnalignedData();
-  SetSignal();
+  OnSignalMoveRipToAfterspeculation(SIGBUS);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   size_t private_offset = unaligned_private_data - unaligned_public_data;

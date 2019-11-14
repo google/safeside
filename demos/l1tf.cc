@@ -16,7 +16,7 @@
 
 #include "compiler_specifics.h"
 
-#ifndef __linux__
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 
@@ -36,9 +36,10 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
+#include "meltdown_local_content.h"
 #include "utils.h"
 
-const char *private_data = "It's a s3kr3t!!!";
 char *private_page = nullptr;
 
 /**
@@ -99,34 +100,8 @@ static char LeakByte(size_t offset) {
   }
 }
 
-static void Sigsegv(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGSEGV signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#if SAFESIDE_X64
-  ucontext->uc_mcontext.gregs[REG_RIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif SAFESIDE_IA32
-  ucontext->uc_mcontext.gregs[REG_EIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif SAFESIDE_PPC
-  ucontext->uc_mcontext.regs->nip =
-      reinterpret_cast<size_t>(afterspeculation);
-#else
-#  error Unsupported CPU.
-#endif
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  act.sa_sigaction = Sigsegv;
-  act.sa_flags = SA_SIGINFO;
-  sigaction(SIGSEGV, &act, NULL);
-}
-
 int main() {
-  SetSignal();
+  OnSignalMoveRipToAfterspeculation(SIGSEGV);
   private_page = reinterpret_cast<char *>(mmap(nullptr, kPageSizeBytes,
       PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
   memcpy(private_page, private_data, strlen(private_data) + 1);

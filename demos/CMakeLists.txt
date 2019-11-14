@@ -21,94 +21,107 @@ endif()
 # Support library
 add_library(safeside cache_sidechannel.cc instr.cc utils.cc)
 
-# Spectre V1 PHT -- bounds check bypass
-add_executable(spectre_v1 spectre_v1.cc)
-target_link_libraries(spectre_v1 safeside)
+# Defines an executable target named `demo_name` built from `demo_name.cc` and
+# linked against the Safeside support library. The caller can also use the
+# SYSTEMS and PROCESSORS keywords to restrict when the target should be
+# created.
+function(add_demo demo_name)
+  cmake_parse_arguments(
+    ARG  # parsed argument prefix
+    ""  # boolean options
+    ""  # one-value arguments
+    "SYSTEMS;PROCESSORS"  # multi-value arguments
+    ${ARGN}  # arguments to parse -- ARGN excludes already-named arguments
+  )
+
+  if (DEFINED ARG_SYSTEMS)
+    if (NOT ${CMAKE_SYSTEM_NAME} IN_LIST ARG_SYSTEMS)
+      return()
+    endif()
+  endif()
+
+  if (DEFINED ARG_PROCESSORS)
+    if (NOT ${CMAKE_SYSTEM_PROCESSOR} IN_LIST ARG_PROCESSORS)
+      return()
+    endif()
+  endif()
+
+  add_executable(${demo_name} ${demo_name}.cc)
+  target_link_libraries(${demo_name} safeside)
+endfunction()
+
+# Spectre V1 PHT SA -- mistraining PHT in the same address space
+add_demo(spectre_v1_pht_sa)
 
 # Spectre V1 BTB SA -- mistraining BTB in the same address space
-add_executable(spectre_v1_indirect_jumps spectre_v1_indirect_jumps.cc)
-target_link_libraries(spectre_v1_indirect_jumps safeside)
+add_demo(spectre_v1_btb_sa)
 
 # Spectre V4 -- speculative store bypass
-add_executable(spectre_v4 spectre_v4.cc)
-target_link_libraries(spectre_v4 safeside)
+add_demo(spectre_v4)
 
-# Cyclic Ret2Spec -- rewriting the RSB
-add_executable(ret2spec_cyclic ret2spec_cyclic.cc)
-target_link_libraries(ret2spec_cyclic safeside)
+# Ret2Spec -- rewriting the RSB using recursion in the same address space
+add_demo(ret2spec_sa)
+
+# Spectre V1 BTB CA - mistraining BTB from another address space
+add_demo(spectre_v1_btb_ca SYSTEMS Linux)
+
+# Ret2Spec -- speculative execution using return stack buffers creating a
+# call-ret disparity by inline assembly
+add_demo(ret2spec_callret_disparity
+         SYSTEMS Linux Darwin
+         PROCESSORS i386 x86_64 aarch64)
+if (TARGET ret2spec_callret_disparity)
+  target_compile_options(ret2spec_callret_disparity
+                         PRIVATE -fomit-frame-pointer)
+endif()
+
+# Spectre V3 / Meltdown
+add_demo(meltdown SYSTEMS Linux PROCESSORS i686 x86_64 ppc64le)
 
 # Spectre V2 -- branch target injection
-add_executable(spectre_v2 spectre_v2.cc)
-if((${CMAKE_SYSTEM_NAME} MATCHES "^Darwin$"))
+add_demo(spectre_v2)
+if(TARGET spectre_v2 AND (${CMAKE_SYSTEM_NAME} MATCHES "^Darwin$"))
   target_compile_options(spectre_v2 PRIVATE -fomit-frame-pointer)
-elseif((${CMAKE_SYSTEM_NAME} MATCHES "^Windows$"))
+elseif(TARGET spectre_v2 AND (${CMAKE_SYSTEM_NAME} MATCHES "^Windows$"))
   target_compile_options(spectre_v2 PRIVATE /Ob2)
   target_compile_options(spectre_v2 PRIVATE /GL)
 endif()
-target_link_libraries(spectre_v2 safeside)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$")
-  # Spectre V1 BTB CA - mistraining BTB from another address space
-  add_executable(spectre_v1_btb_ca spectre_v1_btb_ca.cc)
-  target_link_libraries(spectre_v1_btb_ca safeside)
-endif()
+# L1 terminal fault -- Foreshadow OS -- Meltdown P
+add_demo(l1tf SYSTEMS Linux PROCESSORS i686 x86_64 ppc64le)
 
-if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
-   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(aarch64)$"))
-  # Ret2Spec -- speculative execution using return stack buffers
-  add_executable(ret2spec ret2spec.cc)
-  target_compile_options(ret2spec PRIVATE -fomit-frame-pointer)
-  target_link_libraries(ret2spec safeside)
-endif()
+# Speculation over ERET, HVC and SMC instructions
+add_demo(eret_hvc_smc_wrapper SYSTEMS Linux PROCESSORS aarch64)
 
-if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
-   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)|(ppc64le)$"))
-  # Spectre V3 / Meltdown
-  add_executable(meltdown meltdown.cc)
-  target_link_libraries(meltdown safeside)
+# Speculation over syscall
+add_demo(speculation_over_syscall SYSTEMS Linux PROCESSORS aarch64)
 
-  # L1 terminal fault -- Foreshadow OS -- Meltdown P
-  add_executable(l1tf l1tf.cc)
-  target_link_libraries(l1tf safeside)
-endif()
+# Meltdown UD -- speculation over an undefined instruction
+add_demo(meltdown_ud SYSTEMS Linux PROCESSORS aarch64)
 
-if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
-   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(aarch64)$"))
-  # Speculation over ERET, HVC and SMC instructions
-  add_executable(eret_hvc_smc_wrapper eret_hvc_smc_wrapper.cc)
-  target_link_libraries(eret_hvc_smc_wrapper safeside)
+# Meltdown BR - speculation over the ia32 bounds check instruction
+add_demo(meltdown_br SYSTEMS Linux Darwin PROCESSORS i686)
 
-  # Speculation over syscall
-  add_executable(speculation_over_syscall speculation_over_syscall.cc)
-  target_link_libraries(speculation_over_syscall safeside)
+# Meltdown SS -- speculative reading from non present segments and outside of
+# segment limits
+add_demo(meltdown_ss SYSTEMS Linux PROCESSORS i686)
 
-  # Meltdown UD -- speculation over an undefined instruction
-  add_executable(meltdown_ud meltdown_ud.cc)
-  target_link_libraries(meltdown_ud safeside)
-endif()
+# Meltdown OF -- speculative fetching from an overflowing address after an
+# INTO check
+add_demo(meltdown_of SYSTEMS Linux Darwin PROCESSORS i686)
 
-if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)|(Darwin)$") AND
-   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$"))
-   # Meltdown BR - speculation over the ia32 bounds check instruction
-  add_executable(meltdown_br meltdown_br.cc)
-  target_link_libraries(meltdown_br safeside)
-endif()
+# Speculation over hardware breakpoint trap (read watcher)
+add_demo(speculation_over_read_hw_breakpoint
+         SYSTEMS Linux
+         PROCESSORS i686 x86_64)
 
-if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
-   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$"))
-  # Meltdown SS -- speculative reading from non present segments and outside of
-  # segment limits
-  add_executable(meltdown_ss meltdown_ss.cc)
-  target_link_libraries(meltdown_ss safeside)
-endif()
+# Speculation over hardware breakpoint fault (execution watcher)
+add_demo(speculation_over_exec_hw_breakpoint
+         SYSTEMS Linux
+         PROCESSORS i686 x86_64)
 
-if((${CMAKE_SYSTEM_NAME} MATCHES "^(Linux)$") AND
-   (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)|(x86_64)$"))
-  # Speculation over hardware breakpoint trap
-  add_executable(speculation_over_hw_breakpoint speculation_over_hw_breakpoint.cc)
-  target_link_libraries(speculation_over_hw_breakpoint safeside)
+# Meltdown AC -- speculative fetching of unaligned data
+add_demo(meltdown_ac SYSTEMS Linux PROCESSORS i686 x86_64)
 
-  # Meltdown AC -- speculative fetching of unaligned data
-  add_executable(meltdown_ac meltdown_ac.cc)
-  target_link_libraries(meltdown_ac safeside)
-endif()
+# Meltdown DE -- speculative computation with division by zero remainder
+add_demo(meltdown_de SYSTEMS Linux PROCESSORS i686 x86_64)

