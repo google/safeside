@@ -20,7 +20,7 @@ case "${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}" in
   linux_clang)
     sudo apt install "linux-headers-$(uname -r)"
 
-    generate_and_build build
+    generate_and_build build -DCMAKE_CXX_CLANG_TIDY=clang-tidy
     ;;
 
   osx_clang)
