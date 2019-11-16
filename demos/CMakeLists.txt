@@ -104,7 +104,7 @@ add_demo(meltdown_of SYSTEMS Linux Darwin PROCESSORS i686)
 # Speculation over hardware breakpoint trap (read watcher)
 add_demo(speculation_over_read_hw_breakpoint
          SYSTEMS Linux
-         PROCESSORS i686 x86_64)
+         PROCESSORS i686 x86_64 ppc64le)
 
 # Speculation over hardware breakpoint fault (execution watcher)
 add_demo(speculation_over_exec_hw_breakpoint

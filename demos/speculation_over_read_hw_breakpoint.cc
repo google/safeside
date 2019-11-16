@@ -27,8 +27,8 @@
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !SAFESIDE_IA32 && !SAFESIDE_X64
-#  error Unsupported CPU. X86/64 required.
+#if !SAFESIDE_IA32 && !SAFESIDE_X64 && !SAFESIDE_PPC
+#  error Unsupported CPU. X86/64 or PPC required.
 #endif
 
 #include <array>
@@ -134,11 +134,10 @@ void ParentProcess(pid_t child) {
       // The child stopped itself with "raise(SIGSTOP)". We have to put the
       // breakpoint on the current character of private_data and let it
       // continue.
+#if SAFESIDE_X64 || SAFESIDE_IA32
       // Pointing dr0 on the current index in private_data.
       res = ptrace(PTRACE_POKEUSER, child, offsetof(user, u_debugreg[0]),
                    private_data + index);
-      // Post-incrementing the index so that the first call is with index 0.
-      ++index;
       if (res == -1) {
         std::cerr << "PTRACE_POKEUSER on dr0 failed." << std::endl;
         exit(EXIT_FAILURE);
@@ -155,11 +154,29 @@ void ParentProcess(pid_t child) {
         std::cerr << "PTRACE_POKEUSER on dr7 failed." << errno << std::endl;
         exit(EXIT_FAILURE);
       }
+#elif SAFESIDE_PPC
+      res = ptrace(PTRACE_SET_DEBUGREG, child, 0,
+                   reinterpret_cast<size_t>(private_data + index) | 7);
+      if (res == -1) {
+        std::cerr << "PTRACE_SET_DEBUGREG failed." << errno << std::endl;
+        exit(EXIT_FAILURE);
+      }
+#else
+#  error Unsupported architecture.
+#endif
+      // Post-incrementing the index so that the first call is with index 0.
+      ++index;
     } else if (WSTOPSIG(wstatus) == SIGTRAP) {
       // Move instruction pointer.
       // The child was trapped by stepping on the hardware breakpoint. We just
       // move its instruction pointer to the afterspeculation label.
-      user_regs_struct regs;
+#if SAFESIDE_X64 || SAFESIDE_IA32
+      struct user_regs_struct regs;
+#elif SAFESIDE_PPC
+      struct pt_regs regs;
+#else
+#  error Unsupported architecture.
+#endif
       // Read general purpose register values of the child.
       res = ptrace(PTRACE_GETREGS, child, nullptr, &regs);
       if (res == -1) {
@@ -170,8 +187,21 @@ void ParentProcess(pid_t child) {
       // Move the child's instruction pointer to afterspeculation.
 #if SAFESIDE_X64
       regs.rip = reinterpret_cast<size_t>(afterspeculation);
-#else
+#elif SAFESIDE_IA32
       regs.eip = reinterpret_cast<size_t>(afterspeculation);
+#elif SAFESIDE_PPC
+      regs.nip = reinterpret_cast<size_t>(afterspeculation);
+
+      // On PowerPC we must renew the breakpoint, because it's triggered just
+      // once.
+      res = ptrace(PTRACE_SET_DEBUGREG, child, 0,
+                   reinterpret_cast<size_t>(private_data + index - 1) | 7);
+      if (res == -1) {
+        std::cerr << "PTRACE_SET_DEBUGREG failed." << errno << std::endl;
+        exit(EXIT_FAILURE);
+      }
+#else
+#  error Unsupported architecture.
 #endif
 
       // Store the shifted child's instruction pointer value.
