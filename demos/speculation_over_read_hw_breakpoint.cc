@@ -155,8 +155,11 @@ void ParentProcess(pid_t child) {
         exit(EXIT_FAILURE);
       }
 #elif SAFESIDE_PPC
+      // PowerPC breakpoints have 8-byte granularity and the last 3 bits are
+      // used for flags. First bit is read (true), second is write (false),
+      // third is translate (true).
       res = ptrace(PTRACE_SET_DEBUGREG, child, 0,
-                   reinterpret_cast<size_t>(private_data + index) | 7);
+                   reinterpret_cast<size_t>(private_data + index) | 5);
       if (res == -1) {
         std::cerr << "PTRACE_SET_DEBUGREG failed." << errno << std::endl;
         exit(EXIT_FAILURE);
@@ -193,9 +196,10 @@ void ParentProcess(pid_t child) {
       regs.nip = reinterpret_cast<size_t>(afterspeculation);
 
       // On PowerPC we must renew the breakpoint, because it's triggered just
-      // once.
+      // once. The index is post-incremented, so we have to use the original one
+      // in here.
       res = ptrace(PTRACE_SET_DEBUGREG, child, 0,
-                   reinterpret_cast<size_t>(private_data + index - 1) | 7);
+                   reinterpret_cast<size_t>(private_data + index - 1) | 5);
       if (res == -1) {
         std::cerr << "PTRACE_SET_DEBUGREG failed." << errno << std::endl;
         exit(EXIT_FAILURE);
