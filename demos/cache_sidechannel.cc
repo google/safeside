@@ -24,7 +24,7 @@
 // Returns the indices of the biggest and second-biggest values in the range.
 template <typename RangeT>
 static std::pair<size_t, size_t> TwoTwoIndices(const RangeT &range) {
-  std::pair<size_t, size_t> result = {0, 1};  // first biggest, second biggest
+  std::pair<size_t, size_t> result = {256, 256};  // first and second biggest
   for (size_t i = 0; i < range.size(); ++i) {
     if (range[i] > range[result.first]) {
       result.second = result.first;

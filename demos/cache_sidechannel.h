@@ -102,5 +102,5 @@ class CacheSideChannel {
   // so it would immediately overflow.
   std::unique_ptr<PaddedOracleArray> padded_oracle_array_ =
       std::unique_ptr<PaddedOracleArray>(new PaddedOracleArray);
-  std::array<int, 256> scores_ = {};
+  std::array<int, 257> scores_ = {};
 };
