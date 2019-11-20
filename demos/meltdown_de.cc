@@ -15,7 +15,7 @@
  */
 
 /**
- * Demonstrates the Meltdown-DE on AMD and Intel.
+ * Demonstrates the Meltdown-DE on x86/64.
  **/
 
 #include "compiler_specifics.h"
