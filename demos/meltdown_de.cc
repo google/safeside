@@ -16,7 +16,8 @@
 
 /**
  * Demonstrates the Meltdown-DE on x86/64.
- * We exploit the fact that on all CPUs vulnerable to Meltdown-DE holds that:
+ * We exploit the fact that on all CPUs vulnerable to Meltdown-DE (and known to
+ * us) holds that:
  * 2 % 0 = 2
  * Therefore we accomodate the private data to be stored in multiple strings
  * where the secret data is on index 2 (first two indices contain dummy data).
