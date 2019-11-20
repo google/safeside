@@ -41,12 +41,10 @@
 
 const char *public_data = "Hello, world!";
 
-char private_data [1000000];
-
 // We must store zero as a global variable to avoid optimizing it out.
 size_t zero = 0;
 
-static char LeakByte(size_t offset, bool modulo) {
+static char LeakByte(size_t offset, size_t byte, bool modulo) {
   CacheSideChannel sidechannel;
   const std::array<BigByte, 256> &isolated_oracle = sidechannel.GetOracle();
 
@@ -63,10 +61,10 @@ static char LeakByte(size_t offset, bool modulo) {
     // handler moves the instruction pointer to the afterspeculation label.
     if (modulo) {
       ForceRead(isolated_oracle.data() + static_cast<size_t>(
-          private_data[offset % zero]));
+          ((offset % zero) >> (8 * byte)) & 0xFF));
     } else {
       ForceRead(isolated_oracle.data() + static_cast<size_t>(
-          private_data[offset / zero]));
+          ((offset / zero) >> (8 * byte)) & 0xFF));
     }
 
     std::cout << "Dead code. Must not be printed." << std::endl;
@@ -96,29 +94,19 @@ static char LeakByte(size_t offset, bool modulo) {
 
 int main() {
   OnSignalMoveRipToAfterspeculation(SIGFPE);
-  for (size_t i = 0; i < 1024; ++i) {
+  for (size_t i = 0; i < 65536; ++i) {
     size_t result = 0;
-    size_t base = 1;
-    for (size_t j = 0; j < 6; ++j) {
-      for (size_t k = 0; k < 1000000; ++k) {
-        private_data[k] = '0' + ((k / base) % 10);
-      }
-      result += (LeakByte(i, true) - '0') * base;
-      base *= 10;
+    for (size_t j = 0; j < 8; ++j) {
+      result += LeakByte(i, j, true) << (8 * j);
     }
 
     std::cout << i << " % 0 = " << result << std::endl;
   }
 
-  for (size_t i = 0; i < 1024; ++i) {
+  for (size_t i = 0; i < 65536; ++i) {
     size_t result = 0;
-    size_t base = 1;
-    for (size_t j = 0; j < 6; ++j) {
-      for (size_t k = 0; k < 1000000; ++k) {
-        private_data[k] = '0' + ((k / base) % 10);
-      }
-      result += (LeakByte(i, false) - '0') * base;
-      base *= 10;
+    for (size_t j = 0; j < 8; ++j) {
+      result += LeakByte(i, j, false) << (8 * j);
     }
 
     std::cout << i << " / 0 = " << result << std::endl;
