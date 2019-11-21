@@ -5,16 +5,24 @@ language: cpp
 dist: bionic
 matrix:
   include:
-    - name: "clang / Linux / x86_64"
+    - name: "Linux / clang / x86_64"
       os: linux
       compiler: clang
-    - name: "gcc / Linux / x86_64, i386, aarch64, powerpc64le"
+    - name: "Linux / gcc / x86_64, i386"
       os: linux
       compiler: gcc
-    - name: "clang / macOS / x86_64"
+    - name: "Linux / gcc / aarch64"
+      os: linux
+      compiler: gcc
+      arch: arm64
+    - name: "Linux / gcc / ppc64le"
+      os: linux
+      compiler: gcc
+      arch: ppc64le
+    - name: "macOS / clang / x86_64"
       os: osx
       compiler: clang
-    - name: "MSVC / Windows / x64, Win32"
+    - name: "Windows / MSVC / x64, Win32"
       os: windows
       # CMake picks up MSVC regardless of what compiler we specify here.
 script:

@@ -15,15 +15,26 @@ generate_and_build() {
   cmake --build "${folder_name}"
 }
 
-# Choose what to do based on OS and compiler.
-case "${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}" in
-  linux_clang)
-    sudo apt install "linux-headers-$(uname -r)"
+# Installs given packages.
+# Usage:
+#   apt_install <package1> [<package2> ...]
+apt_install() {
+  # Update package lists first. Without this, we've seen missing packages
+  # and dependency conflicts that block installation.
+  sudo apt update
+
+  sudo apt install "$@"
+}
+
+OS_COMPILER_CPU=${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}_$(uname -m)
+case "${OS_COMPILER_CPU}" in
+  linux_clang_*)
+    apt_install "linux-headers-$(uname -r)"
 
     generate_and_build build -DCMAKE_CXX_CLANG_TIDY=clang-tidy
     ;;
 
-  osx_clang)
+  osx_clang_*)
     generate_and_build build
     ;;
 
@@ -32,25 +43,19 @@ case "${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}" in
     generate_and_build build-win32 -A Win32
     ;;
 
-  linux_gcc)
-    # Need this `apt update` for the install to succeed. Without it, the
-    # Travis worker only has lists for the ${distro}-security repository.
-    sudo apt update
-    sudo apt install \
+  linux_gcc_x86_64)
+    apt_install \
         "linux-headers-$(uname -r)" \
-        g++-i686-linux-gnu \
-        g++-aarch64-linux-gnu \
-        g++-powerpc64le-linux-gnu
+        g++-i686-linux-gnu
 
     generate_and_build build-x86_64
-
     generate_and_build build-i686 \
         -DCMAKE_TOOLCHAIN_FILE=ci/toolchains/i686-linux-gnu.cmake
+    ;;
 
-    generate_and_build build-aarch64 \
-        -DCMAKE_TOOLCHAIN_FILE=ci/toolchains/aarch64-linux-gnu.cmake
+  linux_gcc_*)
+    apt_install "linux-headers-$(uname -r)"
 
-    generate_and_build build-powerpc64le \
-        -DCMAKE_TOOLCHAIN_FILE=ci/toolchains/powerpc64le-linux-gnu.cmake
+    generate_and_build build
     ;;
 esac
