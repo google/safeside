@@ -113,6 +113,3 @@ add_demo(speculation_over_exec_hw_breakpoint
 
 # Meltdown AC -- speculative fetching of unaligned data
 add_demo(meltdown_ac SYSTEMS Linux PROCESSORS i686 x86_64)
-
-# Meltdown DE -- speculative computation with division by zero remainder
-add_demo(meltdown_de SYSTEMS Linux PROCESSORS i686 x86_64)
