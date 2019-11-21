@@ -8,7 +8,7 @@ matrix:
     - name: "Linux / clang / x86_64"
       os: linux
       compiler: clang
-    - name: "Linux / gcc / x86_64, i386"
+    - name: "Linux / gcc / x86_64, i686"
       os: linux
       compiler: gcc
     - name: "Linux / gcc / aarch64"
@@ -27,3 +27,4 @@ matrix:
       # CMake picks up MSVC regardless of what compiler we specify here.
 script:
   - ./ci/build
+  - ./ci/test

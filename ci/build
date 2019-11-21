@@ -44,9 +44,12 @@ case "${OS_COMPILER_CPU}" in
     ;;
 
   linux_gcc_x86_64)
+    # Install the 32-bit compiler and C/C++ runtimes
     apt_install \
         "linux-headers-$(uname -r)" \
-        g++-i686-linux-gnu
+        g++-i686-linux-gnu \
+        libc6:i386 \
+        libstdc++6:i386
 
     generate_and_build build-x86_64
     generate_and_build build-i686 \
