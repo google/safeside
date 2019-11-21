@@ -13,8 +13,8 @@ string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
 
 # When targeting x86, we need to opt in to SSE2 instructions like
 # clflush, mfence, lfence.
-if((${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(i.86)$") AND
-   (${CMAKE_C_COMPILER_ID} MATCHES "^(Clang)|(GNU)$"))
+if(("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "^(i.86)$") AND
+   ("${CMAKE_C_COMPILER_ID}" MATCHES "^(Clang)|(GNU)$"))
   add_compile_options(-msse2)
 endif()
 
@@ -35,13 +35,13 @@ function(add_demo demo_name)
   )
 
   if (DEFINED ARG_SYSTEMS)
-    if (NOT ${CMAKE_SYSTEM_NAME} IN_LIST ARG_SYSTEMS)
+    if (NOT "${CMAKE_SYSTEM_NAME}" IN_LIST ARG_SYSTEMS)
       return()
     endif()
   endif()
 
   if (DEFINED ARG_PROCESSORS)
-    if (NOT ${CMAKE_SYSTEM_PROCESSOR} IN_LIST ARG_PROCESSORS)
+    if (NOT "${CMAKE_SYSTEM_PROCESSOR}" IN_LIST ARG_PROCESSORS)
       return()
     endif()
   endif()

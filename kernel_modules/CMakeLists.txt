@@ -1,9 +1,9 @@
 function(build_kernel_module MODULE_NAME)
 # Check if we should skip building the module.
-if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   message(STATUS "Skipping Linux kernel module on non-Linux OS")
   return()
-elseif(${CMAKE_CROSSCOMPILING})
+elseif("${CMAKE_CROSSCOMPILING}")
   message(STATUS "Skipping kernel module in cross-compile build")
   return()
 endif()
