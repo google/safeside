@@ -34,6 +34,7 @@
 #endif
 
 #include <array>
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 
