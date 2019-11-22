@@ -39,9 +39,6 @@ constexpr uint32_t kPageSizeBytes = 4096;
 // Flushing cacheline containing given address.
 void CLFlush(const void *memory);
 
-// Measures the latency of memory read from a given address.
-uint64_t ReadLatency(const void *memory);
-
 // Yields serializing instruction.
 // Must be inlined in order to avoid to avoid misprediction that skips the
 // call.

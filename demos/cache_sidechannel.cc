@@ -17,6 +17,7 @@
 #include <list>
 #include <vector>
 
+#include "asm/measurereadlatency.h"
 #include "cache_sidechannel.h"
 #include "instr.h"
 #include "utils.h"
@@ -69,7 +70,8 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
     // accessing the offsets in a pseudo-random order.
     size_t mixed_i = ((i * 167) + 13) & 0xFF;
     const void *timing_entry = &GetOracle()[mixed_i];
-    latencies[mixed_i] = ReadLatency(timing_entry);
+    latencies[mixed_i] = MeasureReadLatency(
+        static_cast<const char *>(timing_entry));
   }
 
   std::list<uint64_t> sorted_latencies_list(latencies.begin(), latencies.end());
