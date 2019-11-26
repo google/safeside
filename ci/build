@@ -26,7 +26,7 @@ apt_install() {
   sudo apt install "$@"
 }
 
-OS_COMPILER_CPU=${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}_$(uname -m)
+OS_COMPILER_CPU=${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}_${TRAVIS_CPU_ARCH}
 case "${OS_COMPILER_CPU}" in
   linux_clang_*)
     apt_install "linux-headers-$(uname -r)"
@@ -43,7 +43,7 @@ case "${OS_COMPILER_CPU}" in
     generate_and_build build-win32 -A Win32
     ;;
 
-  linux_gcc_x86_64)
+  linux_gcc_amd64)
     # Install the 32-bit compiler and C/C++ runtimes
     apt_install \
         "linux-headers-$(uname -r)" \
