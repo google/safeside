@@ -46,10 +46,9 @@ DECORATE(MeasureReadLatency):
   // [1] LFENCE: https://cpu.fyi/d/484#G5.136804
   // [2] At least, on Intel processors. LFENCE is _not_ documented as
   //   serializing on AMD processors (https://cpu.fyi/d/ad5#G9.3072402), but
-  //   in early 2018 AMD documented a model-specific register (MSR) that
-  //   system software can set to make LFENCE serializing on basically all
-  //   existing and future AMD processors. (See page 3 of
-  //   https://web.archive.org/web/20180219210500/https://developer.amd.com/wp-content/resources/Managing-Speculation-on-AMD-Processors.pdf.)
+  //   in early 2018 AMD described a model-specific register (MSR) that system
+  //   software can set to make LFENCE serializing on all existing and future
+  //   AMD processors. (See https://cpu.fyi/l/AxzQB, page 3, "Mitigation G-2".)
   //   This MSR has been set in Linux since v4.15: https://git.io/JePgI
   // [3] MFENCE: https://cpu.fyi/d/484#G7.864843
   // [4] "Memory Ordering in P6 and More Recent Processor Families":
