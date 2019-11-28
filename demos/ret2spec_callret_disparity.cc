@@ -40,7 +40,7 @@ void ReturnHandler() {
 // never executing the code that follows.
 SAFESIDE_NEVER_INLINE
 static void Speculation() {
-#if SAFESIDE_X64 || SAFESIDE_IA32
+#if SAFESIDE_X64 || SAFESIDE_IA32 || SAFESIDE_PPC
   const void *return_address = afterspeculation;
 #elif SAFESIDE_ARM64
   const void *return_address = reinterpret_cast<const void *>(ReturnHandler);
