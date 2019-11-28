@@ -54,7 +54,7 @@ void CLFlush(const void *memory) {
 #endif
 }
 
-#if SAFESIDE_GNUC && !SAFESIDE_PPC
+#if SAFESIDE_GNUC
 SAFESIDE_NEVER_INLINE
 void UnwindStackAndSlowlyReturnTo(const void *address) {
 #if SAFESIDE_X64
