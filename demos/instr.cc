@@ -54,7 +54,7 @@ void CLFlush(const void *memory) {
 #endif
 }
 
-#if SAFESIDE_GNUC && !SAFESIDE_PPC
+#if SAFESIDE_GNUC
 SAFESIDE_NEVER_INLINE
 void UnwindStackAndSlowlyReturnTo(const void *address) {
 #if SAFESIDE_X64
@@ -99,6 +99,25 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       // Having an ISB instruction on this place breaks the attack on Cavium.
       "ldr x30, [sp], #16\n"
       "ret\n"::"r"(address));
+#elif SAFESIDE_PPC
+  asm volatile(
+      // Unwind until the magic value and pop the magic value.
+      "addi 5, 0, 0xfffffffffffffedc\n"
+      "rotldi 5, 5, 16\n"
+      "addi 5, 5, 0xffffffffffffba98\n"
+      "rotldi 5, 5, 16\n"
+      "addi 5, 5, 0x0123\n"
+      "rotldi 5, 5, 16\n"
+      "addi 5, 5, 0x4568\n"
+      "popstack:\n"
+      "ldu 6, 8(1)\n"
+      "cmpd 5, 6\n"
+      "bf eq, popstack\n"
+      // Flush the stack pointer, sync, load to link register and return.
+      "dcbf 0, 1\n"
+      "sync\n"
+      "mtlr %0\n"
+      "blr\n"::"r"(address));
 #else
 #  error Unsupported CPU.
 #endif

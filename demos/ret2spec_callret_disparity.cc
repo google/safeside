@@ -40,7 +40,7 @@ void ReturnHandler() {
 // never executing the code that follows.
 SAFESIDE_NEVER_INLINE
 static void Speculation() {
-#if SAFESIDE_X64 || SAFESIDE_IA32
+#if SAFESIDE_X64 || SAFESIDE_IA32 || SAFESIDE_PPC
   const void *return_address = afterspeculation;
 #elif SAFESIDE_ARM64
   const void *return_address = reinterpret_cast<const void *>(ReturnHandler);
@@ -73,9 +73,10 @@ static char LeakByte() {
   for (int run = 0;; ++run) {
     sidechannel.FlushOracle();
 
-#if SAFESIDE_ARM64
-    // On ARM we have to manually backup registers that are callee-saved,
-    // because the "speculation" method will never restore their backups.
+#if SAFESIDE_ARM64 || SAFESIDE_PPC
+    // On ARM and PowerPC we have to manually backup registers that are
+    // callee-saved, because the "speculation" method will never restore their
+    // backups.
     BackupCalleeSavedRegsAndReturnAddress();
 #endif
 
@@ -88,7 +89,7 @@ static char LeakByte() {
         "_afterspeculation:\n" // For MacOS.
         "afterspeculation:\n"); // For Linux.
 
-#if SAFESIDE_ARM64
+#if SAFESIDE_ARM64 || SAFESIDE_PPC
     RestoreCalleeSavedRegs();
 #endif
 

@@ -109,8 +109,7 @@ add_demo(spectre_v1_btb_ca SYSTEMS Linux)
 # Ret2Spec -- speculative execution using return stack buffers creating a
 # call-ret disparity by inline assembly
 add_demo(ret2spec_callret_disparity
-         SYSTEMS Linux Darwin
-         PROCESSORS i386 x86_64 aarch64)
+         SYSTEMS Linux Darwin)
 if (TARGET ret2spec_callret_disparity)
   target_compile_options(ret2spec_callret_disparity
                          PRIVATE -fomit-frame-pointer)
