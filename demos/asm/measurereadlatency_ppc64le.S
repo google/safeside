@@ -35,7 +35,7 @@ MeasureReadLatency:
   // devices: https://git.io/Je60x
   //
   // [1] SYNC: https://cpu.fyi/d/a48#G19.1034642
-  // [2] ICBI: https://cpu.fyi/d/a48#G19.102046
+  // [2] ICBI: https://cpu.fyi/d/a48#G19.1020460
   // [3] ISYNC: https://cpu.fyi/d/a48#G19.1020771
   isync
   sync
