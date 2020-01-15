@@ -65,7 +65,13 @@ static void GadgetHelper() {
   }
   // Fake call.
   char value = InnerCall(0, 0);
-  asm volatile("hijackedcheck:");
+#if SAFESIDE_LINUX
+      asm volatile("hijackedcheck:");
+#elif SAFESIDE_MAC
+      asm volatile("_hijackedcheck:");
+#else
+#  error Unsupported OS.
+#endif
   const std::array<BigByte, 256> &oracle = *oracle_ptr;
   ForceRead(oracle.data() + static_cast<unsigned char>(value));
   std::cout << "Dead code. Must never be reached." << std::endl;
@@ -96,7 +102,13 @@ static char LeakByte() {
 
       // Return value of the InnerCall is ignored.
       InnerCall(local_offset, size_in_heap.get());
+#if SAFESIDE_LINUX
       asm volatile("aftercheck:");
+#elif SAFESIDE_MAC
+      asm volatile("_aftercheck:");
+#else
+#  error Unsupported OS.
+#endif
     }
 
     std::pair<bool, char> result = sidechannel.AddHitAndRecomputeScores();
