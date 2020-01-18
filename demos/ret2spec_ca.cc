@@ -52,8 +52,8 @@ static void Unschedule() {
 }
 
 int main() {
-  ConditionallyUnschedule = Unschedule;
-  UnscheduleOrStartReturnsFalse = Unschedule;
+  conditionally_unschedule = Unschedule;
+  unschedule_or_start_returns_false = Unschedule;
   // Parent PID for the death-checking of the child.
   pid_t ppid = getpid();
   // We need both processes to run on the same core. Pinning the parent before

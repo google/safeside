@@ -13,10 +13,10 @@
 extern const char *private_data;
 
 // Calls sched_yield in the cross-address-space version.
-void (*ConditionallyUnschedule)();
+void (*conditionally_unschedule)();
 // Calls sched_yield in the cross-address-space version, in the
 // same-address-space version starts the ReturnsFalse recursion.
-void (*UnscheduleOrStartReturnsFalse)();
+void (*unschedule_or_start_returns_false)();
 
 // Global variables used to avoid passing parameters through recursive function
 // calls. Since we flush whole stack frames from the cache, it is important not
@@ -45,7 +45,7 @@ bool ReturnsFalse(int counter) {
     }
   } else {
     // Increase the interference if running cross-address-space.
-    ConditionallyUnschedule();
+    conditionally_unschedule();
   }
   return false_value;
 }
@@ -62,7 +62,7 @@ static bool ReturnsTrue(int counter) {
   } else {
     // In the deepest invocation starts the ReturnsFalse recursion or
     // unschedule to increase the interference.
-    UnscheduleOrStartReturnsFalse();
+    unschedule_or_start_returns_false();
   }
 
   // Cleans-up its stack mark and flushes from the cache everything between its
