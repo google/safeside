@@ -39,9 +39,6 @@ constexpr uint32_t kPageSizeBytes = 4096;
 // Flushing cacheline containing given address.
 void CLFlush(const void *memory);
 
-// Measures the latency of memory read from a given address.
-uint64_t ReadLatency(const void *memory);
-
 // Yields serializing instruction.
 // Must be inlined in order to avoid to avoid misprediction that skips the
 // call.
@@ -79,12 +76,14 @@ void UnwindStackAndSlowlyReturnTo(const void *address);
 // addresses (ret2spec) or for skipping failures in signal handlers
 // (meltdown).
 extern char afterspeculation[];
+#endif
 
-#elif SAFESIDE_ARM64
+#if SAFESIDE_ARM64 || SAFESIDE_PPC
 // Push callee-saved registers and return address on stack and mark it with
 // magic value.
 SAFESIDE_ALWAYS_INLINE
 inline void BackupCalleeSavedRegsAndReturnAddress() {
+#if SAFESIDE_ARM64
   asm volatile(
       // Store the callee-saved regs.
       "stp x19, x20, [sp, #-16]!\n"
@@ -99,10 +98,44 @@ inline void BackupCalleeSavedRegsAndReturnAddress() {
       "movk x10, 0xba98, lsl 32\n"
       "movk x10, 0xfedc, lsl 48\n"
       "str x10, [sp, #-16]!\n");
+#elif SAFESIDE_PPC
+  asm volatile(
+      // Store the callee-saved regs.
+      "stdu 14, -8(1)\n"
+      "stdu 15, -8(1)\n"
+      "stdu 16, -8(1)\n"
+      "stdu 17, -8(1)\n"
+      "stdu 18, -8(1)\n"
+      "stdu 19, -8(1)\n"
+      "stdu 20, -8(1)\n"
+      "stdu 21, -8(1)\n"
+      "stdu 22, -8(1)\n"
+      "stdu 23, -8(1)\n"
+      "stdu 24, -8(1)\n"
+      "stdu 25, -8(1)\n"
+      "stdu 26, -8(1)\n"
+      "stdu 27, -8(1)\n"
+      "stdu 28, -8(1)\n"
+      "stdu 29, -8(1)\n"
+      "stdu 30, -8(1)\n"
+      "stdu 31, -8(1)\n"
+      // Mark the end of the backup with magic value 0xfedcba9801234567.
+      "addi 9, 0, 0xfffffffffffffedc\n"
+      "rotldi 9, 9, 16\n"
+      "addi 9, 9, 0xffffffffffffba98\n"
+      "rotldi 9, 9, 16\n"
+      "addi 9, 9, 0x0123\n"
+      "rotldi 9, 9, 16\n"
+      "addi 9, 9, 0x4568\n"
+      "stdu 9, -8(1)\n");
+#else
+#  error Unsupported architecture.
+#endif
 }
 
 SAFESIDE_ALWAYS_INLINE
 inline void RestoreCalleeSavedRegs() {
+#if SAFESIDE_ARM64
   asm volatile(
       "ldr x29, [sp], #16\n"
       "ldp x27, x28, [sp], #16\n"
@@ -110,8 +143,35 @@ inline void RestoreCalleeSavedRegs() {
       "ldp x23, x24, [sp], #16\n"
       "ldp x21, x22, [sp], #16\n"
       "ldp x19, x20, [sp], #16\n");
+#elif SAFESIDE_PPC
+  asm volatile(
+      "ldu 31, 8(1)\n"
+      "ldu 30, 8(1)\n"
+      "ldu 29, 8(1)\n"
+      "ldu 28, 8(1)\n"
+      "ldu 27, 8(1)\n"
+      "ldu 26, 8(1)\n"
+      "ldu 25, 8(1)\n"
+      "ldu 24, 8(1)\n"
+      "ldu 23, 8(1)\n"
+      "ldu 22, 8(1)\n"
+      "ldu 21, 8(1)\n"
+      "ldu 20, 8(1)\n"
+      "ldu 19, 8(1)\n"
+      "ldu 18, 8(1)\n"
+      "ldu 17, 8(1)\n"
+      "ldu 16, 8(1)\n"
+      "ldu 15, 8(1)\n"
+      "ldu 14, 8(1)\n"
+      // Dummy load.
+      "ldu 0, 8(1)\n");
+#else
+#  error Unsupported architecture.
+#endif
 }
+#endif
 
+#if SAFESIDE_ARM64
 // This way we avoid the global vs. local relocation of the afterspeculation
 // label addressing.
 SAFESIDE_ALWAYS_INLINE

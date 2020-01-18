@@ -15,36 +15,10 @@
  */
 
 /**
- * Demonstrates the Meltdown-DE on AMD.
- * We exploit the fact that the data from the remainder on AMD is speculatively
- * computed this way (before the #DE exception is raised and the remainder is
- * zeroed):
- * 0 % 0 = 0
- * 1 % 0 = 2
+ * Demonstrates the Meltdown-DE on x86/64.
+ * We exploit the fact that on all CPUs vulnerable to Meltdown-DE (and known to
+ * us) holds that:
  * 2 % 0 = 2
- * 3 % 0 = 3
- * 4 % 0 = 2
- * 5 % 0 = 2
- * 6 % 0 = 3
- * 7 % 0 = 3
- * 8 % 0 = 2
- * 9 % 0 = 2
- * 10 % 0 = 2
- * 11 % 0 = 2
- * 12 % 0 = 3
- * 13 % 0 = 3
- * 14 % 0 = 3
- * 15 % 0 = 3
- * 16 % 0 = 2
- * 7 times more 2 (x % 0 == 2 for x in {17..23})
- * 8 times 3
- * 16 times 2
- * 16 times 3
- * 32 times 2
- * 32 times 3
- * etc.
- * We use the second row, because it's the weirdest one, as the speculative
- * remainder is bigger than both operands.
  * Therefore we accomodate the private data to be stored in multiple strings
  * where the secret data is on index 2 (first two indices contain dummy data).
  * Then we speculatively access those unreachable characters in a loop.
@@ -57,7 +31,7 @@
 #endif
 
 #if !SAFESIDE_IA32 && !SAFESIDE_X64
-#  error Unsupported architecture. AMD required.
+#  error Unsupported architecture. x86/64 required.
 #endif
 
 #include <array>
@@ -98,7 +72,7 @@ const char *private_data[kPrivateDataLength] = {
 // We must store zero and one as a global variables to avoid optimizing them
 // out.
 size_t zero = 0;
-size_t one = 1;
+size_t two = 2;
 
 static char LeakByte(size_t offset) {
   CacheSideChannel sidechannel;
@@ -116,7 +90,7 @@ static char LeakByte(size_t offset) {
     // string. During the modulo by zero, SIGFPE is raised and the signal
     // handler moves the instruction pointer to the afterspeculation label.
     ForceRead(isolated_oracle.data() + static_cast<size_t>(
-        private_data[offset][one % zero]));
+        private_data[offset][two % zero]));
 
     std::cout << "Dead code. Must not be printed." << std::endl;
 

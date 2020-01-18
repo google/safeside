@@ -35,79 +35,26 @@
 #  error Unsupported CPU.
 #endif  // SAFESIDE_IA32
 
-// Architecturally dependent full memory fence.
-static void MFence() {
-#if SAFESIDE_X64 || SAFESIDE_IA32
-  _mm_mfence();
-#elif SAFESIDE_ARM64
-  asm volatile(
-      "dsb sy\n"
-      "isb\n");
-#elif SAFESIDE_PPC
-  asm volatile("sync");
-#else
-#  error Unsupported CPU.
-#endif
-}
-
-// Architecturally dependent load memory fence.
-static void LFence() {
-#if SAFESIDE_X64 || SAFESIDE_IA32
-  _mm_lfence();
-#elif SAFESIDE_ARM64
-  asm volatile(
-      "dsb ld\n"
-      "isb\n");
-#elif SAFESIDE_PPC
-  asm volatile("sync");
-#else
-#  error Unsupported CPU.
-#endif
-}
-
-// Architecturally dependent CPU clock counter.
-static uint64_t RdTsc() {
-  uint64_t result;
-#if SAFESIDE_X64 || SAFESIDE_IA32
-  result = __rdtsc();
-#elif SAFESIDE_ARM64
-  asm volatile("mrs %0, cntvct_el0" : "=r"(result));
-#elif SAFESIDE_PPC
-  asm volatile("mftb %0" : "=r"(result));
-#else
-#  error Unsupported CPU.
-#endif
-  return result;
-}
-
 // Architecturally dependent cache flush.
 void CLFlush(const void *memory) {
 #if SAFESIDE_X64 || SAFESIDE_IA32
   _mm_clflush(memory);
+  _mm_mfence();
+  _mm_lfence();
 #elif SAFESIDE_ARM64
-  asm volatile("dc civac, %0" ::"r"(memory) : "memory");
+  asm volatile("dc civac, %0\n"
+               "dsb sy\n" ::"r"(memory)
+               : "memory");
 #elif SAFESIDE_PPC
-  asm volatile("dcbf 0, %0" ::"r"(memory) : "memory");
+  asm volatile("dcbf 0, %0\n"
+               "sync" ::"r"(memory)
+               : "memory");
 #else
 #  error Unsupported CPU.
 #endif
-  MFence();
 }
 
-// Memory read latency measurement.
-uint64_t ReadLatency(const void *memory) {
-  uint64_t start = RdTsc();
-  LFence();
-  ForceRead(memory);
-  MFence();  // Necessary for x86 MSVC.
-  LFence();
-  uint64_t result = RdTsc() - start;
-  MFence();
-  LFence();  // Necessary for x86 MSVC.
-  return result;
-}
-
-#if SAFESIDE_GNUC && !SAFESIDE_PPC
+#if SAFESIDE_GNUC
 SAFESIDE_NEVER_INLINE
 void UnwindStackAndSlowlyReturnTo(const void *address) {
 #if SAFESIDE_X64
@@ -149,9 +96,28 @@ void UnwindStackAndSlowlyReturnTo(const void *address) {
       "mov x11, sp\n"
       "dc civac, x11\n"
       "dsb sy\n"
-      "isb\n"
+      // Having an ISB instruction on this place breaks the attack on Cavium.
       "ldr x30, [sp], #16\n"
       "ret\n"::"r"(address));
+#elif SAFESIDE_PPC
+  asm volatile(
+      // Unwind until the magic value and pop the magic value.
+      "addi 5, 0, 0xfffffffffffffedc\n"
+      "rotldi 5, 5, 16\n"
+      "addi 5, 5, 0xffffffffffffba98\n"
+      "rotldi 5, 5, 16\n"
+      "addi 5, 5, 0x0123\n"
+      "rotldi 5, 5, 16\n"
+      "addi 5, 5, 0x4568\n"
+      "popstack:\n"
+      "ldu 6, 8(1)\n"
+      "cmpd 5, 6\n"
+      "bf eq, popstack\n"
+      // Flush the stack pointer, sync, load to link register and return.
+      "dcbf 0, 1\n"
+      "sync\n"
+      "mtlr %0\n"
+      "blr\n"::"r"(address));
 #else
 #  error Unsupported CPU.
 #endif

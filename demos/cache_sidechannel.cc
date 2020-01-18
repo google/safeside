@@ -17,14 +17,15 @@
 #include <list>
 #include <vector>
 
+#include "asm/measurereadlatency.h"
 #include "cache_sidechannel.h"
 #include "instr.h"
 #include "utils.h"
 
 // Returns the indices of the biggest and second-biggest values in the range.
 template <typename RangeT>
-static std::pair<size_t, size_t> top_two_indices(const RangeT &range) {
-  std::pair<size_t, size_t> result = {0, 0};  // first biggest, second biggest
+static std::pair<size_t, size_t> TwoTwoIndices(const RangeT &range) {
+  std::pair<size_t, size_t> result = {256, 256};  // first and second biggest
   for (size_t i = 0; i < range.size(); ++i) {
     if (range[i] > range[result.first]) {
       result.second = result.first;
@@ -69,7 +70,8 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
     // accessing the offsets in a pseudo-random order.
     size_t mixed_i = ((i * 167) + 13) & 0xFF;
     const void *timing_entry = &GetOracle()[mixed_i];
-    latencies[mixed_i] = ReadLatency(timing_entry);
+    latencies[mixed_i] = MeasureReadLatency(
+        static_cast<const char *>(timing_entry));
   }
 
   std::list<uint64_t> sorted_latencies_list(latencies.begin(), latencies.end());
@@ -108,7 +110,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
     }
   }
 
-  std::tie(best_val, runner_up_val) = top_two_indices(scores_);
+  std::tie(best_val, runner_up_val) = TwoTwoIndices(scores_);
   return std::make_pair((scores_[best_val] > 2 * scores_[runner_up_val] + 40),
                         best_val);
 }
