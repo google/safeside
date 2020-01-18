@@ -32,6 +32,7 @@
 #endif
 
 #include <array>
+#include <cstddef>
 #include <cstring>
 #include <fstream>
 #include <iostream>

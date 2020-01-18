@@ -37,8 +37,8 @@ static char LeakByte(const char *data, size_t offset) {
   // The size needs to be unloaded from cache to force speculative execution
   // to guess the result of comparison.
   //
-  // TODO: since size_in_heap is no longer the only heap-allocated value, it
-  // should be allocated into its own unique page
+  // TODO(asteinha): since size_in_heap is no longer the only heap-allocated
+  // value, it should be allocated into its own unique page
   std::unique_ptr<size_t> size_in_heap = std::unique_ptr<size_t>(
       new size_t(strlen(data)));
 

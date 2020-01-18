@@ -95,7 +95,7 @@ static char LeakByte(const char *data, size_t offset) {
       return result.second;
     }
 
-    if (run > 100000) {
+    if (run > 100000000) {
       std::cerr << "Does not converge " << result.second << std::endl;
       exit(EXIT_FAILURE);
     }
@@ -110,6 +110,9 @@ int main() {
 #else
 #  error Unsupported OS.
 #endif
+  std::cout << "On Intel this example might take many hours." << std::endl
+            << "First character should be leaked within two hours." << std::endl
+            << "On AMD this example should take about 1 second." << std::endl;
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;
