@@ -111,6 +111,10 @@ For example:
 
 We eagerly welcome contributions. Please take a look at our [contributing guidelines](CONTRIBUTING.md) for more on how to engage with the project.
 
+### License
+
+Safeside is dual-licensed under both the [3-Clause BSD License](LICENSE) and [GPLv2](LICENSE.GPL-2.0). You may choose either license.
+
 ## Questions?
 
 If you've found a bug or think something's missing, please [file an issue](https://github.com/google/safeside/issues).
