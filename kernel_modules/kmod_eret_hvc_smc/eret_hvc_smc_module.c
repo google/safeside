@@ -12,7 +12,7 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
-MODULE_LICENSE("Proprietary");
+MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Google");
 MODULE_DESCRIPTION("");
 MODULE_VERSION("0.1");
