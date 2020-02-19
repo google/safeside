@@ -7,8 +7,8 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
-#ifndef DEMOS_UTILS_H
-#define DEMOS_UTILS_H
+#ifndef DEMOS_UTILS_H_
+#define DEMOS_UTILS_H_
 
 #include "compiler_specifics.h"
 
@@ -24,4 +24,5 @@ inline void ForceRead(const void *p) {
 // Flush a memory interval from cache. Used to induce speculative execution on
 // flushed values until they are fetched back to the cache.
 void FlushFromCache(const char *start, const char *end);
-#endif  // DEMOS_UTILS_H
+
+#endif  // DEMOS_UTILS_H_

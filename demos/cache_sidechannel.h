@@ -7,6 +7,9 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
+#ifndef DEMOS_CACHE_SIDECHANNEL_H_
+#define DEMOS_CACHE_SIDECHANNEL_H_
+
 #include <array>
 #include <memory>
 
@@ -97,3 +100,5 @@ class CacheSideChannel {
       std::unique_ptr<PaddedOracleArray>(new PaddedOracleArray);
   std::array<int, 257> scores_ = {};
 };
+
+#endif  // DEMOS_CACHE_SIDECHANNEL_H_

@@ -7,8 +7,8 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
-#ifndef DEMOS_MELTDOWN_LOCAL_CONTENT_H
-#define DEMOS_MELTDOWN_LOCAL_CONTENT_H
+#ifndef DEMOS_MELTDOWN_LOCAL_CONTENT_H_
+#define DEMOS_MELTDOWN_LOCAL_CONTENT_H_
 
 #include "compiler_specifics.h"
 
@@ -72,4 +72,5 @@ static void OnSignalMoveRipToAfterspeculation(int signal) {
   act.sa_flags = SA_SIGINFO;
   sigaction(signal, &act, nullptr);
 }
-#endif  // DEMOS_MELTDOWN_LOCAL_CONTENT_H
+
+#endif  // DEMOS_MELTDOWN_LOCAL_CONTENT_H_
