@@ -8,7 +8,7 @@
  */
 
 .global MeasureReadLatency
-// uint64_t MeasureReadLatency(const char* address);
+// uint64_t MeasureReadLatency(const void* address);
 MeasureReadLatency:
   // r3 = address
 

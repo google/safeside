@@ -16,6 +16,6 @@
 // Concrete sidechannel is dependent on the concrete vulnerability that we are
 // demonstrating.
 const char *public_data = "Hello, world!";
-const char *private_data = "It's a s3kr3t!!!";
+const char *private_data = "maiGahz1kiesiW2eike3";
 
 #endif  // DEMOS_LOCAL_CONTENT_H_
