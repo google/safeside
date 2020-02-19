@@ -19,7 +19,12 @@ if(("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "^(i.86)$") AND
 endif()
 
 # Support library
-add_library(safeside cache_sidechannel.cc instr.cc utils.cc)
+add_library(safeside
+  cache_sidechannel.cc
+  instr.cc
+  timing_array.cc
+  utils.cc
+)
 
 # Configure the assembler. Set ASM_EXT (extension for assembly files) and
 # ASM_PLATFORM (target CPU), which we'll use to add the right assembly
