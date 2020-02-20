@@ -13,10 +13,9 @@
 #include <memory>
 #include <vector>
 
-#include "cache_sidechannel.h"
 #include "instr.h"
 #include "local_content.h"
-#include "timing.h"
+#include "timing_array.h"
 #include "utils.h"
 
 // Leaks the byte that is physically located at &text[0] + offset, without ever

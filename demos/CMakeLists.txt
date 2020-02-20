@@ -22,7 +22,7 @@ endif()
 add_library(safeside
   cache_sidechannel.cc
   instr.cc
-  timing.cc
+  timing_array.cc
   utils.cc
 )
 
@@ -66,6 +66,11 @@ target_sources(
   PRIVATE
     asm/measurereadlatency_${ASM_PLATFORM}.${ASM_EXT}
 )
+
+# Support library tests
+
+add_executable(timing_array_test timing_array_test.cc)
+target_link_libraries(timing_array_test safeside)
 
 # Defines an executable target named `demo_name` built from `demo_name.cc` and
 # linked against the Safeside support library. The caller can also use the
@@ -162,4 +167,3 @@ add_demo(meltdown_ac SYSTEMS Linux PROCESSORS i686 x86_64)
 # Meltdown DE -- speculative computation with division by zero remainder
 add_demo(meltdown_de SYSTEMS Linux PROCESSORS i686 x86_64)
 
-add_demo(ta_test)

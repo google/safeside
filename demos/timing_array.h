@@ -46,6 +46,7 @@ class TimingArray {
   size_t size() const { return pages_.size(); }
 
   void FlushFromCache();
+
   ssize_t FindFirstCachedElementIndex();
   ssize_t FindFirstCachedElementIndexAfter(size_t start);
 
