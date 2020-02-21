@@ -11,11 +11,12 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <limits>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 #include "asm/measurereadlatency.h"
+#include "instr.h"
 #include "utils.h"
 
 namespace {
@@ -41,16 +42,19 @@ namespace {
 //
 // [1] https://www.cs.rice.edu/~dwallach/pub/crosby-timing2009.pdf
 uint64_t FindCachedReadLatencyThreshold() {
+  const int kIterations = 1000;
+  const int kPercentile = 10;
+
   TimingArray timing_array;
   std::vector<uint64_t> max_read_latencies;
 
-  for (int n = 0; n < 1000; ++n) {
-    // Bring all elements into cache
+  for (int n = 0; n < kIterations; ++n) {
+    // Bring all elements into cache.
     for (int i = 0; i < timing_array.size(); ++i) {
       ForceRead(&timing_array[i]);
     }
 
-    // Read all elements and keep track of the slowest read.
+    // Read each element and keep track of the slowest read.
     uint64_t max_read_latency = std::numeric_limits<uint64_t>::min();
     for (int i = 0; i < timing_array.size(); ++i) {
       max_read_latency =
@@ -60,30 +64,77 @@ uint64_t FindCachedReadLatencyThreshold() {
     max_read_latencies.push_back(max_read_latency);
   }
 
-  // Return the 10th percentile max latency value.
+  // Find and return the `kPercentile` max latency value.
   std::sort(max_read_latencies.begin(), max_read_latencies.end());
-  return max_read_latencies[max_read_latencies.size() / 10];
+  int index = (kPercentile / 100.0) * (max_read_latencies.size() - 1);
+  return max_read_latencies[index];
 }
 
 }  // namespace
 
-void TimingArray::FlushFromCache() {
-  ::FlushFromCache(this, this + 1);
+TimingArray::TimingArray() {
+  // Explicitly initialize the elements of the array.
+  //
+  // It's not important what value we write as long as we force *something* to
+  // be written to each element. Otherwise, the backing allocation could be a
+  // range of zero-fill-on-demand (ZFOD), copy-on-write pages that all start
+  // off mapped to the same physical page of zeros. Since the cache on modern
+  // Intel CPUs is physically tagged, some elements might map to the same cache
+  // line and we wouldn't observe a timing difference between reading accessed
+  // and unaccessed elements.
+  for (int i = 0; i < size(); ++i) {
+    get_element(i) = -1;
+  }
 }
 
-ssize_t TimingArray::FindFirstCachedElementIndexAfter(size_t start) {
-  static uint64_t cached_read_latency_threshold =
-    FindCachedReadLatencyThreshold();
+TimingArray::ValueType& TimingArray::get_element(size_t i) {
+  // Map this index to an element.
+  //
+  // We pull a few tricks here to minimize potential interference between
+  // reading elements:
+  //   - As described elsewhere, every element is on its own page to disable
+  //     hardware prefetching on some systems.
+  //   - Where that isn't enough (e.g. some AMD parts), we also use a simple
+  //     "
 
-  for (int i = start + 1; i != start; i = (i + 1) % size()) {
-    if (MeasureReadLatency(&(*this)[i]) <= cached_read_latency_threshold) {
-      return i;
+  // 113 works great for 256
+  size_t page = (i * 113 + 100) % pages_.size();
+  size_t cache_line = (i % TA_CACHE_LINES_PER_PAGE);
+
+  return pages_[page].cache_lines[cache_line].value;
+}
+
+void TimingArray::FlushFromCache() {
+  // We only need to flush the cache lines with elements on them.
+  for (int i = 0; i < size(); ++i) {
+    CLFlush(&get_element(i));
+  }
+}
+
+ssize_t TimingArray::FindFirstCachedElementIndexAfter(size_t start_after) {
+  static uint64_t cached_read_latency_threshold =
+      FindCachedReadLatencyThreshold();
+
+  // Fail if element is out of bounds.
+  if (start_after >= size()) {
+    return -1;
+  }
+
+  // Start at the element after `start_after`, wrapping around until we've
+  // found a cached element or tried every element.
+  for (int i = 1; i <= size(); ++i) {
+    int el = (start_after + i) % size();
+    uint64_t read_latency = MeasureReadLatency(&get_element(el));
+    if (read_latency <= cached_read_latency_threshold) {
+      return el;
     }
   }
 
+  // Didn't find a cached element.
   return -1;
 }
 
 ssize_t TimingArray::FindFirstCachedElementIndex() {
-  return FindFirstCachedElementIndexAfter(0);
+  // Start "after" the last element, which means start at the first.
+  return FindFirstCachedElementIndexAfter(size() - 1);
 }

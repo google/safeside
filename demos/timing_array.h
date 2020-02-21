@@ -7,42 +7,44 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
-#ifndef DEMOS_TIMING_H_
-#define DEMOS_TIMING_H_
+#ifndef DEMOS_TIMING_ARRAY_H_
+#define DEMOS_TIMING_ARRAY_H_
 
 #include <array>
 #include <cstddef>
 #include <cstring>
 #include <type_traits>
+#include <vector>
 
 // TODO: coalesce
 #define TA_CACHE_LINE_SIZE 64
 #define TA_PAGE_SIZE 4096
 #define TA_CACHE_LINES_PER_PAGE (TA_PAGE_SIZE / TA_CACHE_LINE_SIZE)
 
+
+
+// ARM
+// http://infocenter.arm.com/help/topic/com.arm.doc.100095_0003_06_en/pat1406322717379.html
+// Intel
+// https://cpu.fyi/d/83c#G3.1121453
+// AMD
+// 
+
 // TimingArray is an array optimized for inducing and measuring cache timing
 // side-channels.
 class TimingArray {
  public:
-  // We could templatize this class, but for now we just use `int`.
+  // ValueType is an alias for the element type of the array. Someday we might
+  // want to make TimingArray a template class and take this as a parameter,
+  // but for now we don't need the added flexibility.
   using ValueType = int;
 
-  TimingArray() {
-    // Ensure the entire array is backed by real pages
-    memset(&pages_, 0xff, sizeof(pages_));
-  }
+  TimingArray();
 
   TimingArray(TimingArray&) = delete;
   TimingArray& operator=(TimingArray&) = delete;
 
-  ValueType& operator[](size_t i) {
-    // 113 works great for 256
-    size_t page = (i * 113 + 100) % pages_.size();
-    size_t cache_line = (i % TA_CACHE_LINES_PER_PAGE);
-
-    return pages_[page].cache_lines[cache_line].value;
-  }
-
+  ValueType& operator[](size_t i) { return get_element(i); }
   size_t size() const { return pages_.size(); }
 
   void FlushFromCache();
@@ -51,6 +53,8 @@ class TimingArray {
   ssize_t FindFirstCachedElementIndexAfter(size_t start);
 
  private:
+  ValueType& get_element(size_t i);
+
   struct alignas(TA_CACHE_LINE_SIZE) CacheLine {
     ValueType value;
   };
@@ -59,8 +63,8 @@ class TimingArray {
     std::array<CacheLine, TA_CACHE_LINES_PER_PAGE> cache_lines;
   };
 
-  std::array<Page, 256> pages_;
-  static_assert(sizeof(pages_) == 256 * TA_PAGE_SIZE);
+  // note about stack allocation and potentially large pages
+  std::vector<Page> pages_{256};
 };
 
-#endif  // DEMOS_TIMING_H_
+#endif  // DEMOS_TIMING_ARRAY_H_
