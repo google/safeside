@@ -12,8 +12,6 @@
 
 #include <array>
 #include <cstddef>
-#include <cstring>
-#include <type_traits>
 #include <vector>
 
 // TODO: coalesce
@@ -32,11 +30,12 @@
 
 // TimingArray is an array optimized for inducing and measuring cache timing
 // side-channels.
+// elements designed not to interfere
 class TimingArray {
  public:
   // ValueType is an alias for the element type of the array. Someday we might
   // want to make TimingArray a template class and take this as a parameter,
-  // but for now we don't need the added flexibility.
+  // but for now the flexibility isn't worth the extra hassle.
   using ValueType = int;
 
   TimingArray();
@@ -63,7 +62,7 @@ class TimingArray {
     std::array<CacheLine, TA_CACHE_LINES_PER_PAGE> cache_lines;
   };
 
-  // note about stack allocation and potentially large pages
+  // Use a `std::vector` here 
   std::vector<Page> pages_{256};
 };
 
