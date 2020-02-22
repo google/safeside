@@ -83,11 +83,11 @@ TimingArray::TimingArray() {
   // line and we wouldn't observe a timing difference between reading accessed
   // and unaccessed elements.
   for (int i = 0; i < size(); ++i) {
-    get_element(i) = -1;
+    ElementAt(i) = -1;
   }
 }
 
-TimingArray::ValueType& TimingArray::get_element(size_t i) {
+TimingArray::ValueType& TimingArray::ElementAt(size_t i) {
   // Map this index to an element.
   //
   // We pull a few tricks here to minimize potential interference between
@@ -107,7 +107,7 @@ TimingArray::ValueType& TimingArray::get_element(size_t i) {
 void TimingArray::FlushFromCache() {
   // We only need to flush the cache lines with elements on them.
   for (int i = 0; i < size(); ++i) {
-    CLFlush(&get_element(i));
+    CLFlush(&ElementAt(i));
   }
 }
 
@@ -124,7 +124,7 @@ int TimingArray::FindFirstCachedElementIndexAfter(int start_after) {
   // found a cached element or tried every element.
   for (int i = 1; i <= size(); ++i) {
     int el = (start_after + i) % size();
-    uint64_t read_latency = MeasureReadLatency(&get_element(el));
+    uint64_t read_latency = MeasureReadLatency(&ElementAt(el));
     if (read_latency <= cached_read_latency_threshold) {
       return el;
     }

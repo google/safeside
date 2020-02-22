@@ -71,7 +71,7 @@ class TimingArray {
   TimingArray(TimingArray&) = delete;
   TimingArray& operator=(TimingArray&) = delete;
 
-  ValueType& operator[](size_t i) { return get_element(i); }
+  ValueType& operator[](size_t i) { return ElementAt(i); }
 
   // We intentionally omit the "const" accessor:
   //    const ValueType& operator[](size_t i) const { ... }
@@ -105,7 +105,7 @@ class TimingArray {
 
  private:
   // This is mostly to avoid needing `(*this)[n]` everywhere.
-  ValueType& get_element(size_t i);
+  ValueType& ElementAt(size_t i);
 
   // Build up some structs with `alignas` so we can represent:
   //   - 256 memory pages
