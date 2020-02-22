@@ -111,7 +111,7 @@ void TimingArray::FlushFromCache() {
   }
 }
 
-ssize_t TimingArray::FindFirstCachedElementIndexAfter(size_t start_after) {
+int TimingArray::FindFirstCachedElementIndexAfter(int start_after) {
   static uint64_t cached_read_latency_threshold =
       FindCachedReadLatencyThreshold();
 
@@ -134,7 +134,7 @@ ssize_t TimingArray::FindFirstCachedElementIndexAfter(size_t start_after) {
   return -1;
 }
 
-ssize_t TimingArray::FindFirstCachedElementIndex() {
+int TimingArray::FindFirstCachedElementIndex() {
   // Start "after" the last element, which means start at the first.
   return FindFirstCachedElementIndexAfter(size() - 1);
 }

@@ -95,13 +95,13 @@ class TimingArray {
   // so it is common to use it in a loop. Of course, reading the elements to
   // measure the time it takes brings those elements into cache, so the loop
   // must include a cache flush and re-attempt the side-channel leak.
-  ssize_t FindFirstCachedElementIndex();
+  int FindFirstCachedElementIndex();
 
   // Just like `FindFirstCachedElementIndex`, except it begins right *after*
   // the index `start` and wraps around to try all array elements. That is, the
   // first element read is `(start+1) % size` and the last element read before
   // returning -1 is `start`.
-  ssize_t FindFirstCachedElementIndexAfter(size_t start);
+  int FindFirstCachedElementIndexAfter(int start);
 
  private:
   // This is mostly to avoid needing `(*this)[n]` everywhere.
