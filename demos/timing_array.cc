@@ -99,7 +99,7 @@ TimingArray::ValueType& TimingArray::get_element(size_t i) {
 
   // 113 works great for 256
   size_t page = (i * 113 + 100) % pages_.size();
-  size_t cache_line = (i % TA_CACHE_LINES_PER_PAGE);
+  size_t cache_line = (i % (kPageBytes / kCacheLineBytes));
 
   return pages_[page].cache_lines[cache_line].value;
 }
