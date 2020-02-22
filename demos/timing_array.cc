@@ -42,13 +42,13 @@ namespace {
 //
 // [1] https://www.cs.rice.edu/~dwallach/pub/crosby-timing2009.pdf
 uint64_t FindCachedReadLatencyThreshold() {
-  const int kIterations = 1000;
-  const int kPercentile = 10;
+  const int iterations = 1000;
+  const int percentile = 10;
 
   TimingArray timing_array;
   std::vector<uint64_t> max_read_latencies;
 
-  for (int n = 0; n < kIterations; ++n) {
+  for (int n = 0; n < iterations; ++n) {
     // Bring all elements into cache.
     for (int i = 0; i < timing_array.size(); ++i) {
       ForceRead(&timing_array[i]);
@@ -64,9 +64,9 @@ uint64_t FindCachedReadLatencyThreshold() {
     max_read_latencies.push_back(max_read_latency);
   }
 
-  // Find and return the `kPercentile` max latency value.
+  // Find and return the `percentile` max latency value.
   std::sort(max_read_latencies.begin(), max_read_latencies.end());
-  int index = (kPercentile / 100.0) * (max_read_latencies.size() - 1);
+  int index = (percentile / 100.0) * (max_read_latencies.size() - 1);
   return max_read_latencies[index];
 }
 
