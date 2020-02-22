@@ -71,8 +71,7 @@ static char LeakByte(const char *data, size_t offset) {
       }
     }
 
-    ssize_t ret =
-      timing_array.FindFirstCachedElementIndexAfter(data[safe_offset]);
+    int ret = timing_array.FindFirstCachedElementIndexAfter(data[safe_offset]);
     if (ret >= 0 && ret != data[safe_offset]) {
       return ret;
     }
