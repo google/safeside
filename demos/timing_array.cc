@@ -35,7 +35,7 @@ namespace {
 //   3. Repeat (1) and (2) until we've collected 1000 data points.
 //   4. Sort the data points and return the 10th percentile value.
 //
-// TODO: explain why we use the max within a trial (cache sizes, TLB)
+// TODO(mmdriley): explain why we use the max within a trial (cache sizes, TLB)
 //
 // Our approach is inspired in part by observations from "Opportunities and
 // Limits of Remote Timing Attacks"[1].
