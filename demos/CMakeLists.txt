@@ -2,12 +2,10 @@
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS off)
 
-# Enable (or avoid disabling) at least minimal optimizations in Debug builds.
+# Enable (or avoid disabling) at least minimal optimizations in all builds.
 # Without optimizations, it can be difficult to fit enough useful code into the
 # speculative execution window.
-#
-# The default settings for Release builds have been fine so far.
-if (MSVC)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # Remove a few optimization-related MSVC flags that CMake includes in Debug
   # builds by default: https://git.io/Jv0F0
 
@@ -20,13 +18,21 @@ if (MSVC)
   # https://docs.microsoft.com/en-us/cpp/build/reference/ob-inline-function-expansion?view=vs-2019
   string(REPLACE "/Ob0" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 
-  # Remove `/RTC1`, which enables run-time error checks. These checks require
-  # optimizations to be disabled and fail the build if they're not.
+  # Remove `/RTC1`, which enables run-time error checks. These checks are
+  # incompatible with optimizations and the build fails if both are enabled.
   # https://docs.microsoft.com/en-us/cpp/build/reference/rtc-run-time-error-checks?view=vs-2019
   string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 else()
-  # Enable optimizations in Debug builds.
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O2")
+  # Enable baseline optimizations (`-O1`) in the generic C++ build flags for
+  # all build types.
+  #
+  # Some experiments show that flags in `CMAKE_CXX_FLAGS` appear on the
+  # compiler command line before those in `CMAKE_CXX_FLAGS_<CONFIG>` or added
+  # with `add_compile_options()`. Since Clang and GCC use the last `-O` option,
+  # that means we won't clobber a higher optimization setting used by release
+  # builds. For example, `CMAKE_<LANG>_FLAGS_RELEASE` includes `-O3` by default
+  # (see https://git.io/Jv0xu).
+  string(APPEND CMAKE_CXX_FLAGS " -O1")
 endif()
 
 # When targeting x86, we need to opt in to SSE2 instructions like
