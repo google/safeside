@@ -26,7 +26,7 @@ if (MSVC)
   string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 else()
   # Enable optimizations in Debug builds.
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O1")
+  add_compile_options(-O2)
 endif()
 
 # When targeting x86, we need to opt in to SSE2 instructions like
