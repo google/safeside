@@ -2,14 +2,32 @@
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS off)
 
-# Enable at least some optimization in all builds. The Ret2Spec demo, in
-# particular, will segfault if built without optimizations.
-# TODO(https://git.io/JecmX): Fix the crash in Ret2Spec
-add_compile_options(-O2)
+# Enable (or avoid disabling) at least minimal optimizations in Debug builds.
+# Without optimizations, it can be difficult to fit enough useful code into the
+# speculative execution window.
+#
+# The default settings for Release builds have been fine so far.
+if (MSVC)
+  # Remove a few optimization-related MSVC flags that CMake includes in Debug
+  # builds by default: https://git.io/Jv0F0
 
-# Disable run-time code checking on MSVC. It's enabled by default in CMake's
-# debug build settings, but it's incompatible with optimizations.
-string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+  # Remove `/Od`, which disables all optimizations.
+  # https://docs.microsoft.com/en-us/cpp/build/reference/od-disable-debug?view=vs-2019
+  string(REPLACE "/Od" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+
+  # Remove `/Ob0`, which disables *all* function inlining -- even for functions
+  # marked `__forceinline`.
+  # https://docs.microsoft.com/en-us/cpp/build/reference/ob-inline-function-expansion?view=vs-2019
+  string(REPLACE "/Ob0" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+
+  # Remove `/RTC1`, which enables run-time error checks. These checks require
+  # optimizations to be disabled and fail the build if they're not.
+  # https://docs.microsoft.com/en-us/cpp/build/reference/rtc-run-time-error-checks?view=vs-2019
+  string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+else()
+  # Enable optimizations in Debug builds.
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O1")
+endif()
 
 # When targeting x86, we need to opt in to SSE2 instructions like
 # clflush, mfence, lfence.
@@ -166,4 +184,3 @@ add_demo(meltdown_ac SYSTEMS Linux PROCESSORS i686 x86_64)
 
 # Meltdown DE -- speculative computation with division by zero remainder
 add_demo(meltdown_de SYSTEMS Linux PROCESSORS i686 x86_64)
-
