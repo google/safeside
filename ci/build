@@ -12,7 +12,7 @@ generate_and_build() {
 
   mkdir "${folder_name}"
   (cd "${folder_name}"; cmake "$@" ..)
-  cmake --build "${folder_name}"
+  VERBOSE=1 cmake --build "${folder_name}"
 }
 
 # Installs given packages.
