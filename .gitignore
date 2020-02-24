@@ -1,4 +1,4 @@
-# Assumes a workflow of:
-#     cmake -B build .
-#     make -C build
 /build/
+/build-*/
+
+.vscode/
