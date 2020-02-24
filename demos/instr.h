@@ -38,8 +38,8 @@ void CLFlush(const void *memory);
 // Yields serializing instruction.
 // Must be inlined in order to avoid to avoid misprediction that skips the
 // call.
-SAFESIDE_ALWAYS_INLINE
-inline void MemoryAndSpeculationBarrier() {
+inline SAFESIDE_ALWAYS_INLINE
+void MemoryAndSpeculationBarrier() {
 #if SAFESIDE_X64 || SAFESIDE_IA32
 #  if SAFESIDE_MSVC
   int cpuinfo[4];
