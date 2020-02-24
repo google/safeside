@@ -11,11 +11,10 @@
 
 #include <cstddef>
 
+#include "hardware_constants.h"
 #include "instr.h"
 
 namespace {
-
-constexpr size_t kCacheLineSize = 64;
 
 // Returns the address of the first byte of the cache line *after* the one on
 // which `addr` falls.
@@ -24,7 +23,7 @@ const void* StartOfNextCacheLine(const void* addr) {
 
   // Create an address on the next cache line, then mask it to round it down to
   // cache line alignment.
-  auto next_n = (addr_n + kCacheLineSize) & ~(kCacheLineSize - 1);
+  auto next_n = (addr_n + kCacheLineBytes) & ~(kCacheLineBytes - 1);
   return reinterpret_cast<const void*>(next_n);
 }
 

@@ -24,7 +24,6 @@
 const char *public_data = "xxxxxxxxxxxxxxxx";
 const char *private_data = "It's a s3kr3t!!!";
 constexpr size_t kAccessorArrayLength = 1024;
-constexpr size_t kCacheLineSize = 64;
 
 // DataAccessor provides an interface to access bytes from either the public or
 // the private storage.

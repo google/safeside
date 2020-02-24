@@ -25,13 +25,6 @@
 #  endif
 #endif
 
-// Page size.
-#if SAFESIDE_PPC
-constexpr uint32_t kPageSizeBytes = 65536;
-#else
-constexpr uint32_t kPageSizeBytes = 4096;
-#endif
-
 // Flushing cacheline containing given address.
 void CLFlush(const void *memory);
 
