@@ -35,7 +35,6 @@
 // Recursion depth should be equal or greater than the RSB size, but not
 // excessively high because of the possibility of stack overflow.
 constexpr size_t kRecursionDepth = 64;
-constexpr size_t kCacheLineSize = 64;
 
 // Global variables used to avoid passing parameters through recursive function
 // calls. Since we flush whole stack frames from the cache, it is important not
