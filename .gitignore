@@ -1,5 +1,6 @@
-# Assumes a workflow of:
-#     cmake -B build .
-#     make -C build
+# CMake build directories
 /build/
-.vscode
+/build-*/
+
+# Visual Studio Code config
+.vscode/*
