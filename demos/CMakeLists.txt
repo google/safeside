@@ -2,14 +2,38 @@
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS off)
 
-# Enable at least some optimization in all builds. The Ret2Spec demo, in
-# particular, will segfault if built without optimizations.
-# TODO(https://git.io/JecmX): Fix the crash in Ret2Spec
-add_compile_options(-O2)
+# Enable (or at least don't disable) some optimizations in all builds.
+# Without optimizations, it can be difficult to fit enough useful code into the
+# speculative execution window.
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  # Remove a few optimization-related MSVC flags that CMake includes in Debug
+  # builds by default: https://git.io/Jv0F0
 
-# Disable run-time code checking on MSVC. It's enabled by default in CMake's
-# debug build settings, but it's incompatible with optimizations.
-string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+  # Remove `/Od`, which disables all optimizations.
+  # https://docs.microsoft.com/en-us/cpp/build/reference/od-disable-debug?view=vs-2019
+  string(REPLACE "/Od" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+
+  # Remove `/Ob0`, which disables *all* function inlining -- even for functions
+  # marked `__forceinline`.
+  # https://docs.microsoft.com/en-us/cpp/build/reference/ob-inline-function-expansion?view=vs-2019
+  string(REPLACE "/Ob0" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+
+  # Remove `/RTC1`, which enables run-time error checks. These checks are
+  # incompatible with optimizations and the build fails if both are enabled.
+  # https://docs.microsoft.com/en-us/cpp/build/reference/rtc-run-time-error-checks?view=vs-2019
+  string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+else()
+  # Enable baseline optimizations (`-O1`) in the generic C++ build flags for
+  # all build types.
+  #
+  # Some experiments show that flags in `CMAKE_CXX_FLAGS` appear on the
+  # compiler command line before those in `CMAKE_CXX_FLAGS_<CONFIG>` or added
+  # with `add_compile_options()`. Since Clang and GCC use the last `-O` option,
+  # that means we won't clobber a higher optimization setting used by release
+  # builds. For example, `CMAKE_<LANG>_FLAGS_RELEASE` includes `-O3` by default
+  # when compiling with a GCC-compatible toolchain (see https://git.io/Jv0xu).
+  string(APPEND CMAKE_CXX_FLAGS " -O1")
+endif()
 
 # When targeting x86, we need to opt in to SSE2 instructions like
 # clflush, mfence, lfence.
