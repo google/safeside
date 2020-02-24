@@ -26,6 +26,13 @@
 #ifdef _MSC_VER
 #define SAFESIDE_MSVC 1
 #define SAFESIDE_NEVER_INLINE __declspec(noinline)
+
+// If a function is modified by both `inline` and `SAFESIDE_ALWAYS_INLINE`,
+// MSVC may issue a diagnostic:
+//     warning C4141: 'inline': used more than once
+//
+// To avoid this, put `inline` *before* `SAFESIDE_ALWAYS_INLINE` on any
+// function that will be compiled by MSVC.
 #define SAFESIDE_ALWAYS_INLINE __forceinline
 #elif defined(__GNUC__)
 #define SAFESIDE_GNUC 1
