@@ -7,20 +7,31 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
+#include "utils.h"
+
 #include <cstddef>
 
 #include "instr.h"
-#include "utils.h"
+
+namespace {
 
 constexpr size_t kCacheLineSize = 64;
 
-// Flush a memory interval from cache. Used to induce speculative execution on
-// flushed values until they are fetched back to the cache.
-void FlushFromCache(const char *start, const char *end) {
-  // Start on the first byte and continue in kCacheLineSize steps.
-  for (const char *ptr = start; ptr < end; ptr += kCacheLineSize) {
-    CLFlush(ptr);
+// Returns the address of the first byte of the cache line *after* the one on
+// which `addr` falls.
+const void* StartOfNextCacheLine(const void* addr) {
+  auto addr_n = reinterpret_cast<uintptr_t>(addr);
+
+  // Create an address on the next cache line, then mask it to round it down to
+  // cache line alignment.
+  auto next_n = (addr_n + kCacheLineSize) & ~(kCacheLineSize - 1);
+  return reinterpret_cast<const void*>(next_n);
+}
+
+}  // namespace
+
+void FlushFromCache(const void *begin, const void *end) {
+  for (; begin < end; begin = StartOfNextCacheLine(begin)) {
+    CLFlush(begin);
   }
-  // Flush explicitly the last byte.
-  CLFlush(end - 1);
 }
