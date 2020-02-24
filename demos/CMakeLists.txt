@@ -43,7 +43,12 @@ if(("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "^(i.86)$") AND
 endif()
 
 # Support library
-add_library(safeside cache_sidechannel.cc instr.cc utils.cc)
+add_library(safeside
+  cache_sidechannel.cc
+  instr.cc
+  timing_array.cc
+  utils.cc
+)
 
 # Configure the assembler. Set ASM_EXT (extension for assembly files) and
 # ASM_PLATFORM (target CPU), which we'll use to add the right assembly
@@ -85,6 +90,11 @@ target_sources(
   PRIVATE
     asm/measurereadlatency_${ASM_PLATFORM}.${ASM_EXT}
 )
+
+# Support library tests
+
+add_executable(timing_array_test timing_array_test.cc)
+target_link_libraries(timing_array_test safeside)
 
 # Defines an executable target named `demo_name` built from `demo_name.cc` and
 # linked against the Safeside support library. The caller can also use the

