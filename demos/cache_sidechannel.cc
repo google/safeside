@@ -62,9 +62,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
     // them all equally fast. Therefore it is necessary to confuse them by
     // accessing the offsets in a pseudo-random order.
     size_t mixed_i = ((i * 167) + 13) & 0xFF;
-    const void *timing_entry = &GetOracle()[mixed_i];
-    latencies[mixed_i] = MeasureReadLatency(
-        static_cast<const char *>(timing_entry));
+    latencies[mixed_i] = MeasureReadLatency(&GetOracle()[mixed_i]);
   }
 
   std::list<uint64_t> sorted_latencies_list(latencies.begin(), latencies.end());
