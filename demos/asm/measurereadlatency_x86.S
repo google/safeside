@@ -10,7 +10,7 @@
 .intel_syntax noprefix
 
 .global MeasureReadLatency
-// uint64_t MeasureReadLatency(const char* address);
+// uint64_t MeasureReadLatency(const void* address);
 //
 // See measurereadlatency_x86_64.S for more details on what this function does,
 // in particular for why MFENCEs and LFENCEs occur where they do. The only

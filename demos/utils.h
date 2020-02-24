@@ -21,8 +21,7 @@ inline void ForceRead(const void *p) {
   (void)*reinterpret_cast<const volatile char *>(p);
 }
 
-// Flush a memory interval from cache. Used to induce speculative execution on
-// flushed values until they are fetched back to the cache.
-void FlushFromCache(const char *start, const char *end);
+// Flush [begin, end) from cache. No alignment is assumed.
+void FlushFromCache(const void *begin, const void *end);
 
 #endif  // DEMOS_UTILS_H_

@@ -23,6 +23,6 @@
 //
 // Will return spuriously high results if e.g. the thread is preempted while
 // measuring the read.
-extern "C" uint64_t MeasureReadLatency(const char* address);
+extern "C" uint64_t MeasureReadLatency(const void* address);
 
 #endif  // DEMOS_ASM_MEASUREREADLATENCY_H_
