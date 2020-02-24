@@ -7,6 +7,9 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
+#ifndef DEMOS_INSTR_H_
+#define DEMOS_INSTR_H_
+
 #include <cstdint>
 #include <cstring>
 
@@ -279,3 +282,5 @@ inline void SupposedlySafeOffsetAndDereference(const char *address,
 }
 #endif
 #endif
+
+#endif  // DEMOS_INSTR_H_
