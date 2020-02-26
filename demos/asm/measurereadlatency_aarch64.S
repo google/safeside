@@ -12,26 +12,17 @@
 MeasureReadLatency:
   // x0 = address
 
-  // Serialize the instruction stream and finish all memory operations.
+  // Full memory and speculation barrier. See docs/fencing.md for details.
   //
-  // The data synchronization barrier (DSB, [1]) instruction waits for all
-  // memory and cache manipulation operations to finish before completing, and
-  // prevents *almost* all subsequent instructions from having any effect until
-  // the DSB completes.
-  //
-  // One exception to DSB's serialization effects is reads of the System
-  // registers that are done "without causing side-effects", which some
-  // platforms consider to include reading the virtual count.
-  //
-  // To avoiding the timestamp read passing older instructions, we also issue
-  // an Instruction Synchronization Barrier (ISB, [2]). ISB ensures that the
-  // effect of "context-changing operations", for example "changes to System
-  // registers", are visible to subsequent instructions.
+  // Of special note: we need the ISB here to prevent some processors from
+  // speculating ahead and reading the timestamp counter early. DSB doesn't
+  // stop later instructions from "[r]eading ... System registers that are
+  // directly or indirectly read without causing side-effects"[1], which seems
+  // to include the virtual count.
   //
   // Linux adds an ISB before reading CNTVCT_EL0: https://git.io/Jeivz
   //
   // [1] DSB: https://cpu.fyi/d/047#G9.10258412
-  // [2] ISB: https://cpu.fyi/d/047#G9.10257730
   dsb sy
   isb
 

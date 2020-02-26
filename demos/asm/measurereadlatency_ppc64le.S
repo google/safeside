@@ -12,24 +12,7 @@
 MeasureReadLatency:
   // r3 = address
 
-  // Serialize the instruction stream and finish all memory operations.
-  //
-  // SYNC[1] waits for all preceding instructions to complete before any
-  // subsequent instructions are initiated. It also waits until *almost* all
-  // preceding memory operations have completed, with the exception of accesses
-  // caused by ICBI[2].
-  //
-  // To wait for these last accesses, we also issue an ISYNC[3] instruction.
-  // ISYNC has the same serializing effect on the instruction stream as SYNC,
-  // but doesn't enforce order of any memory accesses *except* those caused by
-  // a preceding ICBI.
-  //
-  // Of note, Linux uses `ISYNC; SYNC` as a speculation barrier on some PowerPC
-  // devices: https://git.io/Je60x
-  //
-  // [1] SYNC: https://cpu.fyi/d/a48#G19.1034642
-  // [2] ICBI: https://cpu.fyi/d/a48#G19.1020460
-  // [3] ISYNC: https://cpu.fyi/d/a48#G19.1020771
+  // Full memory and speculation barrier. See docs/fencing.md for details.
   isync
   sync
 
