@@ -29,8 +29,9 @@ const void* StartOfNextCacheLine(const void* addr) {
 
 }  // namespace
 
-void FlushFromCache(const void *begin, const void *end) {
+void FlushFromDataCache(const void *begin, const void *end) {
   for (; begin < end; begin = StartOfNextCacheLine(begin)) {
-    CLFlush(begin);
+    FlushDataCacheLineNoBarrier(begin);
   }
+  MemoryAndSpeculationBarrier();
 }

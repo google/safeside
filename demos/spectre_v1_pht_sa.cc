@@ -49,7 +49,7 @@ static char LeakByte(const char *data, size_t offset) {
     for (size_t i = 0; i < 2048; ++i) {
       // Remove from cache so that we block on loading it from memory,
       // triggering speculative execution.
-      CLFlush(size_in_heap.get());
+      FlushDataCacheLine(size_in_heap.get());
 
       // Train the branch predictor: perform in-bounds accesses 2047 times,
       // and then use the out-of-bounds offset we _actually_ care about on the

@@ -22,6 +22,6 @@ void ForceRead(const void *p) {
 }
 
 // Flush [begin, end) from cache. No alignment is assumed.
-void FlushFromCache(const void *begin, const void *end);
+void FlushFromDataCache(const void *begin, const void *end);
 
 #endif  // DEMOS_UTILS_H_

@@ -50,7 +50,7 @@ The [data synchronization barrier (`DSB`)](https://cpu.fyi/d/047#G9.10258412) in
 
 The two exceptions are:
 - Instructions can be fetched and decoded
-- Registers can be read "without causing side-effects"
+- Registers that are read "without causing side-effects"
 
 These might seem innocuous, but empirically we've seen the second item extends to registers we _want_ to wait to read, e.g. the timestamp counter.
 
@@ -67,7 +67,7 @@ The [synchronize (`SYNC`)](https://cpu.fyi/d/a48#G19.1034642) instruction waits 
 
 To wait for these last accesses, we also issue the [instruction synchronize (`ISYNC`)](https://cpu.fyi/d/a48#G19.1020771) instruction. `ISYNC` has the same serializing effect on the instruction stream as `SYNC`, but doesn't enforce order of any memory accesses *except* those caused by a preceding `ICBI`.
 
-It's not obvious if the ordering of these two instructions matters. [Linux uses `ISYNC; SYNC`](https://git.io/Je60x).
+There's no obvious reason the order of these two instructions should matter. [Linux uses `ISYNC; SYNC`](https://git.io/Je60x).
 
 ## Other implementation notes
 

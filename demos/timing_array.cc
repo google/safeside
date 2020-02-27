@@ -40,8 +40,11 @@ TimingArray::TimingArray() {
 void TimingArray::FlushFromCache() {
   // We only need to flush the cache lines with elements on them.
   for (int i = 0; i < size(); ++i) {
-    CLFlush(&ElementAt(i));
+    FlushDataCacheLineNoBarrier(&ElementAt(i));
   }
+
+  // Wait for flushes to finish.
+  MemoryAndSpeculationBarrier();
 }
 
 int TimingArray::FindFirstCachedElementIndexAfter(int start_after) {

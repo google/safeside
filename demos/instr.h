@@ -25,33 +25,28 @@
 #  endif
 #endif
 
-// Flushing cacheline containing given address.
-void CLFlush(const void *memory);
-
-// Yields serializing instruction.
-// Must be inlined in order to avoid to avoid misprediction that skips the
-// call.
-inline SAFESIDE_ALWAYS_INLINE
-void MemoryAndSpeculationBarrier() {
+// Include architecture-specific implementations.
 #if SAFESIDE_X64 || SAFESIDE_IA32
-#  if SAFESIDE_MSVC
-  int cpuinfo[4];
-  __cpuid(cpuinfo, 0);
-#  elif SAFESIDE_GNUC
-  int a, b, c, d;
-  __cpuid(0, a, b, c, d);
-#  else
-#    error Unsupported compiler.
-#  endif
+#  include "instr_x86.h"
 #elif SAFESIDE_ARM64
-  asm volatile(
-      "dsb sy\n"
-      "isb\n");
+#  include "instr_aarch64.h"
 #elif SAFESIDE_PPC
-  asm volatile("sync");
-#else
-#  error Unsupported CPU.
+#  include "instr_ppc64le.h"
 #endif
+
+// Full memory and speculation barrier, as described in docs/fencing.md.
+// Implementation in instr_*.h.
+void MemoryAndSpeculationBarrier();
+
+// Flush the cache line containing the given address from all levels of the
+// cache hierarchy. For split cache levels, `address` is flushed from dcache.
+// Implementation in instr_*.h.
+void FlushDataCacheLineNoBarrier(const void *address);
+
+// Convenience wrapper to flush and wait.
+inline void FlushDataCacheLine(void *address) {
+  FlushDataCacheLineNoBarrier(address);
+  MemoryAndSpeculationBarrier();
 }
 
 #if SAFESIDE_GNUC
