@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -o errexit -o nounset -o pipefail
+
+cpuinfo_linux() {
+  which lscpu >/dev/null && lscpu
+}
+
+cpuinfo_mac() {
+  which sysctl >/dev/null && sysctl -a | grep '^machdep.cpu.'
+}
+
+cpuinfo_windows() {
+  which powershell >/dev/null && \
+      powershell -Command Get-WmiObject -Class Win32_Processor
+}
+
+cpuinfo_linux || cpuinfo_mac || cpuinfo_windows
