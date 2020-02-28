@@ -21,32 +21,7 @@
 DECORATE(MeasureReadLatency):
   // rdi = address
 
-  // Serialize the instruction stream and finish all memory operations.
-  //
-  // LFENCE[1] waits for all prior instructions to complete[2] before allowing
-  // any later instructions to start, but (as the name would suggest) it
-  // doesn't wait for memory operations other than loads to complete. So we add
-  // an MFENCE[3], which is a full memory barrier but does not serialize the
-  // instruction stream, followed by an LFENCE. The LFENCE must come second so
-  // that it will wait for the MFENCE to complete.
-  //
-  // MFENCE also waits for prior CLFLUSH and CLFLUSHOPT instructions to finish
-  // before continuing.[4]
-  //
-  // See also: the FLUSH+RELOAD paper[5], specifically Figure 4 on page 5 and
-  // the accompanying explanation.
-  //
-  // [1] LFENCE: https://cpu.fyi/d/484#G5.136804
-  // [2] At least, on Intel processors. LFENCE is _not_ documented as
-  //   serializing on AMD processors (https://cpu.fyi/d/ad5#G9.3072402), but
-  //   in early 2018 AMD described a model-specific register (MSR) that system
-  //   software can set to make LFENCE serializing on all existing and future
-  //   AMD processors. (See https://cpu.fyi/l/AxzQB, page 3, "Mitigation G-2".)
-  //   This MSR has been set in Linux since v4.15: https://git.io/JePgI
-  // [3] MFENCE: https://cpu.fyi/d/484#G7.864843
-  // [4] "Memory Ordering in P6 and More Recent Processor Families":
-  //   https://cpu.fyi/d/749#G13.31870
-  // [5] FLUSH+RELOAD: https://eprint.iacr.org/2013/448.pdf
+  // Full memory and speculation barrier. See docs/fencing.md for details.
   mfence
   lfence
 
@@ -67,7 +42,7 @@ DECORATE(MeasureReadLatency):
   // Read *rdi.
   mov al, byte ptr [rdi]
 
-  // Finish the read before reading the timestamp again. Here, LFENCE suffices
+  // Finish the read before reading the timestamp again. LFENCE suffices here
   // because it serializes the instruction stream *and* waits for load
   // operations to complete.
   lfence

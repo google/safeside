@@ -28,25 +28,6 @@
 #  error Unsupported CPU.
 #endif  // SAFESIDE_IA32
 
-// Architecturally dependent cache flush.
-void CLFlush(const void *memory) {
-#if SAFESIDE_X64 || SAFESIDE_IA32
-  _mm_clflush(memory);
-  _mm_mfence();
-  _mm_lfence();
-#elif SAFESIDE_ARM64
-  asm volatile("dc civac, %0\n"
-               "dsb sy\n" ::"r"(memory)
-               : "memory");
-#elif SAFESIDE_PPC
-  asm volatile("dcbf 0, %0\n"
-               "sync" ::"r"(memory)
-               : "memory");
-#else
-#  error Unsupported CPU.
-#endif
-}
-
 #if SAFESIDE_GNUC
 SAFESIDE_NEVER_INLINE
 void UnwindStackAndSlowlyReturnTo(const void *address) {
