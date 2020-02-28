@@ -15,8 +15,8 @@
 #include "utils.h"
 
 // Measure how often TimingArray is able to accurately determine which element
-// was read into cache. Fail the test early if the *wrong* element is ever read
-// (vs. the benign "no result").
+// was read into cache and how often it positively identifies the *wrong*
+// element.
 int main(int argc, char* argv[]) {
   TimingArray ta;
 
@@ -25,6 +25,8 @@ int main(int argc, char* argv[]) {
 
   const int attempts = 10000;
   int successes = 0;
+  int false_positives = 0;
+  int previous_el = -1;
 
   for (int n = 0; n < attempts; ++n) {
     // Choose a random byte and attempt to leak it through the cache timing
@@ -40,14 +42,22 @@ int main(int argc, char* argv[]) {
       std::cout << "False positive. Found " << found
                 << " instead of " << el
                 << std::endl;
-      exit(1);
+
+      // Previous element is useful for debugging false positives caused by the
+      // hardware prefetcher acting on memory accesses at repeated stride.
+      std::cout << "Previous value was " << previous_el << std::endl;
+      ++false_positives;
     }
+
+    previous_el = el;
   }
 
   std::cout << "Found cached element on the first try "
             << successes << " of " << attempts << " times." << std::endl;
+  std::cout << "False positives: " << false_positives << std::endl;
 
-  // Expect a high percentage of attempts to succeed.
-  bool pass = successes > (attempts * 0.85);
+  // Expect most attempts to succeed and very few false positives.
+  bool pass =
+      successes > (attempts * 0.85) && false_positives < (attempts * 0.05);
   return !pass;
 }
