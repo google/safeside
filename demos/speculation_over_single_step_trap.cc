@@ -39,6 +39,7 @@
 #include <cstring>
 #include <iostream>
 
+#include <asm/processor-flags.h>
 #include <signal.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
@@ -66,6 +67,9 @@ static char LeakByte(const char *data, size_t offset) {
     // Synchronize with the parent. Let it setup the trap flag in child's
     // EFLAGS.
     raise(SIGSTOP);
+    // This is necessary because the call to raise may be an
+    // incorrectly-predicted indirect call and speculation might continue
+    // past before we've even set up the trap.
     MemoryAndSpeculationBarrier();
 
     // Successful access of the safe offset.
@@ -133,6 +137,8 @@ void ParentProcess(pid_t child) {
 
     if (WSTOPSIG(wstatus) == SIGSTOP) {
       // Toggle on the trap flag in EFLAGS.
+      // Documented in https://cpu.fyi/d/47e#G4.2043
+      // Linux allows the modifications: https://git.io/JvCT2
       // The child stopped itself with "raise(SIGSTOP)". We have to start
       // single-stepping the child.
       user_regs_struct regs;
@@ -144,7 +150,7 @@ void ParentProcess(pid_t child) {
       }
 
       // Toggle on the trap flag in child's EFLAGS.
-      regs.eflags |= 0x100;
+      regs.eflags |= X86_EFLAGS_TF;
 
       // Store the modified child's EFLAGS register content.
       res = ptrace(PTRACE_SETREGS, child, nullptr, &regs);
@@ -168,12 +174,13 @@ void ParentProcess(pid_t child) {
       // If the child's instruction pointer points to "boundary", move it to
       // "afterspeculation" and switch off the trap flag.
 #if SAFESIDE_X64
-      if (regs.rip == reinterpret_cast<size_t>(boundary)) {
-        regs.rip = reinterpret_cast<size_t>(afterspeculation);
+#  define IP_REG(regs) ((regs).rip)
 #else
-      if (regs.eip == reinterpret_cast<size_t>(boundary)) {
-        regs.eip = reinterpret_cast<size_t>(afterspeculation);
+#  define IP_REG(regs) ((regs).eip)
 #endif
+
+      if (IP_REG(regs) == reinterpret_cast<size_t>(boundary)) {
+        IP_REG(regs) = reinterpret_cast<size_t>(afterspeculation);
 
         // Toggle off the trap flag in child's EFLAGS.
         regs.eflags &= ~0x100;
