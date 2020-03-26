@@ -152,7 +152,7 @@ add_demo(speculation_over_exec_hw_breakpoint
          PROCESSORS i686 x86_64)
 
 # Speculation over single-step debug trap (trap flag in EFLAGS)
-add_demo(speculation_over_signle_step_trap SYSTEMS Linux PROCESSORS i686 x86_64)
+add_demo(speculation_over_single_step_trap SYSTEMS Linux PROCESSORS i686 x86_64)
 
 # Meltdown AC -- speculative fetching of unaligned data
 add_demo(meltdown_ac SYSTEMS Linux PROCESSORS i686 x86_64)
