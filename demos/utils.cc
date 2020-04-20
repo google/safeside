@@ -43,6 +43,7 @@ void FlushFromDataCache(const void *begin, const void *end) {
   MemoryAndSpeculationBarrier();
 }
 
+#if SAFESIDE_LINUX
 void PinToTheFirstCore() {
   cpu_set_t set;
   CPU_ZERO(&set);
@@ -53,3 +54,4 @@ void PinToTheFirstCore() {
     exit(EXIT_FAILURE);
   }
 }
+#endif
