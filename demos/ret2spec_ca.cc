@@ -52,20 +52,13 @@ static void Unschedule() {
 }
 
 int main() {
-  conditionally_unschedule = Unschedule;
-  unschedule_or_start_returns_false = Unschedule;
+  return_true_base_case = Unschedule;
+  return_false_base_case = Unschedule;
   // Parent PID for the death-checking of the child.
   pid_t ppid = getpid();
   // We need both processes to run on the same core. Pinning the parent before
   // the fork to the first core. The child inherits the settings.
-  cpu_set_t set;
-  CPU_ZERO(&set);
-  CPU_SET(0, &set);
-  int res = sched_setaffinity(getpid(), sizeof(set), &set);
-  if (res != 0) {
-    std::cout << "CPU affinity setup failed." << std::endl;
-    exit(EXIT_FAILURE);
-  }
+  PinToTheFirstCore();
   if (fork() == 0) {
     // The child (attacker) infinitely fills the RSB using recursive calls.
     while (true) {

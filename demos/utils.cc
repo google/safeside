@@ -13,8 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "compiler_specifics.h"
 
 #include <cstddef>
+#include <iostream>
+#if SAFESIDE_LINUX
+#include <sched.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
 
 #include "instr.h"
 #include "utils.h"
@@ -30,4 +37,15 @@ void FlushFromCache(const char *start, const char *end) {
   }
   // Flush explicitly the last byte.
   CLFlush(end - 1);
+}
+
+void PinToTheFirstCore() {
+  cpu_set_t set;
+  CPU_ZERO(&set);
+  CPU_SET(0, &set);
+  int res = sched_setaffinity(getpid(), sizeof(set), &set);
+  if (res != 0) {
+    std::cout << "CPU affinity setup failed." << std::endl;
+    exit(EXIT_FAILURE);
+  }
 }

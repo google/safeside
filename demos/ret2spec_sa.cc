@@ -49,8 +49,8 @@ static void ReturnsFalseRecursion() {
 }
 
 int main() {
-  conditionally_unschedule = NopFunction;
-  unschedule_or_start_returns_false = ReturnsFalseRecursion;
+  return_true_base_case = NopFunction;
+  return_false_base_case = ReturnsFalseRecursion;
   std::cout << "Leaking the string: ";
   std::cout.flush();
   for (size_t i = 0; i < strlen(private_data); ++i) {

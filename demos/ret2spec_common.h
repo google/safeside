@@ -7,8 +7,8 @@ constexpr size_t kRecursionDepth = 64;
 // because the same-address-space version works everywhere including on systems
 // that do not allow forced pinning of processes to cores (e.g. MacOS), the
 // cross-address-space version is Linux only.
-extern void (*conditionally_unschedule)();
-extern void (*unschedule_or_start_returns_false)();
+extern void (*return_true_base_case)();
+extern void (*return_false_base_case)();
 
 // Global variables used to avoid passing parameters through recursive function
 // calls. Since we flush whole stack frames from the cache, it is important not
