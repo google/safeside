@@ -168,14 +168,7 @@ void ParentProcess() {
 int main() {
   // We need both processes to run on the same core. Pinning the parent before
   // the fork to the first core. The child inherits the settings.
-  cpu_set_t set;
-  CPU_ZERO(&set);
-  CPU_SET(0, &set);
-  int res = sched_setaffinity(getpid(), sizeof(set), &set);
-  if (res != 0) {
-    std::cout << "CPU affinity setup failed." << std::endl;
-    exit(EXIT_FAILURE);
-  }
+  PinToTheFirstCore();
 
   // Record the parent pid for the death check in the child. When the parent pid
   // changes for the child, it means that the child should terminate.

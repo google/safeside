@@ -6,10 +6,17 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
+#include "compiler_specifics.h"
 
 #include "utils.h"
 
 #include <cstddef>
+#include <iostream>
+#if SAFESIDE_LINUX
+#include <sched.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
 
 #include "hardware_constants.h"
 #include "instr.h"
@@ -35,3 +42,16 @@ void FlushFromDataCache(const void *begin, const void *end) {
   }
   MemoryAndSpeculationBarrier();
 }
+
+#if SAFESIDE_LINUX
+void PinToTheFirstCore() {
+  cpu_set_t set;
+  CPU_ZERO(&set);
+  CPU_SET(0, &set);
+  int res = sched_setaffinity(getpid(), sizeof(set), &set);
+  if (res != 0) {
+    std::cout << "CPU affinity setup failed." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+}
+#endif

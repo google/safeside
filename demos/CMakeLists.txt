@@ -105,7 +105,7 @@ function(add_demo demo_name)
     ARG  # parsed argument prefix
     ""  # boolean options
     ""  # one-value arguments
-    "SYSTEMS;PROCESSORS"  # multi-value arguments
+    "SYSTEMS;PROCESSORS;ADDITIONAL_SOURCES"  # multi-value arguments
     ${ARGN}  # arguments to parse -- ARGN excludes already-named arguments
   )
 
@@ -121,7 +121,7 @@ function(add_demo demo_name)
     endif()
   endif()
 
-  add_executable(${demo_name} ${demo_name}.cc)
+  add_executable(${demo_name} ${demo_name}.cc ${ARG_ADDITIONAL_SOURCES})
   target_link_libraries(${demo_name} safeside)
 endfunction()
 
@@ -135,10 +135,13 @@ add_demo(spectre_v1_btb_sa)
 add_demo(spectre_v4)
 
 # Ret2Spec -- rewriting the RSB using recursion in the same address space
-add_demo(ret2spec_sa)
+add_demo(ret2spec_sa ADDITIONAL_SOURCES ret2spec_common.cc)
 
 # Spectre V1 BTB CA - mistraining BTB from another address space
 add_demo(spectre_v1_btb_ca SYSTEMS Linux)
+
+# Ret2spec CA -- rewriting the RSB using recursion from another address space
+add_demo(ret2spec_ca SYSTEMS Linux ADDITIONAL_SOURCES ret2spec_common.cc)
 
 # Ret2Spec -- speculative execution using return stack buffers creating a
 # call-ret disparity by inline assembly
