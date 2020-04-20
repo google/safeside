@@ -1,42 +1,18 @@
 /*
  * Copyright 2019 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under both the 3-Clause BSD License and the GPLv2, found in the
+ * LICENSE and LICENSE.GPL-2.0 files, respectively, in the root directory.
  *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
 .global MeasureReadLatency
-// uint64_t MeasureReadLatency(const char* address);
+// uint64_t MeasureReadLatency(const void* address);
 MeasureReadLatency:
   // r3 = address
 
-  // Serialize the instruction stream and finish all memory operations.
-  //
-  // SYNC[1] waits for all preceding instructions to complete before any
-  // subsequent instructions are initiated. It also waits until *almost* all
-  // preceding memory operations have completed, with the exception of accesses
-  // caused by ICBI[2].
-  //
-  // To wait for these last accesses, we also issue an ISYNC[3] instruction.
-  // ISYNC has the same serializing effect on the instruction stream as SYNC,
-  // but doesn't enforce order of any memory accesses *except* those caused by
-  // a preceding ICBI.
-  //
-  // Of note, Linux uses `ISYNC; SYNC` as a speculation barrier on some PowerPC
-  // devices: https://git.io/Je60x
-  //
-  // [1] SYNC: https://cpu.fyi/d/a48#G19.1034642
-  // [2] ICBI: https://cpu.fyi/d/a48#G19.1020460
-  // [3] ISYNC: https://cpu.fyi/d/a48#G19.1020771
+  // Full memory and speculation barrier. See docs/fencing.md for details.
   isync
   sync
 

@@ -1,17 +1,10 @@
 /*
  * Copyright 2019 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under both the 3-Clause BSD License and the GPLv2, found in the
+ * LICENSE and LICENSE.GPL-2.0 files, respectively, in the root directory.
  *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
 #include <array>
@@ -31,7 +24,6 @@
 const char *public_data = "xxxxxxxxxxxxxxxx";
 const char *private_data = "It's a s3kr3t!!!";
 constexpr size_t kAccessorArrayLength = 1024;
-constexpr size_t kCacheLineSize = 64;
 
 // DataAccessor provides an interface to access bytes from either the public or
 // the private storage.
@@ -124,7 +116,7 @@ static char LeakByte(size_t offset) {
       // We make sure to flush whole accessor object in case it is
       // hypothetically on multiple cache-lines.
       const char *accessor_bytes = reinterpret_cast<const char*>(accessor);
-      FlushFromCache(accessor_bytes, accessor_bytes + object_size_in_bytes);
+      FlushFromDataCache(accessor_bytes, accessor_bytes + object_size_in_bytes);
 
       // Speculative fetch at the offset. Architecturally it fetches
       // always from the public_data, though speculatively it fetches the

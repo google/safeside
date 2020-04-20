@@ -1,18 +1,14 @@
 /*
  * Copyright 2019 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under both the 3-Clause BSD License and the GPLv2, found in the
+ * LICENSE and LICENSE.GPL-2.0 files, respectively, in the root directory.
  *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
+
+#ifndef DEMOS_INSTR_H_
+#define DEMOS_INSTR_H_
 
 #include <cstdint>
 #include <cstring>
@@ -29,40 +25,28 @@
 #  endif
 #endif
 
-// Page size.
-#if SAFESIDE_PPC
-constexpr uint32_t kPageSizeBytes = 65536;
-#else
-constexpr uint32_t kPageSizeBytes = 4096;
-#endif
-
-// Flushing cacheline containing given address.
-void CLFlush(const void *memory);
-
-// Yields serializing instruction.
-// Must be inlined in order to avoid to avoid misprediction that skips the
-// call.
-SAFESIDE_ALWAYS_INLINE
-inline void MemoryAndSpeculationBarrier() {
+// Include architecture-specific implementations.
 #if SAFESIDE_X64 || SAFESIDE_IA32
-#  if SAFESIDE_MSVC
-  int cpuinfo[4];
-  __cpuid(cpuinfo, 0);
-#  elif SAFESIDE_GNUC
-  int a, b, c, d;
-  __cpuid(0, a, b, c, d);
-#  else
-#    error Unsupported compiler.
-#  endif
+#  include "instr_x86.h"
 #elif SAFESIDE_ARM64
-  asm volatile(
-      "dsb sy\n"
-      "isb\n");
+#  include "instr_aarch64.h"
 #elif SAFESIDE_PPC
-  asm volatile("sync");
-#else
-#  error Unsupported CPU.
+#  include "instr_ppc64le.h"
 #endif
+
+// Full memory and speculation barrier, as described in docs/fencing.md.
+// Implementation in instr_*.h.
+void MemoryAndSpeculationBarrier();
+
+// Flush the cache line containing the given address from all levels of the
+// cache hierarchy. For split cache levels, `address` is flushed from dcache.
+// Implementation in instr_*.h.
+void FlushDataCacheLineNoBarrier(const void *address);
+
+// Convenience wrapper to flush and wait.
+inline void FlushDataCacheLine(void *address) {
+  FlushDataCacheLineNoBarrier(address);
+  MemoryAndSpeculationBarrier();
 }
 
 #if SAFESIDE_GNUC
@@ -286,3 +270,5 @@ inline void SupposedlySafeOffsetAndDereference(const char *address,
 }
 #endif
 #endif
+
+#endif  // DEMOS_INSTR_H_

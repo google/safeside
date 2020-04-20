@@ -1,22 +1,40 @@
 #!/bin/bash
 
 set -o errexit -o nounset -o pipefail
-set -o xtrace
 
-# Straightforward and ugly for now: run the `spectre_v1_pht_sa` demo as a test
-# by looking for it anywhere we might have built it.
+TEST_DIRS="
+./build/demos
+./build-x86_64/demos
+./build-i686/demos
+./build-win32/demos/Debug
+./build-x64/demos/Debug
+"
 
-[[ -x ./build/demos/spectre_v1_pht_sa ]] &&
-    ./build/demos/spectre_v1_pht_sa
-[[ -x ./build-x86_64/demos/spectre_v1_pht_sa ]] &&
-    ./build-x86_64/demos/spectre_v1_pht_sa
-[[ -x ./build-i686/demos/spectre_v1_pht_sa ]] &&
-    ./build-i686/demos/spectre_v1_pht_sa
-[[ -x ./build-win32/demos/Debug/spectre_v1_pht_sa.exe ]] &&
-    ./build-win32/demos/Debug/spectre_v1_pht_sa.exe
-[[ -x ./build-x64/demos/Debug/spectre_v1_pht_sa.exe ]] &&
-    ./build-x64/demos/Debug/spectre_v1_pht_sa.exe
+# Straightforward and ugly for now: given a test name, look for everywhere we
+# could have built it, and run what we find. Exit on first failure.
+# Usage:
+#   run_test <test_name>
+run_test() {
+  local test_name=$1
 
-# Avoid a nonzero exit code. Otherwise we'll return the exit code of our last
-# command, which is often an unsatisfied [[ -x ... ]] condition.
-true
+  for test_dir in $TEST_DIRS; do
+    test_bin=${test_dir}/${test_name}
+
+    if [[ -x "${test_bin}.exe" ]]; then
+      test_bin=${test_bin}.exe
+    fi
+
+    if [[ -x "${test_bin}" ]]; then
+      echo "== BEGIN    ${test_bin}"
+      TIMEFORMAT='== END      %2R seconds'
+      time "${test_bin}" || (
+        echo "== FAILED   return code $?"
+        exit 1
+      )
+      echo
+    fi
+  done
+}
+
+run_test timing_array_test
+run_test spectre_v1_pht_sa

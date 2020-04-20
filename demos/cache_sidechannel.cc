@@ -1,17 +1,10 @@
 /*
  * Copyright 2019 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under both the 3-Clause BSD License and the GPLv2, found in the
+ * LICENSE and LICENSE.GPL-2.0 files, respectively, in the root directory.
  *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
 #include <list>
@@ -46,8 +39,9 @@ void CacheSideChannel::FlushOracle() const {
   // speculative execution, that will warm the cache for that entry, which
   // can be detected later via timing analysis.
   for (BigByte &b : padded_oracle_array_->oracles_) {
-    CLFlush(&b);
+    FlushDataCacheLineNoBarrier(&b);
   }
+  MemoryAndSpeculationBarrier();
 }
 
 std::pair<bool, char> CacheSideChannel::RecomputeScores(
@@ -69,9 +63,7 @@ std::pair<bool, char> CacheSideChannel::RecomputeScores(
     // them all equally fast. Therefore it is necessary to confuse them by
     // accessing the offsets in a pseudo-random order.
     size_t mixed_i = ((i * 167) + 13) & 0xFF;
-    const void *timing_entry = &GetOracle()[mixed_i];
-    latencies[mixed_i] = MeasureReadLatency(
-        static_cast<const char *>(timing_entry));
+    latencies[mixed_i] = MeasureReadLatency(&GetOracle()[mixed_i]);
   }
 
   std::list<uint64_t> sorted_latencies_list(latencies.begin(), latencies.end());

@@ -1,19 +1,14 @@
 /*
  * Copyright 2019 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under both the 3-Clause BSD License and the GPLv2, found in the
+ * LICENSE and LICENSE.GPL-2.0 files, respectively, in the root directory.
  *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 #include "compiler_specifics.h"
+
+#include "utils.h"
 
 #include <cstddef>
 #include <iostream>
@@ -23,20 +18,29 @@
 #include <unistd.h>
 #endif
 
+#include "hardware_constants.h"
 #include "instr.h"
-#include "utils.h"
 
-constexpr size_t kCacheLineSize = 64;
+namespace {
 
-// Flush a memory interval from cache. Used to induce speculative execution on
-// flushed values until they are fetched back to the cache.
-void FlushFromCache(const char *start, const char *end) {
-  // Start on the first byte and continue in kCacheLineSize steps.
-  for (const char *ptr = start; ptr < end; ptr += kCacheLineSize) {
-    CLFlush(ptr);
+// Returns the address of the first byte of the cache line *after* the one on
+// which `addr` falls.
+const void* StartOfNextCacheLine(const void* addr) {
+  auto addr_n = reinterpret_cast<uintptr_t>(addr);
+
+  // Create an address on the next cache line, then mask it to round it down to
+  // cache line alignment.
+  auto next_n = (addr_n + kCacheLineBytes) & ~(kCacheLineBytes - 1);
+  return reinterpret_cast<const void*>(next_n);
+}
+
+}  // namespace
+
+void FlushFromDataCache(const void *begin, const void *end) {
+  for (; begin < end; begin = StartOfNextCacheLine(begin)) {
+    FlushDataCacheLineNoBarrier(begin);
   }
-  // Flush explicitly the last byte.
-  CLFlush(end - 1);
+  MemoryAndSpeculationBarrier();
 }
 
 void PinToTheFirstCore() {

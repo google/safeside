@@ -1,21 +1,14 @@
 /*
  * Copyright 2019 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under both the 3-Clause BSD License and the GPLv2, found in the
+ * LICENSE and LICENSE.GPL-2.0 files, respectively, in the root directory.
  *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
-#ifndef DEMOS_UTILS_H
-#define DEMOS_UTILS_H
+#ifndef DEMOS_UTILS_H_
+#define DEMOS_UTILS_H_
 
 #include "compiler_specifics.h"
 
@@ -23,14 +16,14 @@
 // speculative execution to create a microarchitectural side effect in the
 // cache. Also used for latency measurement in the FLUSH+RELOAD technique.
 // Should be inlined to minimize the speculation window.
-SAFESIDE_ALWAYS_INLINE
-inline void ForceRead(const void *p) {
+inline SAFESIDE_ALWAYS_INLINE
+void ForceRead(const void *p) {
   (void)*reinterpret_cast<const volatile char *>(p);
 }
 
 // Flush a memory interval from cache. Used to induce speculative execution on
 // flushed values until they are fetched back to the cache.
-void FlushFromCache(const char *start, const char *end);
+void FlushFromCache(const void *start, const void *end);
 #if SAFESIDE_LINUX
 void PinToTheFirstCore();
 #endif

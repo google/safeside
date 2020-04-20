@@ -1,17 +1,10 @@
 /*
  * Copyright 2019 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under both the 3-Clause BSD License and the GPLv2, found in the
+ * LICENSE and LICENSE.GPL-2.0 files, respectively, in the root directory.
  *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
 /**
@@ -27,8 +20,8 @@
 #  error Unsupported OS. Linux required.
 #endif
 
-#if !SAFESIDE_IA32 && !SAFESIDE_X64
-#  error Unsupported CPU. X86/64 required.
+#if !SAFESIDE_IA32 && !SAFESIDE_X64 && !SAFESIDE_PPC
+#  error Unsupported CPU. X86/64 or PPC required.
 #endif
 
 #include <array>
@@ -135,11 +128,10 @@ void ParentProcess(pid_t child) {
       // The child stopped itself with "raise(SIGSTOP)". We have to put the
       // breakpoint on the current character of private_data and let it
       // continue.
+#if SAFESIDE_X64 || SAFESIDE_IA32
       // Pointing dr0 on the current index in private_data.
       res = ptrace(PTRACE_POKEUSER, child, offsetof(user, u_debugreg[0]),
                    private_data + index);
-      // Post-incrementing the index so that the first call is with index 0.
-      ++index;
       if (res == -1) {
         std::cerr << "PTRACE_POKEUSER on dr0 failed." << std::endl;
         exit(EXIT_FAILURE);
@@ -156,11 +148,32 @@ void ParentProcess(pid_t child) {
         std::cerr << "PTRACE_POKEUSER on dr7 failed." << errno << std::endl;
         exit(EXIT_FAILURE);
       }
+#elif SAFESIDE_PPC
+      // PowerPC breakpoints have 8-byte granularity and the last 3 bits are
+      // used for flags. First bit is read (true), second is write (false),
+      // third is translate (true).
+      res = ptrace(PTRACE_SET_DEBUGREG, child, 0,
+                   reinterpret_cast<size_t>(private_data + index) | 5);
+      if (res == -1) {
+        std::cerr << "PTRACE_SET_DEBUGREG failed." << errno << std::endl;
+        exit(EXIT_FAILURE);
+      }
+#else
+#  error Unsupported architecture.
+#endif
+      // Post-incrementing the index so that the first call is with index 0.
+      ++index;
     } else if (WSTOPSIG(wstatus) == SIGTRAP) {
       // Move instruction pointer.
       // The child was trapped by stepping on the hardware breakpoint. We just
       // move its instruction pointer to the afterspeculation label.
-      user_regs_struct regs;
+#if SAFESIDE_X64 || SAFESIDE_IA32
+      struct user_regs_struct regs;
+#elif SAFESIDE_PPC
+      struct pt_regs regs;
+#else
+#  error Unsupported architecture.
+#endif
       // Read general purpose register values of the child.
       res = ptrace(PTRACE_GETREGS, child, nullptr, &regs);
       if (res == -1) {
@@ -171,8 +184,22 @@ void ParentProcess(pid_t child) {
       // Move the child's instruction pointer to afterspeculation.
 #if SAFESIDE_X64
       regs.rip = reinterpret_cast<size_t>(afterspeculation);
-#else
+#elif SAFESIDE_IA32
       regs.eip = reinterpret_cast<size_t>(afterspeculation);
+#elif SAFESIDE_PPC
+      regs.nip = reinterpret_cast<size_t>(afterspeculation);
+
+      // On PowerPC we must renew the breakpoint, because it's triggered just
+      // once. The index is post-incremented, so we have to use the original one
+      // in here.
+      res = ptrace(PTRACE_SET_DEBUGREG, child, 0,
+                   reinterpret_cast<size_t>(private_data + index - 1) | 5);
+      if (res == -1) {
+        std::cerr << "PTRACE_SET_DEBUGREG failed." << errno << std::endl;
+        exit(EXIT_FAILURE);
+      }
+#else
+#  error Unsupported architecture.
 #endif
 
       // Store the shifted child's instruction pointer value.

@@ -1,17 +1,10 @@
 /*
  * Copyright 2019 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under both the 3-Clause BSD License and the GPLv2, found in the
+ * LICENSE and LICENSE.GPL-2.0 files, respectively, in the root directory.
  *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
 // File containing architecturally dependent features implemented in inline
@@ -34,25 +27,6 @@
 #else
 #  error Unsupported CPU.
 #endif  // SAFESIDE_IA32
-
-// Architecturally dependent cache flush.
-void CLFlush(const void *memory) {
-#if SAFESIDE_X64 || SAFESIDE_IA32
-  _mm_clflush(memory);
-  _mm_mfence();
-  _mm_lfence();
-#elif SAFESIDE_ARM64
-  asm volatile("dc civac, %0\n"
-               "dsb sy\n" ::"r"(memory)
-               : "memory");
-#elif SAFESIDE_PPC
-  asm volatile("dcbf 0, %0\n"
-               "sync" ::"r"(memory)
-               : "memory");
-#else
-#  error Unsupported CPU.
-#endif
-}
 
 #if SAFESIDE_GNUC
 SAFESIDE_NEVER_INLINE

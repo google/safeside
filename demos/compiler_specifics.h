@@ -1,17 +1,10 @@
 /*
  * Copyright 2019 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under both the 3-Clause BSD License and the GPLv2, found in the
+ * LICENSE and LICENSE.GPL-2.0 files, respectively, in the root directory.
  *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
 #ifndef DEMOS_COMPILER_SPECIFICS_H_
@@ -33,6 +26,13 @@
 #ifdef _MSC_VER
 #define SAFESIDE_MSVC 1
 #define SAFESIDE_NEVER_INLINE __declspec(noinline)
+
+// If a function is modified by both `inline` and `SAFESIDE_ALWAYS_INLINE`,
+// MSVC may issue a diagnostic:
+//     warning C4141: 'inline': used more than once
+//
+// To avoid this, put `inline` *before* `SAFESIDE_ALWAYS_INLINE` on any
+// function that will be compiled by MSVC.
 #define SAFESIDE_ALWAYS_INLINE __forceinline
 #elif defined(__GNUC__)
 #define SAFESIDE_GNUC 1

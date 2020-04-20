@@ -25,6 +25,8 @@ matrix:
     - name: "Windows / MSVC / x64, Win32"
       os: windows
       # CMake picks up MSVC regardless of what compiler we specify here.
+before_script:
+  - ./ci/show-cpu-info
 script:
   - ./ci/build
   - ./ci/test
