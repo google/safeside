@@ -36,5 +36,8 @@ run_test() {
   done
 }
 
-run_test timing_array_test
+for i in {1..100}; do
+  run_test timing_array_test
+done
+
 run_test spectre_v1_pht_sa
