@@ -1,32 +1,28 @@
-branches:
-  only:
-    - master
 language: cpp
 dist: bionic
 matrix:
   include:
-    - name: "Linux / clang / x86_64"
-      os: linux
-      compiler: clang
-    - name: "Linux / gcc / x86_64, i686"
-      os: linux
-      compiler: gcc
+    # - name: "Linux / clang / x86_64"
+    #   os: linux
+    #   compiler: clang
+    # - name: "Linux / gcc / x86_64, i686"
+    #   os: linux
+    #   compiler: gcc
     - name: "Linux / gcc / aarch64"
       os: linux
       compiler: gcc
       arch: arm64
-    - name: "Linux / gcc / ppc64le"
-      os: linux
-      compiler: gcc
-      arch: ppc64le
-    - name: "macOS / clang / x86_64"
-      os: osx
-      compiler: clang
-    - name: "Windows / MSVC / x64, Win32"
-      os: windows
-      # CMake picks up MSVC regardless of what compiler we specify here.
+    # - name: "Linux / gcc / ppc64le"
+    #   os: linux
+    #   compiler: gcc
+    #   arch: ppc64le
+    # - name: "macOS / clang / x86_64"
+    #   os: osx
+    #   compiler: clang
+    # - name: "Windows / MSVC / x64, Win32"
+    #   os: windows
+    #   # CMake picks up MSVC regardless of what compiler we specify here.
 before_script:
   - ./ci/show-cpu-info
 script:
-  - ./ci/build
-  - ./ci/test
+  - ./ci/build && ./ci/test
