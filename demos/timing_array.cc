@@ -9,6 +9,8 @@
 
 #include "timing_array.h"
 
+#include <stdlib.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <limits>
@@ -123,6 +125,13 @@ int TimingArray::FindFirstCachedElementIndex() {
 uint64_t TimingArray::FindCachedReadLatencyThreshold() {
   const int iterations = 10000;
   const int percentile = 10;
+
+  // For testing, allow the threshold to be specified as an environment
+  // variable.
+  const char *threshold_from_env = getenv("CACHED_THRESHOLD");
+  if (threshold_from_env) {
+    return atoi(threshold_from_env);
+  }
 
   // Accumulates the highest read latency seen in each iteration.
   std::vector<uint64_t> max_read_latencies;
