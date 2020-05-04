@@ -80,17 +80,25 @@ int TimingArray::FindFirstCachedElementIndex() {
 //
 // There are a *lot* of potential approaches for finding such a threshold
 // value. Ours is, roughly:
-//   1. Read all the elements of a TimingArray into cache.
-//   2. Read all elements again, in the same order, measuring how long each
+//   1. Flush all elements from cache.
+//   2. Read all the elements of a TimingArray into cache.
+//   3. Read all elements again, in the same order, measuring how long each
 //      read takes and remembering the latency of the slowest read.
-//   3. Repeat (1) and (2) many times to get a lot of "slowest read from a
-//      cached array" data points.
-//   4. Sort those data points and take a value at a low percentile.
+//   4. Repeat (1)-(3) many times to get a lot of "slowest read from a cached
+//      array" data points.
+//   5. Sort those data points and take a value at a low percentile.
 //
 // We try to make our code to *find* the threshold as similar as possible as
-// code elsewhere that *uses* it. Reading the whole array each time and taking
-// the slowest read helps us account for effects that only happen when reading
-// many values:
+// code elsewhere that *uses* it. This helps account for effects that only
+// happen when reading many values, all at once, over time:
+//   - On processors with non-inclusive caches, it's possible for an element
+//     to end up at different levels of the cache hierarchy depending on its
+//     access history. In common use, the entire TimingArray will be flushed
+//     from cache before trying to measure which of its elements was accessed;
+//     to mirror that use, and to avoid path-dependent cache behavior, we also
+//     flush the cache at the start of each attempt.
+//
+//     We saw this make a difference on an i7-8750H.
 //   - TimingArray forces values onto different pages, which introduces TLB
 //     pressure. After re-reading ~64 elements of a 256-element array on an
 //     Intel Xeon processor, we see latency increase as we start hitting the L2
@@ -137,6 +145,8 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
   std::vector<uint64_t> max_read_latencies;
 
   for (int n = 0; n < iterations; ++n) {
+    FlushFromCache();
+
     // Bring all elements into cache.
     for (int i = 0; i < size(); ++i) {
       ForceRead(&ElementAt(i));
