@@ -26,7 +26,6 @@ int main(int argc, char* argv[]) {
   const int attempts = 10000;
   int successes = 0;
   int false_positives = 0;
-  int previous_el = -1;
 
   for (int n = 0; n < attempts; ++n) {
     // Choose a random byte and attempt to leak it through the cache timing
@@ -39,17 +38,8 @@ int main(int argc, char* argv[]) {
     if (found == el) {
       ++successes;
     } else if (found != -1) {
-      std::cout << "False positive. Found " << found
-                << " instead of " << el
-                << std::endl;
-
-      // Previous element is useful for debugging false positives caused by the
-      // hardware prefetcher acting on memory accesses at repeated stride.
-      std::cout << "Previous value was " << previous_el << std::endl;
       ++false_positives;
     }
-
-    previous_el = el;
   }
 
   std::cout << "Found cached element on the first try "
