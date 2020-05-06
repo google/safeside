@@ -120,7 +120,7 @@ int TimingArray::FindFirstCachedElementIndex() {
 // more forgiving of occasional variation.
 uint64_t TimingArray::FindCachedReadLatencyThreshold() {
   const int iterations = 10000;
-  const int percentile = 10;  // should be small
+  const int percentile = 5;  // should be small
 
   // For testing, allow the threshold to be specified as an environment
   // variable.
@@ -151,8 +151,7 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
   // Sample a "large" cached time and a "small" uncached time.
   // We can use the same index if we sort the cached times *descending*.
   int index = (percentile / 100.0) * (iterations - 1);
-  std::sort(slow_cached_times.begin(), slow_cached_times.end(),
-      std::greater<uint64_t>());
+  std::sort(slow_cached_times.rbegin(), slow_cached_times.rend());
   std::sort(fast_uncached_times.begin(), fast_uncached_times.end());
 
   // Return the midpoint of the two samples values.
