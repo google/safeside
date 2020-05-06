@@ -131,6 +131,7 @@ int TimingArray::FindFirstCachedElementIndex() {
 //
 // [1] https://www.cs.rice.edu/~dwallach/pub/crosby-timing2009.pdf
 uint64_t TimingArray::FindCachedReadLatencyThreshold() {
+  const int rounds = 3;
   const int iterations = 10000;
 
   // For testing, allow the threshold to be specified as an environment
@@ -148,17 +149,14 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
 
     FlushFromCache();
 
-    // Bring all elements into cache.
-    for (int i = 0; i < size(); ++i) {
-      total_time += MeasureReadLatency(&ElementAt(i));
-    }
-
-    for (int i = 0; i < size(); ++i) {
-      total_time += MeasureReadLatency(&ElementAt(i));
+    for (int r = 0; r < rounds; ++r) {
+      for (int i = 0; i < size(); ++i) {
+        total_time += MeasureReadLatency(&ElementAt(i));
+      }
     }
 
     min_time = std::min(min_time, total_time);
   }
 
-  return min_time / (2 * size());
+  return min_time / (rounds * size());
 }
