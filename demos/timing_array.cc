@@ -131,8 +131,8 @@ int TimingArray::FindFirstCachedElementIndex() {
 //
 // [1] https://www.cs.rice.edu/~dwallach/pub/crosby-timing2009.pdf
 uint64_t TimingArray::FindCachedReadLatencyThreshold() {
-  const int iterations = 10000;
-  const int percentile = 10;
+  const int iterations = 1000;
+  const int percentile = 5;
 
   // For testing, allow the threshold to be specified as an environment
   // variable.
@@ -141,29 +141,28 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
     return atoi(threshold_from_env);
   }
 
-  // Accumulates the highest read latency seen in each iteration.
-  std::vector<uint64_t> max_read_latencies;
+  // FIXME
+  std::vector<uint64_t> total_times;
 
   for (int n = 0; n < iterations; ++n) {
+    uint64_t total_time = 0;
+
     FlushFromCache();
 
     // Bring all elements into cache.
     for (int i = 0; i < size(); ++i) {
-      ForceRead(&ElementAt(i));
+      total_time += MeasureReadLatency(&ElementAt(i));
     }
 
-    // Read each element and keep track of the slowest read.
-    uint64_t max_read_latency = std::numeric_limits<uint64_t>::min();
     for (int i = 0; i < size(); ++i) {
-      max_read_latency =
-          std::max(max_read_latency, MeasureReadLatency(&ElementAt(i)));
+      total_time += MeasureReadLatency(&ElementAt(i));
     }
 
-    max_read_latencies.push_back(max_read_latency);
+    total_times.push_back(total_time);
   }
 
   // Find and return the `percentile` max read latency value.
-  std::sort(max_read_latencies.begin(), max_read_latencies.end());
-  int index = (percentile / 100.0) * (max_read_latencies.size() - 1);
-  return max_read_latencies[index];
+  std::sort(total_times.begin(), total_times.end());
+  int index = (percentile / 100.0) * (total_times.size() - 1);
+  return total_times[index] / (2 * size());
 }
