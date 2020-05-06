@@ -131,7 +131,6 @@ int TimingArray::FindFirstCachedElementIndex() {
 //
 // [1] https://www.cs.rice.edu/~dwallach/pub/crosby-timing2009.pdf
 uint64_t TimingArray::FindCachedReadLatencyThreshold() {
-  const int rounds = 3;
   const int iterations = 10000;
 
   // For testing, allow the threshold to be specified as an environment
@@ -142,21 +141,25 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
   }
 
   // FIXME
-  uint64_t min_time = std::numeric_limits<uint64_t>::max();
+  uint64_t min_overall = std::numeric_limits<uint64_t>::max();
 
   for (int n = 0; n < iterations; ++n) {
     uint64_t total_time = 0;
 
     FlushFromCache();
 
-    for (int r = 0; r < rounds; ++r) {
-      for (int i = 0; i < size(); ++i) {
-        total_time += MeasureReadLatency(&ElementAt(i));
-      }
+    uint64_t min_uncached = std::numeric_limits<uint64_t>::max();
+    for (int i = 0; i < size(); ++i) {
+      min_uncached = std::min(min_uncached, MeasureReadLatency(&ElementAt(i)));
     }
 
-    min_time = std::min(min_time, total_time);
+    uint64_t max_cached = std::numeric_limits<uint64_t>::min();  // aka 0
+    for (int i = 0; i < size(); ++i) {
+      max_cached = std::max(max_cached, MeasureReadLatency(&ElementAt(i)));
+    }
+
+    min_overall = std::min(min_overall, min_uncached + max_cached);
   }
 
-  return min_time / (rounds * size());
+  return min_overall / 2;
 }
