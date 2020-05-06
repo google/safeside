@@ -46,8 +46,7 @@ int main(int argc, char* argv[]) {
             << successes << " of " << attempts << " times." << std::endl;
   std::cout << "False positives: " << false_positives << std::endl;
 
-  // Expect most attempts to succeed and very few false positives.
-  bool pass =
-      successes > (attempts * 0.85) && false_positives < (attempts * 0.05);
+  // Expect most attempts to succeed and no false positives.
+  bool pass = successes > (attempts * 0.85) && false_positives == 0;
   return !pass;
 }
