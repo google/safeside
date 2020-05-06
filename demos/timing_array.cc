@@ -86,7 +86,7 @@ int TimingArray::FindFirstCachedElementIndex() {
 //   4. Repeat (1)-(3) many times to get a lot of "fastest uncached" and
 //      "slowest cached" datapoints.
 //   5. Take a high-percentile value from "slowest cached" and a low-percentile
-//      value from "fastest uncached" and return the midpoint.
+//      value from "fastest uncached" and return a point between them.
 //
 // We try to make our code to *find* the threshold as similar as possible as
 // code elsewhere that *uses* it. This helps account for effects that only
@@ -154,6 +154,6 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
   std::sort(slow_cached_times.rbegin(), slow_cached_times.rend());
   std::sort(fast_uncached_times.begin(), fast_uncached_times.end());
 
-  // Return the midpoint of the two samples values.
-  return (slow_cached_times[index] + fast_uncached_times[index]) / 2;
+  // Return a point between the two, biased toward cached.
+  return (2 * slow_cached_times[index] + fast_uncached_times[index]) / 3;
 }
