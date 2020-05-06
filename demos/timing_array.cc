@@ -112,13 +112,15 @@ int TimingArray::FindFirstCachedElementIndex() {
 //     looped over reading one memory value, the computed threshold would have
 //     been too low to classify reads from L2 or L3 cache.
 //
-// Repeating the experiment and taking la ow-percentile value helps control for
-// effects that would otherwise skew "slowest cached" too high:
+// Repeating the experiment and taking low-percentile values helps us control
+// for effects that would otherwise skew "slowest cached" too high:
 //   - A context switch might happen right before a measurement, evicting array
 //     elements from the cache; or one could happen *during* a measurement,
 //     adding arbitrary extra time to the observed latency.
 //   - A coscheduled hyperthread might introduce cache contention, forcing some
 //     reads to go to memory.
+//
+//
 //
 // The idea of taking low-percentile values to reduce noise is inspired in part
 // by observations from "Opportunities and Limits of Remote Timing Attacks"[1].
@@ -135,29 +137,29 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
     return atoi(threshold_from_env);
   }
 
-  std::vector<uint64_t> slowest_cached_times;
-  uint64_t fastest_uncached_time = std::numeric_limits<uint64_t>::max();
-
+  std::vector<uint64_t> fast_uncached_times, slow_cached_times;
   for (int n = 0; n < iterations; ++n) {
     FlushFromCache();
 
+    uint64_t fastest_uncached = std::numeric_limits<uint64_t>::max();
     for (int i = 0; i < size(); ++i) {
-      fastest_uncached_time =
-          std::min(fastest_uncached_time, MeasureReadLatency(&ElementAt(i)));
+      fastest_uncached =
+          std::min(fastest_uncached, MeasureReadLatency(&ElementAt(i)));
     }
 
-    uint64_t slowest_cached_time =
-        std::numeric_limits<uint64_t>::min();  // aka 0
+    uint64_t slowest_cached = std::numeric_limits<uint64_t>::min();  // aka 0
     for (int i = 0; i < size(); ++i) {
-      slowest_cached_time =
-          std::max(slowest_cached_time, MeasureReadLatency(&ElementAt(i)));
+      slowest_cached =
+          std::max(slowest_cached, MeasureReadLatency(&ElementAt(i)));
     }
 
-    slowest_cached_times.push_back(slowest_cached_time);
+    fast_uncached_times.push_back(fastest_uncached);
+    slow_cached_times.push_back(slowest_cached);
   }
 
-  // Sample a "small" slowest cache time.
-  std::sort(slowest_cached_times.begin(), slowest_cached_times.end());
+  std::sort(slow_cached_times.begin(), slow_cached_times.end());
+  std::sort(fast_uncached_times.begin(), fast_uncached_times.end());
+
   int index = (percentile / 100.0) * (iterations - 1);
-  return (slowest_cached_times[index] + fastest_uncached_time) / 2;
+  return (slow_cached_times[index] + fast_uncached_times[index]) / 2;
 }
