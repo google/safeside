@@ -103,6 +103,7 @@ int TimingArray::FindFirstCachedElementIndex() {
 //     looped over reading one memory value, the computed threshold would have
 //     been too low to classify reads from L2 or L3 cache.
 //
+// FIXME: this is out of date
 // Using values at low/high percentile instead of strict min/max helps prevent
 // outliers from dominating the result. Some reasons we might see outliers:
 //   - A context switch might happen right before a measurement, evicting array
@@ -138,22 +139,21 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
       fastest_uncached =
           std::min(fastest_uncached, MeasureReadLatency(&ElementAt(i)));
     }
-    fast_uncached_times.push_back(fastest_uncached);
 
     uint64_t slowest_cached = std::numeric_limits<uint64_t>::min();  // aka 0
     for (int i = 0; i < size(); ++i) {
       slowest_cached =
           std::max(slowest_cached, MeasureReadLatency(&ElementAt(i)));
     }
+
+    fast_uncached_times.push_back(fastest_uncached);
     slow_cached_times.push_back(slowest_cached);
   }
 
-  // Sample a "large" cached time and a "small" uncached time.
-  // We can use the same index if we sort the cached times *descending*.
-  int index = (percentile / 100.0) * (iterations - 1);
-  std::sort(slow_cached_times.rbegin(), slow_cached_times.rend());
+  // Sample "small" cached and uncached times and return the midpoint.
+  std::sort(slow_cached_times.begin(), slow_cached_times.end());
   std::sort(fast_uncached_times.begin(), fast_uncached_times.end());
 
-  // Return a point between the two, biased toward cached.
-  return (2 * slow_cached_times[index] + fast_uncached_times[index]) / 3;
+  int index = (percentile / 100.0) * (iterations - 1);
+  return (slow_cached_times[index] + fast_uncached_times[index]) / 2;
 }
