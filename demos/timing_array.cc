@@ -74,23 +74,32 @@ int TimingArray::FindFirstCachedElementIndex() {
   return FindFirstCachedElementIndexAfter(size() - 1);
 }
 
-// Determines a threshold value (as returned from MeasureReadLatency) at or
-// below which it is very likely the value was read from the cache without going
-// to main memory.
+// Determines a threshold value (as returned from MeasureReadLatency) where:
+//   - Reads _at or below_ the threshold _almost certainly_ came from cache
+//   - Reads _above_ the threshold _probably_ came from memory
 //
-// There are a *lot* of potential approaches for finding such a threshold value.
-// Ours is, roughly:
+// There are a *lot* of ways to try find such a threshold value. Our current
+// approach is, roughly:
 //   1. Flush all array elements from cache.
 //   2. Read all elements into cache, noting the fastest read.
 //   3. Read all elements again, now from cache, noting the slowest read.
 //   4. Repeat (1)-(3) many times to get a lot of "fastest uncached" and
 //      "slowest cached" datapoints.
-//   5. Take a high-percentile value from "slowest cached" and a low-percentile
-//      value from "fastest uncached" and return a point between them.
+//   5. Take a low-percentile value from each distribution and return their
+//      midpoint.
 //
-// We try to make our code to *find* the threshold as similar as possible as
-// code elsewhere that *uses* it. This helps account for effects that only
-// happen when reading all values at once:
+// In a previous attempt, we just collected the "slowest cached" distribution
+// and sampled the threshold from there. That worked in many cases, but failed
+// when the observed latency of cached reads could change over time -- for
+// example, on laptops with aggressive dynamic frequency scaling.
+//
+// Now we also track "fastest uncached" and try to choose a threshold that falls
+// between the two distributions, adding some margin without sacrificing
+// precision.
+//
+// We have to measure latency across all elements of the array, since that's
+// what the code that later *uses* our computed threshold will be doing, and
+// some behaviors only appear when reading a lot of values:
 //   - TimingArray forces values onto different pages, which introduces TLB
 //     pressure. After re-reading ~64 elements of a 256-element array on an
 //     Intel Xeon processor, we see latency increase as we start hitting the L2
@@ -103,25 +112,21 @@ int TimingArray::FindFirstCachedElementIndex() {
 //     looped over reading one memory value, the computed threshold would have
 //     been too low to classify reads from L2 or L3 cache.
 //
-// FIXME: this is out of date
-// Using values at low/high percentile instead of strict min/max helps prevent
-// outliers from dominating the result. Some reasons we might see outliers:
+// Repeating the experiment and taking la ow-percentile value helps control for
+// effects that would otherwise skew "slowest cached" too high:
 //   - A context switch might happen right before a measurement, evicting array
 //     elements from the cache; or one could happen *during* a measurement,
 //     adding arbitrary extra time to the observed latency.
 //   - A coscheduled hyperthread might introduce cache contention, forcing some
 //     reads to go to memory.
 //
-// In a previous attempt, we tried computing a threshold by looking only at the
-// latency of cached reads. This worked well in some cases, but failed on
-// systems where the latency distribution could be locally consistent but
-// variable over longer stretches of time -- for example, on laptops with
-// aggressive dynamic frequency scaling. By taking into account the latency of
-// uncached reads, we arrive at a threshold that is still accurate but a bit
-// more forgiving of occasional variation.
+// The idea of taking low-percentile values to reduce noise is inspired in part
+// by observations from "Opportunities and Limits of Remote Timing Attacks"[1].
+//
+// [1] https://www.cs.rice.edu/~dwallach/pub/crosby-timing2009.pdf
 uint64_t TimingArray::FindCachedReadLatencyThreshold() {
   const int iterations = 10000;
-  const int percentile = 5;  // should be small
+  const int percentile = 10;  // should be small
 
   // For testing, allow the threshold to be specified as an environment
   // variable.
@@ -130,30 +135,29 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
     return atoi(threshold_from_env);
   }
 
-  std::vector<uint64_t> fast_uncached_times, slow_cached_times;
+  std::vector<uint64_t> slowest_cached_times;
+  uint64_t fastest_uncached_time = std::numeric_limits<uint64_t>::max();
+
   for (int n = 0; n < iterations; ++n) {
     FlushFromCache();
 
-    uint64_t fastest_uncached = std::numeric_limits<uint64_t>::max();
     for (int i = 0; i < size(); ++i) {
-      fastest_uncached =
-          std::min(fastest_uncached, MeasureReadLatency(&ElementAt(i)));
+      fastest_uncached_time =
+          std::min(fastest_uncached_time, MeasureReadLatency(&ElementAt(i)));
     }
 
-    uint64_t slowest_cached = std::numeric_limits<uint64_t>::min();  // aka 0
+    uint64_t slowest_cached_time =
+        std::numeric_limits<uint64_t>::min();  // aka 0
     for (int i = 0; i < size(); ++i) {
-      slowest_cached =
-          std::max(slowest_cached, MeasureReadLatency(&ElementAt(i)));
+      slowest_cached_time =
+          std::max(slowest_cached_time, MeasureReadLatency(&ElementAt(i)));
     }
 
-    fast_uncached_times.push_back(fastest_uncached);
-    slow_cached_times.push_back(slowest_cached);
+    slowest_cached_times.push_back(slowest_cached_time);
   }
 
-  // Sample "small" cached and uncached times and return the midpoint.
-  std::sort(slow_cached_times.begin(), slow_cached_times.end());
-  std::sort(fast_uncached_times.begin(), fast_uncached_times.end());
-
+  // Sample a "small" slowest cache time.
+  std::sort(slowest_cached_times.begin(), slowest_cached_times.end());
   int index = (percentile / 100.0) * (iterations - 1);
-  return (slow_cached_times[index] + fast_uncached_times[index]) / 2;
+  return (slowest_cached_times[index] + fastest_uncached_time) / 2;
 }
