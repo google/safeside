@@ -131,7 +131,7 @@ int TimingArray::FindFirstCachedElementIndex() {
 //
 // [1] https://www.cs.rice.edu/~dwallach/pub/crosby-timing2009.pdf
 uint64_t TimingArray::FindCachedReadLatencyThreshold() {
-  const int iterations = 1000;
+  const int iterations = 10000;
   const int percentile = 5;
 
   // For testing, allow the threshold to be specified as an environment
