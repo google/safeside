@@ -78,59 +78,35 @@ int TimingArray::FindFirstCachedElementIndex() {
 //   - Reads _at or below_ the threshold _almost certainly_ came from cache
 //   - Reads _above_ the threshold _probably_ came from memory
 //
-// There are a lot of ways to try find such a threshold value. Our current
+// There are a lot of ways to arrive at such a threshold value. Our current
 // approach is, roughly:
 //   1. Flush all array elements from cache.
 //   2. Read all elements into cache, noting the fastest read.
 //   3. Read all elements again, now from cache, noting the slowest read.
-//   4. Repeat (1)-(3) many times to get a lot of "fastest uncached" and
-//      "slowest cached" datapoints.
-//   5. Take a low-percentile value from each distribution and return their
-//      midpoint.
+//      Take the midpoint of the "fastest uncached" and "slowest cached" and
+//      call it a "candidate threshold".
+//   4. Repeat (1)-(3) many times to get a distribution of candidate thresholds.
+//   5. Choose a threshold from the low side of that distribution.
 //
 // In a previous attempt, we just collected the "slowest cached" distribution
 // and sampled the threshold from there. That worked in many cases, but failed
 // when the observed latency of cached reads could change over time -- for
 // example, on laptops with aggressive dynamic frequency scaling.
 //
-// Now we also track "fastest uncached" and choose a threshold that falls
-// between the two distributions, adding some margin without sacrificing
-// precision.
-//
-// We have to measure reads across all elements of the array, since that's what
-// the code that later *uses* our computed threshold will be doing. Certain
-// measurement artifacts only appear when reading a lot of values:
-//   - TimingArray forces values onto different pages, which introduces TLB
-//     pressure. After re-reading ~64 elements of a 256-element array on an
-//     Intel Xeon processor, we see latency increase as we start hitting the L2
-//     TLB. The 7-Zip LZMA benchmarks have some useful measurements on this:
-//     https://www.7-cpu.com/cpu/Skylake.html
-//   - Our first version of TimingArray didn't implement cache coloring and all
-//     elements were contending for the same cache set. As a result, after
-//     reading 256 values, we had evicted all but the first ~8 from the L1
-//     cache. Our threshold computation took this into account. If we had just
-//     looped over reading one memory value, the computed threshold would have
-//     been too low to classify reads from L2 or L3 cache.
-//
-// Repeating the experiment lets us 
-// Repeating the experiment 
-//   - A context switch might happen right before a measurement, evicting array
-//     elements from the cache; or one could happen *during* a measurement,
-//     adding arbitrary extra time to the observed latency.
-//   - A coscheduled hyperthread might introduce cache contention, forcing some
-//     reads to go to memory.
-//   - We might not always succeed in defeating the prefetcher, and a read we
-//     expected to go to memory might instead come from cache.
-//
-//
-//
-//
-// The idea of taking low-percentile values to reduce noise is inspired in part
-// by observations from "Opportunities and Limits of Remote Timing Attacks"[1].
-//
-// [1] https://www.cs.rice.edu/~dwallach/pub/crosby-timing2009.pdf
+// Now we also measure "fastest uncached" and use it to bias the threshold up.
+// The hope is we add margin to more reliably recognize true positives without
+// meaningfully increasing the likelihood of false postives.
 uint64_t TimingArray::FindCachedReadLatencyThreshold() {
   const int iterations = 10000;
+
+  // A few considerations for choosing the percentile:
+  //   - Lower means fewer false positives
+  //   - Too low and we see outliers from uncached reads that were "too fast",
+  //     e.g. places where we failed to defeat the prefetcher
+  //   - Too high and we see outliers from slow cached *or* uncached reads,
+  //     e.g. measurements that were interrupted by context switches, or
+  //     where a coscheduled hyperthread introduced cache contention.
+  const int percentile = 10;
 
   // For testing, allow the threshold to be specified as an environment
   // variable.
@@ -142,6 +118,21 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
   std::vector<uint64_t> candidate_thresholds;
   for (int n = 0; n < iterations; ++n) {
     FlushFromCache();
+
+    // We have to measure reads across all elements of the array, since that's
+    // what the code that later *uses* our computed threshold will be doing.
+    // Certain measurement artifacts only appear when reading many values:
+    //   - TimingArray forces values onto different pages, which introduces TLB
+    //     pressure. After re-reading ~64 elements of a 256-element array on an
+    //     Intel Xeon processor, we see latency increase as we start hitting the
+    //     L2 TLB. The 7-Zip LZMA benchmarks have some useful measurements on
+    //     this: https://www.7-cpu.com/cpu/Skylake.html
+    //   - Our first version of TimingArray didn't implement cache coloring and
+    //     all elements were contending for the same cache set. As a result,
+    //     after reading 256 values, we had evicted all but the first ~8 from
+    //     the L1 cache. Our threshold computation took this into account. If we
+    //     had just looped over reading one memory value, the computed threshold
+    //     would have been too low to classify reads from L2 or L3 cache.
 
     uint64_t fastest_uncached = std::numeric_limits<uint64_t>::max();
     for (int i = 0; i < size(); ++i) {
@@ -155,10 +146,12 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
           std::max(slowest_cached, MeasureReadLatency(&ElementAt(i)));
     }
 
+    // The candidate threshold is the midpoint.
     candidate_thresholds.push_back((fastest_uncached + slowest_cached) / 2);
   }
 
-  // Return a candidate threshold on the lower side.
+  // Return the Nth% candidate threshold.
   std::sort(candidate_thresholds.begin(), candidate_thresholds.end());
-  return candidate_thresholds[iterations * 0.2];
+  int index = (percentile / 100.0) * (iterations - 1);
+  return candidate_thresholds[index];
 }
