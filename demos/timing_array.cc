@@ -78,7 +78,7 @@ int TimingArray::FindFirstCachedElementIndex() {
 //   - Reads _at or below_ the threshold _almost certainly_ came from cache
 //   - Reads _above_ the threshold _probably_ came from memory
 //
-// There are a *lot* of ways to try find such a threshold value. Our current
+// There are a lot of ways to try find such a threshold value. Our current
 // approach is, roughly:
 //   1. Flush all array elements from cache.
 //   2. Read all elements into cache, noting the fastest read.
@@ -93,13 +93,13 @@ int TimingArray::FindFirstCachedElementIndex() {
 // when the observed latency of cached reads could change over time -- for
 // example, on laptops with aggressive dynamic frequency scaling.
 //
-// Now we also track "fastest uncached" and try to choose a threshold that falls
+// Now we also track "fastest uncached" and choose a threshold that falls
 // between the two distributions, adding some margin without sacrificing
 // precision.
 //
-// We have to measure latency across all elements of the array, since that's
-// what the code that later *uses* our computed threshold will be doing, and
-// some behaviors only appear when reading a lot of values:
+// We have to measure reads across all elements of the array, since that's what
+// the code that later *uses* our computed threshold will be doing. Certain
+// measurement artifacts only appear when reading a lot of values:
 //   - TimingArray forces values onto different pages, which introduces TLB
 //     pressure. After re-reading ~64 elements of a 256-element array on an
 //     Intel Xeon processor, we see latency increase as we start hitting the L2
@@ -112,13 +112,16 @@ int TimingArray::FindFirstCachedElementIndex() {
 //     looped over reading one memory value, the computed threshold would have
 //     been too low to classify reads from L2 or L3 cache.
 //
-// Repeating the experiment and taking low-percentile values helps us control
-// for effects that would otherwise skew "slowest cached" too high:
+// Repeating the experiment lets us 
+// Repeating the experiment 
 //   - A context switch might happen right before a measurement, evicting array
 //     elements from the cache; or one could happen *during* a measurement,
 //     adding arbitrary extra time to the observed latency.
 //   - A coscheduled hyperthread might introduce cache contention, forcing some
 //     reads to go to memory.
+//   - We might not always succeed in defeating the prefetcher, and a read we
+//     expected to go to memory might instead come from cache.
+//
 //
 //
 //
@@ -128,7 +131,6 @@ int TimingArray::FindFirstCachedElementIndex() {
 // [1] https://www.cs.rice.edu/~dwallach/pub/crosby-timing2009.pdf
 uint64_t TimingArray::FindCachedReadLatencyThreshold() {
   const int iterations = 10000;
-  const int percentile = 10;  // should be small
 
   // For testing, allow the threshold to be specified as an environment
   // variable.
@@ -137,7 +139,7 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
     return atoi(threshold_from_env);
   }
 
-  std::vector<uint64_t> fast_uncached_times, slow_cached_times;
+  std::vector<uint64_t> candidate_thresholds;
   for (int n = 0; n < iterations; ++n) {
     FlushFromCache();
 
@@ -153,13 +155,10 @@ uint64_t TimingArray::FindCachedReadLatencyThreshold() {
           std::max(slowest_cached, MeasureReadLatency(&ElementAt(i)));
     }
 
-    fast_uncached_times.push_back(fastest_uncached);
-    slow_cached_times.push_back(slowest_cached);
+    candidate_thresholds.push_back((fastest_uncached + slowest_cached) / 2);
   }
 
-  std::sort(slow_cached_times.begin(), slow_cached_times.end());
-  std::sort(fast_uncached_times.begin(), fast_uncached_times.end());
-
-  int index = (percentile / 100.0) * (iterations - 1);
-  return (slow_cached_times[index] + fast_uncached_times[index]) / 2;
+  // Return a candidate threshold on the lower side.
+  std::sort(candidate_thresholds.begin(), candidate_thresholds.end());
+  return candidate_thresholds[iterations * 0.2];
 }
