@@ -102,11 +102,11 @@ target_link_libraries(timing_array_test safeside)
 # created.
 function(add_demo demo_name)
   cmake_parse_arguments(
-    ARG  # parsed argument prefix
-    ""  # boolean options
-    ""  # one-value arguments
-    "SYSTEMS;PROCESSORS;ADDITIONAL_SOURCES"  # multi-value arguments
-    ${ARGN}  # arguments to parse -- ARGN excludes already-named arguments
+      ARG  # parsed argument prefix
+      ""  # boolean options
+      ""  # one-value arguments
+      "SYSTEMS;PROCESSORS;ADDITIONAL_SOURCES"  # multi-value arguments
+      ${ARGN}  # arguments to parse -- ARGN excludes already-named arguments
   )
 
   if (DEFINED ARG_SYSTEMS)
