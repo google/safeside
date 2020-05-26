@@ -56,7 +56,20 @@ int Seal(void* address) {
   return 0;
 }
 
+struct pointer_chase_t {
+  pointer_chase_t *next;
+  int data;
+};
+
 int main(int argc, char* argv[]) {
+  pointer_chase_t *head = nullptr;
+  for (int i = 0; i < 10; ++i) {
+    auto *current = reinterpret_cast<pointer_chase_t*>(new char[2*kPageBytes]);
+    current->next = head;
+    current->data = i;
+    head = current;
+  }
+
   void* k = mmap(nullptr, kPageBytes, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, -1, 0);
   if (k == MAP_FAILED) {
     exit(1);
@@ -72,9 +85,16 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Testing" << std::endl;
 
-  for (int i = 0; i < 10000; ++i) {
-    bool saw_exception = RunWithFaultHandler([&ta, k]() {
-      ta.FlushFromCache();
+  for (int i = 0; i < 100000; ++i) {
+    ta.FlushFromCache();
+    auto *current = head;
+    for (int j = 0; j < 10; ++j) {
+      FlushFromDataCache(current, current+1);
+      current = current->next;
+    }
+
+    bool saw_exception = RunWithFaultHandler([&ta, head, k]() {
+      ForceRead(&head->next->next->next->next->next->next->data);
       ForceRead(&ta[*(volatile int*)k]);
     }, [&ta](int signal, siginfo_t *info, void *ucontext) {
       // std::cout << "saw signal " << signal << std::endl;
@@ -85,6 +105,8 @@ int main(int argc, char* argv[]) {
     });
 
     if (!saw_exception) {
+      std::cerr << "how'd we get here?" << std::endl;
+      exit(1);
     }
   }
 
