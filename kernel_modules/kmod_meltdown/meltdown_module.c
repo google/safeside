@@ -42,11 +42,11 @@ static int seal_page_set(void *data, u64 addr)
 
   int ret = -EINVAL;
 
-  if (!down_write_killable(&current->mm->mmap_sem)) {
+	pr_info("process %d to seal virtual address: 0x%llx\n", current->pid, addr);
+
+  if (down_write_killable(&current->mm->mmap_sem)) {
     return -EINTR;
   }
-
-	pr_info("process %d to seal virtual address: 0x%llx\n", current->pid, addr);
 
   vma = find_vma(current->mm, addr);
   if (!vma) {
