@@ -196,3 +196,7 @@ add_demo(meltdown_ac SYSTEMS Linux PROCESSORS i686 x86_64)
 
 # Meltdown DE -- speculative computation with division by zero remainder
 add_demo(meltdown_de SYSTEMS Linux PROCESSORS i686 x86_64)
+
+
+# TEMP
+add_demo(catcher)
