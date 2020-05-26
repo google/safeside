@@ -1,5 +1,6 @@
 #include <setjmp.h>
 #include <signal.h>
+#include <string.h>
 #include <sys/mman.h>
 
 #include <iomanip>
@@ -11,7 +12,7 @@
 #include "utils.h"
 
 using FaultHandler = std::function<void(int, siginfo_t*, void*)>;
-thread_local jmp_buf signal_handler_jmpbuf;
+thread_local sigjmp_buf signal_handler_jmpbuf;
 thread_local FaultHandler fault_handler;
 
 const char kSealEndpoint[] =
@@ -19,7 +20,7 @@ const char kSealEndpoint[] =
 
 void SignalHandler(int signal, siginfo_t *info, void *ucontext) {
   fault_handler(signal, info, ucontext);
-  longjmp(signal_handler_jmpbuf, 1);
+  siglongjmp(signal_handler_jmpbuf, 1);
 }
 
 bool RunWithFaultHandler(std::function<void()> inner, FaultHandler handler) {
@@ -27,10 +28,12 @@ bool RunWithFaultHandler(std::function<void()> inner, FaultHandler handler) {
 
   fault_handler = handler;
   struct sigaction sa, oldsa;
+  memset(&sa, 0, sizeof(sa));
+
   sa.sa_sigaction = SignalHandler;
   sigaction(SIGSEGV, &sa, &oldsa);
 
-  if (setjmp(signal_handler_jmpbuf) == 0) {
+  if (sigsetjmp(signal_handler_jmpbuf, 1) == 0) {
     inner();
     handled_fault = false;
   }
@@ -49,6 +52,8 @@ int Seal(void* address) {
 
   // Writes "0xABC" as the module expects.
   f << address << std::endl;
+
+  return 0;
 }
 
 int main(int argc, char* argv[]) {
