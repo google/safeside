@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
+#include <asm/tlbflush.h>
+
 #include <linux/debugfs.h>
 #include <linux/hugetlb.h>
 #include <linux/mm.h>
@@ -37,7 +39,7 @@ static int seal_page_set(void *data, u64 addr)
   p4d_t *p4d = NULL;
   pud_t *pud = NULL;
   pmd_t *pmd = NULL;
-  pte_t *pte = NULL;
+  pte_t *ptep = NULL;
   spinlock_t *pte_lock = NULL;
 
   int ret = -EINVAL;
@@ -53,7 +55,11 @@ static int seal_page_set(void *data, u64 addr)
     pr_info("no vma for address\n");
     goto out_unlock_mmap_sem;
   } else if (is_vm_hugetlb_page(vma)) {
-    pr_info("addr is on hugepage");
+    pr_info("addr is on hugepage\n");
+    goto out_unlock_mmap_sem;
+  } else if ((vma->vm_flags & VM_READ) == 0 ||
+             (vma->vm_flags & VM_WRITE) == 0) {
+    pr_info("address is not read/write\n");
     goto out_unlock_mmap_sem;
   }
 
@@ -81,13 +87,20 @@ static int seal_page_set(void *data, u64 addr)
     goto out_unlock_mmap_sem;
   }
 
-  pte = pte_offset_map_lock(current->mm, pmd, addr, &pte_lock);
+  ptep = pte_offset_map_lock(current->mm, pmd, addr, &pte_lock);
 
-  pr_info("pte entry is 0x%lx\n", pte_flags(*pte));
+  pr_info("old pte = 0x%lx\n", pte_flags(*ptep));
 
-  pte_unmap_unlock(pte, pte_lock);
+  // remove PAGE_RW as well, otherwise writes trigger an infinite loop
+  set_pte(ptep, __pte(pte_val(*ptep) & ~_PAGE_USER));
+
+  pr_info("new pte = 0x%lx\n", pte_flags(*ptep));
+
+  // flush_tlb_mm_range isn't exported for modules
+  __flush_tlb_one_user(addr);
 
   ret = 0;
+  pte_unmap_unlock(ptep, pte_lock);
 
 out_unlock_mmap_sem:
   up_write(&current->mm->mmap_sem);
