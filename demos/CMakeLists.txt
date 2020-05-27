@@ -44,10 +44,10 @@ endif()
 
 # Support library
 add_library(safeside
-  cache_sidechannel.cc
-  instr.cc
-  timing_array.cc
-  utils.cc
+    cache_sidechannel.cc
+    instr.cc
+    timing_array.cc
+    utils.cc
 )
 
 # Configure the assembler. Set ASM_EXT (extension for assembly files) and
@@ -102,11 +102,11 @@ target_link_libraries(timing_array_test safeside)
 # created.
 function(add_demo demo_name)
   cmake_parse_arguments(
-    ARG  # parsed argument prefix
-    ""  # boolean options
-    ""  # one-value arguments
-    "SYSTEMS;PROCESSORS;ADDITIONAL_SOURCES"  # multi-value arguments
-    ${ARGN}  # arguments to parse -- ARGN excludes already-named arguments
+      ARG  # parsed argument prefix
+      ""  # boolean options
+      ""  # one-value arguments
+      "SYSTEMS;PROCESSORS;ADDITIONAL_SOURCES"  # multi-value arguments
+      ${ARGN}  # arguments to parse -- ARGN excludes already-named arguments
   )
 
   if (DEFINED ARG_SYSTEMS)
