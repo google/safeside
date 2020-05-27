@@ -42,8 +42,9 @@ static char LeakByte(const char *data, size_t offset) {
   const std::array<BigByte, 256> &oracle = sidechannel.GetOracle();
 
   for (int run = 0;; ++run) {
-    // Load the kernel memory into the cache to speed up its leakage.
-    std::ifstream is("/proc/safeside_meltdown/length");
+    // Load the secret data into cache so it is more likely to be available
+    // to transient instructions.
+    std::ifstream is("/sys/kernel/debug/safeside_meltdown/secret_data_in_cache");
     is.get();
     is.close();
 
@@ -77,7 +78,7 @@ static char LeakByte(const char *data, size_t offset) {
 
 int main() {
   size_t private_data, private_length;
-  std::ifstream in("/proc/safeside_meltdown/address");
+  std::ifstream in("/sys/kernel/debug/safeside_meltdown/secret_data_address");
   if (in.fail()) {
     std::cerr << "Meltdown module not loaded or not running as root."
               << std::endl;
@@ -86,7 +87,7 @@ int main() {
   in >> std::hex >> private_data;
   in.close();
 
-  in.open("/proc/safeside_meltdown/length");
+  in.open("/sys/kernel/debug/safeside_meltdown/secret_data_length");
   in >> std::dec >> private_length;
   in.close();
 
