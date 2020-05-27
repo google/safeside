@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -o errexit -o nounset -o pipefail
+
+unload_kmod() {
+  sudo rmmod meltdown_module
+}
+
+git clean -x -d -f
+(mkdir build; cd build; cmake ..)
+(cd build; make -j)
+sudo insmod build/meltdown_module/meltdown_module.ko
+trap unload_kmod EXIT
+sudo ./build/demos/meltdown
+
