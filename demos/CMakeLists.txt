@@ -50,6 +50,10 @@ add_library(safeside
     utils.cc
 )
 
+if(UNIX)
+  target_sources(safeside PRIVATE faults.cc)
+endif()
+
 # Configure the assembler. Set ASM_EXT (extension for assembly files) and
 # ASM_PLATFORM (target CPU), which we'll use to add the right assembly
 # implementation.
@@ -95,6 +99,11 @@ target_sources(
 
 add_executable(timing_array_test timing_array_test.cc)
 target_link_libraries(timing_array_test safeside)
+
+if(UNIX)
+  add_executable(faults_test faults_test.cc)
+  target_link_libraries(faults_test safeside)
+endif()
 
 # Defines an executable target named `demo_name` built from `demo_name.cc` and
 # linked against the Safeside support library. The caller can also use the
