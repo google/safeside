@@ -1,6 +1,3 @@
-branches:
-  only:
-    - master
 language: cpp
 dist: bionic
 matrix:
