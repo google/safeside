@@ -50,6 +50,10 @@ add_library(safeside
     utils.cc
 )
 
+if(UNIX)
+  target_sources(safeside PRIVATE faults.cc)
+endif()
+
 # Configure the assembler. Set ASM_EXT (extension for assembly files) and
 # ASM_PLATFORM (target CPU), which we'll use to add the right assembly
 # implementation.

