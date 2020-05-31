@@ -7,7 +7,7 @@ matrix:
       compiler: gcc
 before_script:
   - ./ci/show-cpu-info
-  - "curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/cpu-platform"
-  - "curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/machine-type"
+  - "curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/cpu-platform; echo"
+  - "curl -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/machine-type; echo"
 script:
   - ./ci/vm/run
