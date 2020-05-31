@@ -2,6 +2,9 @@
 
 set -o errexit -o nounset -o pipefail
 
+sudo apt update
+sudo apt install -y genisoimage qemu-kvm qemu-utils
+
 # https://cloud-images.ubuntu.com/minimal/releases/bionic/release/ubuntu-18.04-minimal-cloudimg-amd64.img?
 # https://cloud-images.ubuntu.com/releases/bionic/release/ubuntu-18.04-server-cloudimg-amd64-root.tar.xz?
 
