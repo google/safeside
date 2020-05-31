@@ -1,0 +1,12 @@
+#cloud-config
+
+chpasswd:
+    list: |
+        root:hello
+        ubuntu:hello
+    expire: false
+
+runcmd:
+    - poweroff
+
+final_message: welcome

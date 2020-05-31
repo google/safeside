@@ -1,0 +1,64 @@
+#!/bin/bash
+
+set -o errexit -o nounset -o pipefail
+
+# https://cloud-images.ubuntu.com/minimal/releases/bionic/release/ubuntu-18.04-minimal-cloudimg-amd64.img?
+# https://cloud-images.ubuntu.com/releases/bionic/release/ubuntu-18.04-server-cloudimg-amd64-root.tar.xz?
+
+RELEASE=https://cloud-images.ubuntu.com/releases/bionic/release/
+VMLINUZ=ubuntu-18.04-server-cloudimg-amd64-vmlinuz-generic
+INITRD=ubuntu-18.04-server-cloudimg-amd64-initrd-generic
+DISKIMG=ubuntu-18.04-server-cloudimg-amd64.img
+
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+mkdir -p "${PROJECT_ROOT}/tmp"
+cd "${PROJECT_ROOT}/tmp"
+
+[[ -f "${VMLINUZ}" ]] || {
+  curl -O "${RELEASE}/unpacked/${VMLINUZ}"
+}
+
+[[ -f "${INITRD}" ]] || {
+  curl -O "${RELEASE}/unpacked/${INITRD}"
+}
+
+[[ -f "${DISKIMG}" ]] || {
+  curl -O "${RELEASE}/${DISKIMG}"
+}
+
+# Create cloud-init config ISO
+# https://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html
+genisoimage \
+    -quiet \
+    -o config.iso \
+    -joliet \
+    -rock \
+    -volid cidata \
+    -input-charset utf8 \
+    "${PROJECT_ROOT}/ci/vm/user-data" \
+    "${PROJECT_ROOT}/ci/vm/meta-data"
+
+# Create a new "layer" backed by the Ubuntu cloud image
+qemu-img create \
+    -q \
+    -f qcow2 \
+    -o backing_file="${DISKIMG}" \
+    root.img \
+#
+
+sudo qemu-system-x86_64 \
+    -nodefconfig \
+    -nodefaults \
+    -enable-kvm \
+    -display none \
+    -kernel "${VMLINUZ}" \
+    -initrd "${INITRD}" \
+    -append "console=ttyS0 root=/dev/vda1" \
+    -drive "file=root.img,if=virtio" \
+    -drive "file=config.iso,if=virtio,media=cdrom" \
+    -net user,net=10.118.94.0/24 \
+    -device virtio-net-pci,vlan=0 \
+    -serial stdio \
+    -cpu host \
+    -m 2G \
+#
