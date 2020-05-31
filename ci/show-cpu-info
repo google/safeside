@@ -3,7 +3,8 @@
 set -o errexit -o nounset -o pipefail
 
 cpuinfo_linux() {
-  which lscpu >/dev/null && lscpu
+  # lscpu doesn't include the "bugs" field
+  [[ -f /proc/cpuinfo ]] && cat /proc/cpuinfo
 }
 
 cpuinfo_mac() {
