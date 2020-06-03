@@ -38,3 +38,4 @@ run_test() {
 
 run_test timing_array_test
 run_test spectre_v1_pht_sa
+run_test faults_test
