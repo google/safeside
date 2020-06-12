@@ -1,6 +1,6 @@
 branches:
   only:
-    - master
+    - main
 language: cpp
 dist: bionic
 matrix:
