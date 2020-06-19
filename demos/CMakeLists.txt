@@ -207,3 +207,7 @@ add_demo(meltdown_ac SYSTEMS Linux PROCESSORS i686 x86_64)
 add_demo(meltdown_de SYSTEMS Linux PROCESSORS i686 x86_64)
 
 add_demo(fill_speed)
+
+# At lower optimization levels, the timing difference is about 1%.
+# At -O3 it's 10% or more.
+target_compile_options(fill_speed PRIVATE -O3)

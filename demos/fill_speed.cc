@@ -23,17 +23,28 @@ int64_t Microseconds(const Clock::duration &d) {
 }
 
 SAFESIDE_NEVER_INLINE
-Clock::duration TestOne(int buffer[], int size, int v) {
+void Fill(int* buffer, int size, int val) {
+  std::fill(buffer, buffer + size, val);
+  CompilerOpaqueUse(buffer);
+}
+
+Clock::duration TestOne(int* buffer, int size, int val) {
   int warmup = 5;  // avoid transient effects, improve consistency
-  int rounds = 50;  // amplify result
+  int rounds = 1;  // amplify result
 
   Clock::duration d;
 
   for (int i = 0; i < warmup + 1; ++i) {
     d = Runtime([&]() {
       for (int r = 0; r < rounds; ++r) {
-        std::fill(buffer, buffer + size, v);
-        CompilerOpaqueUse(buffer);
+        // Worth further investigation: Why at -O3 does this work:
+        Fill(buffer, size, val);
+        // and show a difference of 10%+ writing 0, but this:
+        //   std::fill(buffer, buffer + size, val);
+        //   CompilerOpaqueUse(buffer);
+        // takes *longer* and shows no obvious difference writing 0?
+        // Part of it is probably that CompilerOpaqueUse includes a "memory"
+        // clobber.
       }
     });
   }
@@ -42,8 +53,8 @@ Clock::duration TestOne(int buffer[], int size, int v) {
 }
 
 void Test() {
-  // target ~50% of L3 size
-  // see `sudo lshw` or /sys/devices/system/cpu/cpu0/cache/index3/size
+  // the behavior should appear for any buffer larger than L2
+  // see `sudo lshw` or /sys/devices/system/cpu/cpu0/cache/index2/size
   int buffer_bytes = 2 * 1024 * 1024;
 
   std::vector<int> buffer(buffer_bytes / sizeof(int));
