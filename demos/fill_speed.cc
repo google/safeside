@@ -25,7 +25,8 @@ int64_t Microseconds(const Clock::duration &d) {
 SAFESIDE_NEVER_INLINE
 void Fill(int* buffer, int size, int val) {
   std::fill(buffer, buffer + size, val);
-  CompilerOpaqueUse(buffer);
+  // seems unnecessary
+  // CompilerOpaqueUse(buffer);
 }
 
 Clock::duration TestOne(int* buffer, int size, int val) {
