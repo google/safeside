@@ -69,17 +69,11 @@ static int __init meltdown_init(void) {
     goto out_remove;
   }
 
-  child = debugfs_create_u32("secret_data_length", 0400, debugfs_dir,
+  debugfs_create_u32("secret_data_length", 0400, debugfs_dir,
       &secret_data_length);
-  if (!child) {
-    goto out_remove;
-  }
 
-  child = debugfs_create_x64("secret_data_address", 0400, debugfs_dir,
+  debugfs_create_x64("secret_data_address", 0400, debugfs_dir,
       &secret_data_address);
-  if (!child) {
-    goto out_remove;
-  }
 
   child = debugfs_create_file("secret_data_in_cache", 0400, debugfs_dir, NULL,
       &fops_secret_data_in_cache);
