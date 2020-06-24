@@ -9,6 +9,8 @@
 
 #include "faults.h"
 
+#include <signal.h>
+
 #include <iostream>
 
 // Tests that a SIGSEGV is successfully caught and the handler runs.
@@ -16,7 +18,7 @@ bool TestHandlesSigsegv() {
   bool pass = true;
 
   bool ran_body = false;
-  bool saw_fault = RunWithFaultHandler([&]() {
+  bool saw_fault = RunWithFaultHandler(SIGSEGV, [&]() {
     ran_body = true;
     raise(SIGSEGV);
   });
@@ -38,7 +40,7 @@ bool TestNoFault() {
   bool pass = true;
 
   bool ran_body = false;
-  bool saw_fault = RunWithFaultHandler([&]() {
+  bool saw_fault = RunWithFaultHandler(SIGSEGV, [&]() {
     ran_body = true;
   });
 
