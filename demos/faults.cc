@@ -25,18 +25,18 @@ void SignalHandler(int signal, siginfo_t *info, void *ucontext) {
 
 }  // namespace
 
-bool RunWithFaultHandler(std::function<void()> inner) {
+bool RunWithFaultHandler(int fault_signum, std::function<void()> inner) {
   struct sigaction sa = {};
   sa.sa_sigaction = SignalHandler;
 
   struct sigaction oldsa;
   // This sets the signal handler for the entire process.
-  sigaction(SIGSEGV, &sa, &oldsa);
+  sigaction(fault_signum, &sa, &oldsa);
 
-  // Use sigsetjmp/siglongjmp to save and restore signal mask. Otherwise we
-  // will jump out of the signal handler and leave the currently-being-handled
-  // signal blocked. The result of a SIGSEGV being raised while blocked is
-  // "undefined"[1], but in practice leads to killing the process.
+  // Use sigsetjmp/siglongjmp to save and restore signal mask. Otherwise we will
+  // jump out of the signal handler and leave the currently-being-handled signal
+  // blocked. The result of a SIGBUS, SIGFPE, SIGILL, or SIGSEGV being raised
+  // while blocked is "undefined"[1], but in practice the process is killed.
   //
   // [1] https://www.man7.org/linux/man-pages/man2/sigprocmask.2.html#NOTES
   bool handled_fault = true;
@@ -45,7 +45,7 @@ bool RunWithFaultHandler(std::function<void()> inner) {
     handled_fault = false;
   }
 
-  sigaction(SIGSEGV, &oldsa, nullptr);
+  sigaction(fault_signum, &oldsa, nullptr);
 
   return handled_fault;
 }

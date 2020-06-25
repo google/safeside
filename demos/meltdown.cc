@@ -54,7 +54,7 @@ static char LeakByte(const char *data, size_t offset) {
     // we want to leak via out-of-bounds speculative access.
     size_t safe_offset = run % strlen(public_data);
 
-    bool handled_fault = RunWithFaultHandler([&]() {
+    bool handled_fault = RunWithFaultHandler(SIGSEGV, [&]() {
       ForceRead(oracle.data() + static_cast<size_t>(data[safe_offset]));
 
       // Access attempt to the kernel memory. This does not succeed

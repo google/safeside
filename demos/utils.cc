@@ -43,6 +43,22 @@ void FlushFromDataCache(const void *begin, const void *end) {
   MemoryAndSpeculationBarrier();
 }
 
+// This implementation delays the retirement of later instructions by making
+// them wait for an uncached read. We arrange the read so it is unlikely to
+// interfere with the cache state of other data.
+void ExtendSpeculationWindow() {
+  // Choose an address with at least kPageBytes padding before and after. That
+  // ensures our memory access will be on its own page and reduces the chance
+  // it will interfere with caching or prefetching of other data.
+  //
+  // A more clever implementation might use 2*kPageBytes + kCacheLineBytes.
+  static char buffer[3 * kPageBytes] = {0};
+  const char* read_offset = &buffer[kPageBytes];
+
+  FlushFromDataCache(read_offset, read_offset + 1);
+  ForceRead(read_offset);
+}
+
 #if SAFESIDE_LINUX
 void PinToTheFirstCore() {
   cpu_set_t set;

