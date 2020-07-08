@@ -7,5 +7,10 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(safeside VERSION 0.1.0 LANGUAGES C CXX)
 
+# Use C++11 without extensions
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS off)
+
+add_subdirectory(benchmarks)
 add_subdirectory(demos)
 add_subdirectory(kernel_modules)
