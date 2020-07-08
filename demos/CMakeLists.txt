@@ -1,7 +1,3 @@
-# Use C++11 without extensions
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_EXTENSIONS off)
-
 # Enable (or at least don't disable) some optimizations in all builds.
 # Without optimizations, it can be difficult to fit enough useful code into the
 # speculative execution window.
