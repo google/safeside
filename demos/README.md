@@ -23,6 +23,10 @@ sudo ./build/demos/meltdown
 etc.
 ```
 
+## Naming Scheme
+
+The naming scheme is heavily influenced by [A Systematic Evaluation of Transient Execution Attacks and Defenses](https://arxiv.org/pdf/1811.05441.pdf). So for example, `spectre_v1_btb_ca.cc` is a demonstration of using a mistrained speculative branch (Spectre v1) via mistraining the branch target buffer (BTB) to transmit data cross-address-space (CA). (As for what counts as Spectre v1, see the discussion in [PR #12](https://github.com/google/safeside/pull/12).)
+
 ## Tested environments
 
 We currently test our changes on:
