@@ -18,11 +18,12 @@ function(build_kernel_module MODULE_NAME)
   if(EXISTS "${KERNEL_SRC}")
     message(STATUS "Kernel build directory: ${KERNEL_SRC}")
   else()
-    message(FATAL_ERROR
-        " Can't find headers to build kernel modules.\n"
+    message(WARNING
+        " Kernel headers not found. Modules won't be built.\n"
         " Try:\n"
         "     sudo apt install linux-headers-${CMAKE_HOST_SYSTEM_VERSION}"
     )
+    return()
   endif()
 
   # Create the directory where we'll invoke Kbuild to compile the module.
