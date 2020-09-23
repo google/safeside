@@ -11,8 +11,8 @@ generate_and_build() {
   shift
 
   mkdir "${folder_name}"
-  (cd "${folder_name}"; cmake "$@" ..)
-  cmake --build "${folder_name}"
+  cmake "$@" -B "${folder_name}" .
+  cmake --build "${folder_name}" --parallel
 }
 
 if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
