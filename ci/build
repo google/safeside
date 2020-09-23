@@ -41,8 +41,8 @@ case "${OS_COMPILER_CPU}" in
     # Install the 32-bit compiler and C/C++ runtimes
     sudo apt install \
         g++-i686-linux-gnu \
-        libc6:i386 \
-        libstdc++6:i386
+        libc6-i386 \
+        lib32stdc++6
 
     generate_and_build build-x86_64
     generate_and_build build-i686 \
