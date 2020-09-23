@@ -15,27 +15,21 @@ generate_and_build() {
   cmake --build "${folder_name}"
 }
 
-# Installs given packages.
-# Usage:
-#   apt_install <package1> [<package2> ...]
-apt_install() {
+if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
   # Update package lists first. Without this, we've seen missing packages
   # and dependency conflicts that block installation.
   sudo apt update
 
-  sudo apt install "$@"
-}
+  # Try to install kernel headers. Continue on failure, e.g. when running in
+  # an LXD container where Ubuntu has no headers package corresponding to the
+  # host kernel. In that case the kernel modules won't be built.
+  sudo apt install "linux-headers-$(uname -r)" || true
+fi
 
 OS_COMPILER_CPU=${TRAVIS_OS_NAME}_${TRAVIS_COMPILER}_${TRAVIS_CPU_ARCH}
 case "${OS_COMPILER_CPU}" in
   linux_clang_*)
-    apt_install "linux-headers-$(uname -r)"
-
     generate_and_build build -DCMAKE_CXX_CLANG_TIDY=clang-tidy
-    ;;
-
-  osx_clang_*)
-    generate_and_build build
     ;;
 
   windows_*)
@@ -45,8 +39,7 @@ case "${OS_COMPILER_CPU}" in
 
   linux_gcc_amd64)
     # Install the 32-bit compiler and C/C++ runtimes
-    apt_install \
-        "linux-headers-$(uname -r)" \
+    sudo apt install \
         g++-i686-linux-gnu \
         libc6:i386 \
         libstdc++6:i386
@@ -56,9 +49,12 @@ case "${OS_COMPILER_CPU}" in
         -DCMAKE_TOOLCHAIN_FILE=ci/toolchains/i686-linux-gnu.cmake
     ;;
 
-  linux_gcc_*)
-    apt_install "linux-headers-$(uname -r)"
-
+  linux_gcc_*|osx_clang_*)
     generate_and_build build
+    ;;
+  
+  *)
+    >&2 echo Missing build commands for "${OS_COMPILER_CPU}"
+    exit 1
     ;;
 esac
