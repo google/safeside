@@ -2,7 +2,7 @@ branches:
   only:
     - main
 language: cpp
-dist: focal
+dist: bionic
 matrix:
   include:
     - name: "Linux / clang / x86_64"
