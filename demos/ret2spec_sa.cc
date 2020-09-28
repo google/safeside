@@ -7,6 +7,14 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
+// Causes misprediction of function returns that leads to speculative execution
+// of otherwise dead code. Leaks architecturally inaccessible data from the
+// process's address space.
+//
+// PLATFORM NOTES:
+// This program should leak data on pretty much any system where it compiles.
+// We only require an out-of-order CPU that predicts function returns.
+
 /**
  * Demonstration of ret2spec that exploits the fact that return stack buffers
  * have limited size and they can be rewritten by recursive invocations of
