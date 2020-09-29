@@ -7,6 +7,14 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
  */
 
+// Causes misprediction of indirect branches (here, virtual function calls)
+// that leads to type confusion during speculative execution. Leaks
+// architecturally inaccessible data from the process's address space.
+//
+// PLATFORM NOTES:
+// This program should leak data on pretty much any system where it compiles.
+// We only require an out-of-order CPU that predicts indirect branches.
+
 #include <array>
 #include <cstring>
 #include <iostream>
