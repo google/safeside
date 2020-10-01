@@ -134,24 +134,21 @@ class TimingArray {
   uint64_t cached_read_latency_threshold_;
   uint64_t FindCachedReadLatencyThreshold();
 
-  // Define a struct that is the size of a cache line. Even though we use
-  // `alignas`, there's no guarantee (up through C++17) that the struct will
-  // actually be allocated at that alignment in the common case where
-  //     kCacheLineBytes > sizeof(std::max_align_t)
-  // See the discussion of "extended alignment" requirements at
-  // https://en.cppreference.com/w/cpp/language/object#Alignment
-  struct alignas(kCacheLineBytes) CacheLineSized {
+  // Define a struct that occupies one full cache line. Some compilers may not
+  // support aligning at `kCacheLineBytes`, which is almost always greater than
+  // `sizeof(std::max_align_t)`. In those cases we'll get a compile error.
+  // See: https://timsong-cpp.github.io/cppwp/n3337/basic.align#9
+  struct alignas(kCacheLineBytes) CacheLine {
     ValueType value;
   };
-  static_assert(sizeof(CacheLineSized) == kCacheLineBytes, "");
+  static_assert(sizeof(CacheLine) == kCacheLineBytes, "");
 
-  // Define our "Element" struct, which will be the size of one page of memory
-  // plus one cache line. When we allocate N of these in an array, we can't
-  // tell if they'll be cache-aligned, but we know that the start of adjacent
-  // elements will be on different pages *and* different cache lines.
+  // Define our "Element" struct, which takes up one page plus one cache line.
+  // When we allocate an array of these, we know that adjacent elements will
+  // start on different pages and in different cache sets.
   static const int kCacheLinesPerPage = kPageBytes / kCacheLineBytes;
   struct Element {
-    std::array<CacheLineSized, kCacheLinesPerPage + 1> cache_lines;
+    std::array<CacheLine, kCacheLinesPerPage + 1> cache_lines;
   };
   static_assert(sizeof(Element) == kPageBytes + kCacheLineBytes, "");
 
