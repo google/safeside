@@ -3,58 +3,63 @@
 
 #include <algorithm>
 #include <iostream>
+#include <memory>
+#include <random>
 
-int64_t MAX_SIZE = 16 * 1024 * 1024;
-int64_t MIN_SIZE = 1024;
-int64_t ACCESSES_NUM = 64 * 1024 * 1024;
-int REPEATS = 50;
+#include "../demos/asm/measurereadlatency.h"
+#include "../demos/instr.h"
+#include "../demos/utils.h"
 
-clock_t whack_cache(const int64_t sz, int64_t* accesses) {
-  char* buf = new char[sz];
+// Determines the maximum latency of reading elements of a vector of size "sz",
+// which is given as input.
+// It reads each element of the vector and measures the time
+// using MeasureReadLatency(). Later this number can be used to determine cache
+// misses and hits
 
-  clock_t start = clock();
-  // TODO fencing
-  for (int64_t i = 0; i < ACCESSES_NUM; i++) {
-    ++buf[(accesses[i] * 64) % sz];
+uint64_t AnalyzeReadingTime(int64_t sz) {
+  // Generate a random order of accesses to eliminate the impact of hw
+  // prefetchers
+  std::vector<int64_t> accesses(sz);
+  for (int64_t i = 0; i < sz; i++) {
+    accesses.push_back(i);
   }
-  // TODO: elapsed time generates zero
-  clock_t elapsed = clock() - start;
+  std::mt19937 f(std::random_device());
+  std::shuffle(accesses.begin(), accesses.end(), f);
 
-  double cpu_time_used = ((double)elapsed) / CLOCKS_PER_SEC;
+  std::vector<char> buf(sz);
 
-  delete[] buf;
-  return elapsed;
-}
-
-void shuffle(int64_t* a) {
-  int64_t i = ACCESSES_NUM - 1;
-  srand(time(NULL));
-  while (i >= 0) {
-    int64_t rand_num = rand() % (i + 1);
-    int64_t temp = a[i];
-    a[i] = a[rand_num];
-    a[rand_num] = temp;
-    i--;
+  // TODO: not sure about the size of chuncks and its impact on prefetchers
+  for (int64_t i : accesses) {
+    ForceRead(&buf[i]);
   }
+
+  // Read each element in the same random order and keep track of the slowest
+  // read.
+  uint64_t max_read_latency = std::numeric_limits<uint64_t>::min();
+  for (int64_t i : accesses) {
+    max_read_latency = std::max(max_read_latency, MeasureReadLatency(&buf[i]));
+  }
+
+  return max_read_latency;
 }
 
 int main() {
+  int64_t max_size = 16 * 1024 * 1024;
+  int64_t min_size = 1024;
+  int iterations = 30;
+
   std::cout << "writing timing results to \"results.csv\"" << std::endl;
 
   FILE* f = fopen("results.csv", "w");
   if (!f) return 1;
 
-  int64_t* accesses = new int64_t[ACCESSES_NUM];
-  for (int64_t i = 0; i < ACCESSES_NUM; i++) {
-    accesses[i] = i;
-  }
-  shuffle(accesses);
-
-  for (int i = 0; i < REPEATS; i++) {
-    for (int64_t sz = MIN_SIZE; sz <= MAX_SIZE; sz = sz * 1.2) {
-      fprintf(f, "%d, %lu\n", sz, whack_cache(sz, accesses));
+  for (int i = 0; i < iterations; i++) {
+    // analyzes a range of memory sizes to find the maximum time needed to read each of their
+    // elements
+    for (int64_t sz = min_size; sz <= max_size; sz = sz * 1.5) {
+      fprintf(f, "%d, %lu\n", sz, AnalyzeReadingTime(sz));
       std::cout << ".";
-      fflush(stdout);
+      std::flush(std::cout);
     }
   }
 
