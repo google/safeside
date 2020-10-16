@@ -23,7 +23,8 @@ uint64_t AnalyzeReadingTime(int64_t sz) {
   for (int64_t i = 0; i < sz; i++) {
     accesses.push_back(i);
   }
-  std::mt19937 f(std::random_device());
+  std::random_device rd;
+  std::mt19937 f(rd());
   std::shuffle(accesses.begin(), accesses.end(), f);
 
   std::vector<char> buf(sz);
@@ -46,7 +47,7 @@ uint64_t AnalyzeReadingTime(int64_t sz) {
 int main() {
   int64_t max_size = 16 * 1024 * 1024;
   int64_t min_size = 1024;
-  int iterations = 30;
+  int iterations = 100;
 
   std::cout << "writing timing results to \"results.csv\"" << std::endl;
 
