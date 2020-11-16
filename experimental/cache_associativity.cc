@@ -7,6 +7,7 @@
 #include <random>
 #include <string>
 
+// NOTE: the output does not make sense for now
 // TODO: give compilation instructions instead of including nonlocal files
 #include "../demos/asm/measurereadlatency.h"
 #include "../demos/instr.h"
@@ -32,15 +33,16 @@ uint64_t FindReadingTime(std::vector<char> buf, int64_t sz, int step) {
     ForceRead(&buf[i]);
   }
 
-  // Read each element in the same random order and keep track of the slowest
-  // read.
-  // uint64_t max_read_latency = 0;
-  //   for (int64_t i : accesses) {
-  //     max_read_latency += std::max(max_read_latency,
-  //     MeasureReadLatency(&buf[i]));
-  //   }
+//   Read each element in the same random order and keep track of the slowest
+//   read.
+  uint64_t max_read_latency = 0;
+    for (int64_t i : accesses) {
+      max_read_latency += std::max(max_read_latency,
+      MeasureReadLatency(&buf[i]));
+    }
 
-  return MeasureReadLatency(&buf[accesses[0]]);
+  //return MeasureReadLatency(&buf[accesses[0]]);
+  return max_read_latency;
 }
 
 // analyzes a ranges of numbers to find the size of strides that fill a cache
