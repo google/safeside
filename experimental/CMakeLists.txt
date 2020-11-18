@@ -1,2 +1,3 @@
 
 add_demo(cache_size SYSTEMS Linux PROCESSORS i686 x86_64)
+add_demo(cache_associativity SYSTEMS Linux PROCESSORS i686 x86_64)
