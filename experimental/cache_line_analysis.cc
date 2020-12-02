@@ -7,7 +7,7 @@
 #include <random>
 #include <string>
 
-// TODO: give compilation instructions instead of including nonlocal files
+// TODO: depending on in which directory the file end up these might need to be changed
 #include "../demos/asm/measurereadlatency.h"
 #include "../demos/instr.h"
 #include "../demos/utils.h"
@@ -40,21 +40,20 @@ double_t FindReadingTime(std::vector<char> buf, int64_t sz, int step) {
 // the cache line size, so not all cache lines are needed to be read from memory
 // to cache
 // Note that (1) the time of reading from cache is negiligble compared to
-// reading from memory, and (2) CPUs read cache lines from memory instead byte
-// by byte.
+// reading from memory, and (2) CPUs read memory in blocks of entire cache
+// lines, rather than reading individual bytes.
 // Therefore, the time for reading a fixed size buffer (smaller than cache size)
 // in chunks of size n should be around the same value as long as n < cache line
 // size (the average reading time increases as n increase (i.e. total time/
 // number of reads)), and then as n increases less number of cache lines are
 // read from memory and takes less time.
-
-int cache_line_size_analysis() {
+int main() {
   static constexpr int64_t kMaxSize = 256;
   static constexpr int64_t kMinSize = 4;
-  static constexpr int iterations = 100;
-
-  int64_t sz = 4 * 1024 * 1024;
-  int64_t cache_size = 8 * 1024 * 1024;
+  static constexpr int kIterations = 10;
+  static constexpr int64_t cache_size = 8 * 1024 * 1024;
+  
+  static constexpr int64_t sz = 4 * 1024 * 1024;
   std::vector<char> buf(sz);
   std::vector<char> cache_flusher(cache_size);
 
@@ -63,11 +62,10 @@ int cache_line_size_analysis() {
   FILE* f = fopen("cache_line_size_results.csv", "w");
   if (!f) return 1;
 
-  for (int j = 0; j < iterations; j++) {
+  for (int j = 0; j < kIterations; j++) {
     // analyzes a range of memory sizes to find the maximum time needed to read
     // each of their elements
     for (int64_t step = kMinSize; step <= kMaxSize; step++) {
-      
       // clean the cache by loading another it with another vector
       // makes sure all elements of "buf" are evicted from cache
       for (int64_t i = 0; i < cache_size; i++) {
@@ -84,12 +82,6 @@ int cache_line_size_analysis() {
   }
 
   fclose(f);
-  return 0;
-}
-
-int main() {
-  cache_line_size_analysis();
-
   std::cout << "done" << std::endl;
   return 0;
 }
