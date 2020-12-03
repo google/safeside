@@ -24,18 +24,19 @@ def draw_single_run_plot(data, name):
   plt.subplot(212)
   plt.scatter(x,y)
   plt.savefig(name)
+  plt.cla()
 
 
 """ This functions draws boxplot for all data points.
 """
 def draw_boxplot(data, x, name):
-  sns.set(rc={'figure.figsize':(40,10)})
+  fig = plt.figure(figsize=(30, 10))
+  ax = fig.add_subplot(111)
   boxes = []
   for l in data:
     c = 0
     for i in l:
-      if c % 2 == 0:
-        boxes.append([x[c], i])
+      boxes.append([x[c], i])
       c += 1
   dd = pd.DataFrame(boxes, columns = ["size (bytes)", "time (cycles)"])
   sns.set_theme(style="whitegrid")
@@ -63,6 +64,7 @@ def draw_all_datapoints(data, sizes, name):
   plt.title(" all data points")
   plt.grid(False)
   plt.savefig(name)
+  plt.cla()
 
 
 
