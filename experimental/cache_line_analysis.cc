@@ -50,12 +50,11 @@ double_t FindReadingTime(std::vector<char> buf, int64_t sz, int step) {
 int main() {
   static constexpr int64_t kMaxSize = 256;
   static constexpr int64_t kMinSize = 4;
-  static constexpr int kIterations = 10;
-  static constexpr int64_t cache_size = 8 * 1024 * 1024;
-  
-  static constexpr int64_t sz = 4 * 1024 * 1024;
-  std::vector<char> buf(sz);
-  std::vector<char> cache_flusher(cache_size);
+  static constexpr int kIterations = 100;
+  static constexpr int64_t kCacheSize = 8 * 1024 * 1024;
+  static constexpr int64_t kBufferSize = 4 * 1024 * 1024;
+  std::vector<char> buf(kBufferSize);
+  std::vector<char> cache_flusher(kCacheSize);
 
   std::cout << "writing timing results..." << std::endl;
 
@@ -68,13 +67,13 @@ int main() {
     for (int64_t step = kMinSize; step <= kMaxSize; step++) {
       // clean the cache by loading another it with another vector
       // makes sure all elements of "buf" are evicted from cache
-      for (int64_t i = 0; i < cache_size; i++) {
+      for (int64_t i = 0; i < kCacheSize; i++) {
         ForceRead(&cache_flusher[i]);
         cache_flusher[i]++;
       }
 
       // computes the average time for reading every "step" element in "buf"
-      double_t res = FindReadingTime(buf, sz, step);
+      double_t res = FindReadingTime(buf, kBufferSize, step);
       fprintf(f, "%d, %f\n", step, res);
       std::cout << ".";
       std::flush(std::cout);
