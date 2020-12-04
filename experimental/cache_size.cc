@@ -21,7 +21,7 @@ int cache_size_analysis() {
     // analyzes a range of memory sizes to find the maximum time needed to read
     // each of their elements
     for (int64_t sz = kMinSize; sz <= kMaxSize; sz = sz * 1.5) {
-      fprintf(f, "%d, %lu\n", sz, FindFirstElementReadingTime(sz));
+      fprintf(f, "%d, %lu\n", sz, FindMaxReadingTime(sz));
       std::cout << ".";
       std::flush(std::cout);
     }
