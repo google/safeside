@@ -17,7 +17,7 @@
 // It reads elements that are located "step" size from each other (i.e. 0, step,
 // 2*step, 3* step, ...) in a random order and measures the time using
 // MeasureReadLatency(). Later this number is used to determine cache line sizes
-double_t FindReadingTime(std::vector<char> buf, int64_t sz, int step) {
+double_t FindAverageReadingTime(std::vector<char> buf, int64_t sz, int step) {
   int64_t accesses_size = sz / step;
   std::vector<int64_t> accesses(accesses_size);
   for (int64_t i = 0; i < sz; i += step) {
@@ -73,7 +73,7 @@ int main() {
       }
 
       // computes the average time for reading every "step" element in "buf"
-      double_t res = FindReadingTime(buf, kBufferSize, step);
+      double_t res = FindAverageReadingTime(buf, kBufferSize, step);
       fprintf(f, "%d, %f\n", step, res);
       std::cout << ".";
       std::flush(std::cout);
