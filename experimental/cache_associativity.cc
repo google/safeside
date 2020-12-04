@@ -6,9 +6,9 @@
 #include <memory>
 #include <random>
 #include <string>
-
+    
 // NOTE: the output does not make sense for now
-// TODO: give compilation instructions instead of including nonlocal files
+// TODO: depending on in which directory the file end up these might need to be changed
 #include "../demos/asm/measurereadlatency.h"
 #include "../demos/instr.h"
 #include "../demos/utils.h"
@@ -50,18 +50,18 @@ uint64_t FindReadingTime(std::vector<char> buf, int64_t sz, int step) {
 
 int cache_set_analysis() {
   // size of the cache under analysis
-  static constexpr int64_t kCacheSize = 256 * 1024;
+  static constexpr int64_t kCacheSize = 8 * 1024 * 1024;
 
-  static constexpr int64_t kStrideMaxSize = 128 * 1024;
-  static constexpr int64_t kStrideMinSize = 8;
-  static constexpr int iterations = 1000;
+  static constexpr int64_t kStrideMaxSize = 2 *1024 * 1024;
+  static constexpr int64_t kStrideMinSize = 1024;
+  static constexpr int kIterations = 20;
 
   std::cout << "writing timing results..." << std::endl;
 
-  FILE* f = fopen("cache_set_l2.csv", "w");
+  FILE* f = fopen("cache_set_analysis.csv", "w");
   if (!f) return 1;
 
-  for (int i = 0; i < iterations; i++) {
+  for (int i = 0; i < kIterations; i++) {
     for (int64_t step = kStrideMinSize; step <= kStrideMaxSize; step *= 2) {
       // size of the buffer under analysis
       int64_t sz = kCacheSize + step;
@@ -78,8 +78,12 @@ int cache_set_analysis() {
 }
 
 int main() {
-  cache_set_analysis();
+  int res = cache_set_analysis();
+  if (res == 0) {
+    std::cout << "Cache size analysis was successfully done" << std::endl;
+  } else {
+    std::cout << "Cache size analysis failed" << std::endl;
+  }
 
-  std::cout << "done" << std::endl;
   return 0;
 }
