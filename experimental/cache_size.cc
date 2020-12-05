@@ -1,72 +1,42 @@
+#include "cache_size.h"
+
 #include <stdlib.h>
 #include <time.h>
 
-#include <algorithm>
-#include <iostream>
-#include <memory>
-#include <random>
+// analyzes a ranges of sizes to find the cache size based on timing
+// information
+// manually a user analyzes the results and pinpoints the cache size where there
+// is jump in average latency time (cache misses happened)
+int cache_size_analysis() {
+  static constexpr int64_t kMaxSize = 32 * 1024 * 1024;
+  static constexpr int64_t kMinSize = 1024;
+  static constexpr int kIterations = 20;
 
-//TODO: give compilation instructions instead of including nonlocal files
-#include "../demos/asm/measurereadlatency.h"
-#include "../demos/instr.h"
-#include "../demos/utils.h"
+  std::cout << "writing timing results..." << std::endl;
 
-// Determines the maximum latency of reading elements of a vector of size "sz",
-// which is given as input.
-// It reads each element of the vector and measures the time
-// using MeasureReadLatency(). Later this number can be used to determine cache
-// misses and hits
-uint64_t AnalyzeReadingTime(int64_t sz) {
-  // Generate a random order of accesses to eliminate the impact of hw
-  // prefetchers
-  std::vector<int64_t> accesses(sz);
-  for (int64_t i = 0; i < sz; i++) {
-    accesses.push_back(i);
-  }
-  std::random_device rd;
-  std::mt19937 f(rd());
-  std::shuffle(accesses.begin(), accesses.end(), f);
-
-  std::vector<char> buf(sz);
-
-  // TODO: not sure about the size of chuncks and its impact on prefetchers
-  for (int64_t i : accesses) {
-    ForceRead(&buf[i]);
-  }
-
-  // Read each element in the same random order and keep track of the slowest
-  // read.
-  uint64_t max_read_latency = std::numeric_limits<uint64_t>::min();
-  for (int64_t i : accesses) {
-    max_read_latency = std::max(max_read_latency, MeasureReadLatency(&buf[i]));
-  }
-
-  return max_read_latency;
-}
-
-int main() {
-
-  std::cout << "writing timing results to \"results.csv\"" << std::endl;
-
-  FILE* f = fopen("results.csv", "w");
+  FILE* f = fopen("cache_size_results.csv", "w");
   if (!f) return 1;
 
-  static constexpr int64_t kMaxSize = 16 * 1024 * 1024;
-  static constexpr int64_t kMinSize = 1024;
-  static constexpr int iterations = 100;
-
-  for (int i = 0; i < iterations; i++) {
+  for (int i = 0; i < kIterations; i++) {
     // analyzes a range of memory sizes to find the maximum time needed to read
     // each of their elements
     for (int64_t sz = kMinSize; sz <= kMaxSize; sz = sz * 1.5) {
-      fprintf(f, "%d, %lu\n", sz, AnalyzeReadingTime(sz));
+      fprintf(f, "%d, %lu\n", sz, FindMaxReadingTime(sz));
       std::cout << ".";
       std::flush(std::cout);
     }
   }
 
   fclose(f);
+  return 0;
+}
 
-  std::cout << "done" << std::endl;
+int main() {
+  int res = cache_size_analysis();
+  if (res == 0) {
+    std::cout << "Cache size analysis was successfully done" << std::endl;
+  } else {
+    std::cout << "Cache size analysis failed" << std::endl;
+  }
   return 0;
 }
