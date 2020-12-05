@@ -12,9 +12,9 @@ int main(int argc, char* argv[]) {
   static constexpr long kTestSizes = 4;
 
   // generates a list of numbers that are used to determine the size of buffers
-  std::vector<int> candidates(kTestSizes);
-  for (int i = 1; i < kTestSizes + 1; i++) {
-    candidates.at(i - 1) = 2 * i;
+  std::vector<int> candidates;
+  for (int i = 0; i < kTestSizes; ++i) {
+    candidates.push_back(20 * (i + 1));
   }
   int total_passed_tests = 0;
   for (int i = 0; i < kIterations; i++) {
@@ -41,9 +41,9 @@ int main(int argc, char* argv[]) {
               << std::endl;
     total_passed_tests += passed_tests;
   }
-  std::cout << total_passed_tests * 100 /
-                   (kIterations * kTestSizes * kTestSizes)
-            << "% of tests passed." << std::endl;
-
-  return 0;
+  float res =
+      total_passed_tests * 100 / (kIterations * kTestSizes * kTestSizes);
+  std::cout << res << "% of tests passed." << std::endl;
+  if (res > 99) return 0;
+  return 1;
 }
