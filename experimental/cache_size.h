@@ -19,7 +19,7 @@
 // It reads each element of the vector and measures the time
 // using MeasureReadLatency(). Later this number can be used to determine cache
 // misses and hits
-uint64_t FindMaxReadingTime(long sz) {
+inline uint64_t FindMaxReadingTime(long sz) {
   // Generate a random order of accesses to eliminate the impact of hw
   // prefetchers
   std::vector<int64_t> accesses(sz);
@@ -51,7 +51,7 @@ uint64_t FindMaxReadingTime(long sz) {
 // It reads the first element based on the order of initial accesses and
 // measures the time using MeasureReadLatency(). Later this number can be used
 // to determine cache misses and hits
-uint64_t FindFirstElementReadingTime(long sz) {
+inline uint64_t FindFirstElementReadingTime(long sz) {
   // Generate a random order of accesses to eliminate the impact of hw
   // prefetchers
   std::vector<int64_t> accesses(sz);
