@@ -2,14 +2,14 @@
 #include "cache_size.h"
 
 #include <iostream>
-// Measure how often measuring time is able to accurately determine cache hits
-// and cache misses based on the buffer size under analysis and the cache size
-// it checks whether buffer sizes that fit in cache have less reading time or
-// not
-int main(int argc, char* argv[]) {
-  static constexpr long kCacheSize = 8 * 1024 * 1024;
-  static constexpr long kIterations = 2;
-  static constexpr long kTestSizes = 4;
+
+// Measures how often measuring time is able to accurately determine cache hits
+// and cache misses based on the buffer size under analysis and the cache size.
+// Checks whether buffer sizes that fit in cache are faster.
+int main() {
+  static constexpr int64_t kCacheSize = 8 * 1024 * 1024;
+  static constexpr int kIterations = 2;
+  static constexpr int kTestSizes = 4;
 
   // generates a list of numbers that are used to determine the size of buffers
   std::vector<int> candidates;
@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
     candidates.push_back(20 * (i + 1));
   }
   int total_passed_tests = 0;
-  for (int i = 0; i < kIterations; i++) {
+  for (int i = 0; i < kIterations; ++i) {
     int passed_tests = 0;
     for (int candidate_large : candidates) {
       uint64_t res_large = FindMaxReadingTime(kCacheSize * candidate_large);
@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
           std::cout << "test failed" << std::endl;
         } else {
           std::cout << "test passed" << std::endl;
-          passed_tests++;
+          ++passed_tests;
         }
       }
     }
