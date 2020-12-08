@@ -79,11 +79,21 @@ class TimingArray {
     // Map index to element.
     //
     // As mentioned in the class comment, we try to frustrate hardware
-    // prefetchers by applying a permutation so elements don't appear in memory
-    // in index order. The mapping is pretty simple: we multiply by an odd
-    // number and mod by 256. Any odd number 1<n<256 will cover the range, but
-    // we choose one that generates a sufficiently "random-looking" sequence.
-    // We also add an offset so that the first element isn't first in memory.
+    // prefetchers by applying a permutation so elements don't appear in
+    // memory in index order. We do this by using a Linear Congruential
+    // Generator (LCG) where the size of the array is the modulus.
+    // To guarantee that this is a permutation, we just need to follow the
+    // requirements here:
+    //
+    // https://en.wikipedia.org/wiki/Linear_congruential_generator#c_%E2%89%A0_0
+    //
+    // In this case, 113 makes a good choice: 113 is prime, 113-1 = 112 is
+    // divisible by 256's only prime factor (2), both are divisible by 4.
+    // If the array were dynamically sized, we would not be able to hardcode
+    // 113, and it would be difficult to produce a good multiplier.
+    // It may be desirable, instead, to switch to a different PRNG
+    // that also supports small periods and efficient seeking.
+    // (For example, a Permuted Congruential Generator.)
     static_assert(kRealElements == 256, "consider changing 113");
     size_t el = (100 + i*113) % kRealElements;
 
