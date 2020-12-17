@@ -5,7 +5,7 @@ Run instructions:
   python3 -m venv env
   source env/activate
   pip install -r experimental/requirements.txt
-  python experimental/cache_analysis.py . cache_size_results.csv
+  python experimental/cache_analysis.py cache_size_results.csv
 """
 
 
@@ -102,12 +102,11 @@ def draw_all_datapoints(data, sizes, name):
 
 
 def main():
-  #TODO better options for getting the input can be used (maybe?)
-  file_path = sys.argv[1]  # path to the result file
-  file_name = sys.argv[2]  # name of result file
+  if len(sys.argv) != 2:
+    sys.exit(f"Expected 1 argument, got {len(sys.argv) - 1}")
 
   # read csv file to extract data
-  df = pd.read_csv(os.path.join(file_path, file_name), header=None)
+  df = pd.read_csv(sys.argv[1], header=None)
 
 
   count_row = df.shape[0]  # gives number of row count
