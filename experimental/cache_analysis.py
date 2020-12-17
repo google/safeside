@@ -1,3 +1,14 @@
+"""Plot measurement data.
+
+Run instructions:
+
+  python3 -m venv env
+  source env/activate
+  pip install -r experimental/requirements.txt
+  python experimental/cache_analysis.py . cache_size_results.csv
+"""
+
+
 from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
 import io
