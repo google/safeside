@@ -4,7 +4,7 @@ Run instructions:
 
   python3 -m venv env
   source env/activate
-  pip install -r experimental/requirements.txt
+  pip install -r experimental/requirements.lock
   python experimental/cache_analysis.py cache_size_results.csv
 """
 
