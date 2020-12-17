@@ -27,13 +27,13 @@ inline unsigned char PermuteChar(unsigned char x) {
 inline uint32_t PermuteInt(uint32_t x, uint32_t max) {
   int num_bytes;
   if (max <= 1<<8) {
-      num_bytes = 1;
+    num_bytes = 1;
   } else if (max <= 1 << 16) {
-      num_bytes = 2;
+    num_bytes = 2;
   } else if (max <= 1 << 24) {
-      num_bytes = 3;
+    num_bytes = 3;
   } else {
-      num_bytes = 4;
+    num_bytes = 4;
   }
 
   unsigned char* begin_inclusive = reinterpret_cast<unsigned char*>(&x);
@@ -43,7 +43,7 @@ inline uint32_t PermuteInt(uint32_t x, uint32_t max) {
     // This will only execute more than once for the last byte, and only if max
     // isn't exactly 1 << (n*8).
     do {
-        *c = PermuteChar(*c);
+      *c = PermuteChar(*c);
     } while (x >= max);
   }
   return x;
@@ -59,7 +59,7 @@ template <typename T> class ShuffledSpan {
   ShuffledSpan& operator=(ShuffledSpan&&) = default;
 
   size_t size() const {
-      return size_;
+    return size_;
   }
 
   const T& operator[](size_t i) const {
